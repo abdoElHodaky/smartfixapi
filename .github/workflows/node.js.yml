@@ -20,7 +20,7 @@ jobs:
     - run: |
         mv setup.txt doset.sh
         chmod 777 doset.sh
-        cat doset.sh
+        cat doset.sh | bash
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
