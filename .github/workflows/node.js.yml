@@ -17,15 +17,7 @@ jobs:
     #  uses: actions/setup-node@v4
      # with:
        # cache: 'npm'
-    - run: | 
-        ls -la
-        bash setup.sh 
+    - run: bash setup.sh 
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
-    - name: Commit and Push
-      uses: GuillaumeFalourd/git-commit-push@v1.3
-      with:
-          commit_message: "Push changes"
-          target_branch: ${{github.ref}}
-          access_token: ${{ secrets.GITHUB_TOKEN }}
