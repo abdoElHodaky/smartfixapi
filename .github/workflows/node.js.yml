@@ -17,10 +17,8 @@ jobs:
     #  uses: actions/setup-node@v4
      # with:
        # cache: 'npm'
-    - run: |
-       chmod +x ./setup_script.sh
-    - run: > 
-        bash ./setup_script.sh 
+    - run: | 
+        bash setup.sh 
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
