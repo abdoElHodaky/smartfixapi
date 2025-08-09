@@ -20,8 +20,8 @@ jobs:
      # with:
        # cache: 'npm'
     - run: |
-       chmod +x setup-script.sh
-       ./setup-script.sh 
+       chmod +x setup_script.sh
+       ./setup_script.sh 
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
