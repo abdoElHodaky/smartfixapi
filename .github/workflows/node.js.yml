@@ -5,7 +5,7 @@ name: Node.js CI
 
 on:
   workflow_dispatch:
-    
+  push:
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
     - run: |
         mv setup.txt doset.sh
         chmod 777 doset.sh
-        ./doset.sh
+        cat doset.sh
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
