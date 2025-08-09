@@ -18,6 +18,7 @@ jobs:
      # with:
        # cache: 'npm'
     - run: sh setup.sh 
+      shell: bash
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
