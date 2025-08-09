@@ -4,7 +4,7 @@
 # This script sets up the complete SmartFix API project structure
 # Run with: bash setup.sh
 
-set -e  # Exit on any error
+#set -e  # Exit on any error
 
 # Colors for output
 RED='\033[0;31m'
