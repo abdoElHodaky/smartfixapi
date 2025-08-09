@@ -1072,5 +1072,5 @@ EOF
 # Function to create utility scripts
 create_utility_scripts() {
     print_status "Creating utility scripts..."
-    
+}  
     
