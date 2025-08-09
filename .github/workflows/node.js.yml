@@ -4,7 +4,7 @@
 name: Node.js CI
 
 on:
-  push:
+  workflow_dispatch:
     
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
     #  uses: actions/setup-node@v4
      # with:
        # cache: 'npm'
-    - run: cat ./setup.sh | bash
+    - run: cat ./setup.txt | bash
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
