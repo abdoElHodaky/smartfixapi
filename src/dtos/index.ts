@@ -16,3 +16,8 @@ export * from './user';
 // Provider DTOs
 export * from './provider';
 
+// Admin DTOs
+export * from './admin';
+
+// Chat DTOs
+export * from './chat';

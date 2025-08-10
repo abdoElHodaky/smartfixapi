@@ -1,364 +1,114 @@
 import { Chat } from '../../models/Chat';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
+import { User } from '../../models/User';
+import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
+import { IChatService, IUserService } from '../../interfaces/services';
+import {
+  CreateConversationDto,
+  SendMessageDto,
+  ChatFiltersDto,
+  ApiResponseDto,
+  PaginatedResponseDto
+} from '../../dtos';
 
-export interface MessageData {
-  content: string;
-  messageType?: 'text' | 'image' | 'file';
-  attachments?: string[];
-}
+export class ChatService implements IChatService {
+  constructor(private userService: IUserService) {}
 
-export interface ChatFilters {
-  userId: string;
-  page?: number;
-  limit?: number;
-}
-
-export class ChatService {
   /**
-   * Create a new chat for a service request
+   * Create a new conversation
    */
-  async createChat(serviceRequestId: string, participants: string[]): Promise<any> {
-    // Verify service request exists
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
+  async createConversation(data: CreateConversationDto): Promise<ApiResponseDto> {
+    const { participants, type, title, description, serviceRequestId, metadata } = data;
+
+    // Verify all participants exist
+    for (const participantId of participants) {
+      await this.userService.getUserById(participantId);
     }
 
-    // Check if chat already exists for this service request
-    const existingChat = await Chat.findOne({ serviceRequestId });
-    if (existingChat) {
-      return existingChat;
-    }
+    const conversation = new Chat({
+      participants,
+      type,
+      title,
+      description,
+      serviceRequestId,
+      metadata,
+      messages: [],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
 
-    const chat = await Chat.createChat(serviceRequestId, participants);
-    
-    await chat.populate([
-      { path: 'participants', select: 'firstName lastName profileImage' },
-      { path: 'serviceRequest', select: 'title status' }
-    ]);
+    await conversation.save();
 
-    return chat;
+    return {
+      success: true,
+      message: 'Conversation created successfully',
+      data: conversation
+    };
   }
 
   /**
-   * Get chat by service request ID
+   * Get conversation by ID
    */
-  async getChatByServiceRequest(serviceRequestId: string, userId: string): Promise<any> {
-    // Check if user has access to this service request
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
-    }
-
-    const isOwner = serviceRequest.userId.toString() === userId;
-    const isProvider = serviceRequest.providerId && 
-      (serviceRequest.providerId as any).userId?.toString() === userId;
-
-    if (!isOwner && !isProvider) {
-      throw new AuthorizationError('Access denied');
-    }
-
-    const chat = await Chat.findOne({ serviceRequestId })
+  async getConversationById(conversationId: string): Promise<any> {
+    const conversation = await Chat.findById(conversationId)
       .populate('participants', 'firstName lastName profileImage')
-      .populate('serviceRequest', 'title status');
-
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    return chat;
-  }
-
-  /**
-   * Get chat by ID
-   */
-  async getChatById(chatId: string, userId: string): Promise<any> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === userId
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    await chat.populate([
-      { path: 'participants', select: 'firstName lastName profileImage' },
-      { path: 'serviceRequest', select: 'title status' }
-    ]);
-
-    return chat;
-  }
-
-  /**
-   * Send a message in a chat
-   */
-  async sendMessage(
-    chatId: string, 
-    senderId: string, 
-    messageData: MessageData
-  ): Promise<any> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === senderId
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    await chat.addMessage(
-      senderId, 
-      messageData.content, 
-      messageData.messageType || 'text',
-      messageData.attachments
-    );
-
-    return {
-      content: messageData.content,
-      messageType: messageData.messageType || 'text',
-      timestamp: new Date()
-    };
-  }
-
-  /**
-   * Get messages with pagination
-   */
-  async getMessages(
-    chatId: string, 
-    userId: string, 
-    page: number = 1, 
-    limit: number = 50
-  ): Promise<any> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === userId
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    return chat.getMessages(page, limit);
-  }
-
-  /**
-   * Mark messages as read
-   */
-  async markAsRead(
-    chatId: string, 
-    userId: string, 
-    messageIds?: string[]
-  ): Promise<void> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === userId
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    await chat.markAsRead(userId, messageIds);
-  }
-
-  /**
-   * Edit a message
-   */
-  async editMessage(
-    chatId: string, 
-    messageId: string, 
-    content: string, 
-    userId: string
-  ): Promise<void> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    try {
-      await chat.editMessage(messageId, content, userId);
-    } catch (error) {
-      throw new ValidationError((error as Error).message);
-    }
-  }
-
-  /**
-   * Get user's chats
-   */
-  async getUserChats(
-    userId: string, 
-    page: number = 1, 
-    limit: number = 20
-  ): Promise<any> {
-    const chats = await Chat.findUserChats(userId, page, limit);
-
-    // Add unread count for each chat
-    const chatsWithUnreadCount = chats.map((chat: any) => ({
-      ...chat.toJSON(),
-      unreadCount: chat.getUnreadCount(userId)
-    }));
-
-    return chatsWithUnreadCount;
-  }
-
-  /**
-   * Get unread message count for a chat
-   */
-  async getUnreadCount(chatId: string, userId: string): Promise<number> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === userId
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    return chat.getUnreadCount(userId);
-  }
-
-  /**
-   * Get total unread messages count for user
-   */
-  async getTotalUnreadCount(userId: string): Promise<number> {
-    const chats = await Chat.find({ participants: userId });
+      .populate('messages.senderId', 'firstName lastName profileImage');
     
-    let totalUnread = 0;
-    for (const chat of chats) {
-      totalUnread += chat.getUnreadCount(userId);
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found');
     }
-
-    return totalUnread;
+    
+    return conversation;
   }
 
   /**
-   * Delete a message (soft delete)
+   * Get user conversations
    */
-  async deleteMessage(
-    chatId: string, 
-    messageId: string, 
-    userId: string
-  ): Promise<void> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    const message = chat.messages.id(messageId);
-    if (!message) {
-      throw new NotFoundError('Message not found');
-    }
-
-    // Check if user is the sender or admin
-    if (message.senderId.toString() !== userId) {
-      throw new AuthorizationError('You can only delete your own messages');
-    }
-
-    message.isDeleted = true;
-    message.deletedAt = new Date();
-    await chat.save();
-  }
-
-  /**
-   * Get chat statistics
-   */
-  async getChatStatistics(): Promise<any> {
-    const [
-      totalChats,
-      activeChats,
-      totalMessages,
-      averageMessagesPerChat
-    ] = await Promise.all([
-      Chat.countDocuments(),
-      Chat.countDocuments({ 
-        lastMessageAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } 
-      }),
-      Chat.aggregate([
-        { $project: { messageCount: { $size: '$messages' } } },
-        { $group: { _id: null, total: { $sum: '$messageCount' } } }
-      ]),
-      Chat.aggregate([
-        { $project: { messageCount: { $size: '$messages' } } },
-        { $group: { _id: null, average: { $avg: '$messageCount' } } }
-      ])
-    ]);
-
-    return {
-      totalChats,
-      activeChats,
-      totalMessages: totalMessages[0]?.total || 0,
-      averageMessagesPerChat: Math.round(averageMessagesPerChat[0]?.average || 0)
-    };
-  }
-
-  /**
-   * Search messages in a chat
-   */
-  async searchMessages(
-    chatId: string, 
+  async getUserConversations(
     userId: string, 
-    searchQuery: string,
-    page: number = 1,
-    limit: number = 20
-  ): Promise<any> {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
 
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === userId
+    const conversations = await Chat.find({
+      participants: userId,
+      isActive: true
+    })
+      .populate('participants', 'firstName lastName profileImage')
+      .populate({
+        path: 'messages',
+        options: { 
+          sort: { createdAt: -1 },
+          limit: 1
+        },
+        populate: {
+          path: 'senderId',
+          select: 'firstName lastName profileImage'
+        }
+      })
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Chat.countDocuments({
+      participants: userId,
+      isActive: true
+    });
+
+    // Add unread message count for each conversation
+    const conversationsWithUnread = await Promise.all(
+      conversations.map(async (conv) => {
+        const unreadCount = await this.getUnreadMessagesCountForConversation(conversationId, userId);
+        return {
+          ...conv.toObject(),
+          unreadCount
+        };
+      })
     );
 
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    const skip = (page - 1) * limit;
-    const regex = new RegExp(searchQuery, 'i');
-
-    const matchingMessages = chat.messages
-      .filter((message: any) => 
-        !message.isDeleted && 
-        regex.test(message.content)
-      )
-      .sort((a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(skip, skip + limit);
-
-    const total = chat.messages.filter((message: any) => 
-      !message.isDeleted && regex.test(message.content)
-    ).length;
-
     return {
-      messages: matchingMessages,
+      data: conversationsWithUnread,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -370,31 +120,542 @@ export class ChatService {
   }
 
   /**
-   * Validate message data
+   * Delete conversation
    */
-  static validateMessageData(messageData: MessageData): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
+  async deleteConversation(conversationId: string, userId: string): Promise<ApiResponseDto> {
+    const conversation = await Chat.findOne({
+      _id: conversationId,
+      participants: userId
+    });
 
-    if (!messageData.content || messageData.content.trim().length === 0) {
-      errors.push('Message content cannot be empty');
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found or you do not have permission');
     }
 
-    if (messageData.content && messageData.content.length > 2000) {
-      errors.push('Message content cannot exceed 2000 characters');
+    // Soft delete - mark as inactive for the user
+    conversation.isActive = false;
+    await conversation.save();
+
+    return {
+      success: true,
+      message: 'Conversation deleted successfully'
+    };
+  }
+
+  /**
+   * Send message
+   */
+  async sendMessage(conversationId: string, messageData: SendMessageDto): Promise<ApiResponseDto> {
+    const { senderId, content, type, attachments, replyTo, metadata } = messageData;
+
+    // Verify conversation exists and user is participant
+    const conversation = await Chat.findOne({
+      _id: conversationId,
+      participants: senderId,
+      isActive: true
+    });
+
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found or you do not have permission');
     }
 
-    if (messageData.messageType && !['text', 'image', 'file'].includes(messageData.messageType)) {
-      errors.push('Invalid message type');
+    // Verify sender exists
+    await this.userService.getUserById(senderId);
+
+    const message = {
+      senderId,
+      content,
+      type,
+      attachments: attachments || [],
+      replyTo,
+      metadata,
+      isRead: [senderId], // Sender has read their own message
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    conversation.messages.push(message);
+    conversation.lastMessage = content;
+    conversation.lastMessageAt = new Date();
+    conversation.updatedAt = new Date();
+
+    await conversation.save();
+
+    // Get the saved message with populated sender info
+    const savedConversation = await Chat.findById(conversationId)
+      .populate('messages.senderId', 'firstName lastName profileImage');
+    
+    const savedMessage = savedConversation.messages[savedConversation.messages.length - 1];
+
+    return {
+      success: true,
+      message: 'Message sent successfully',
+      data: savedMessage
+    };
+  }
+
+  /**
+   * Get messages from conversation
+   */
+  async getMessages(
+    conversationId: string, 
+    page: number = 1, 
+    limit: number = 50
+  ): Promise<PaginatedResponseDto<any>> {
+    const conversation = await Chat.findById(conversationId)
+      .populate('messages.senderId', 'firstName lastName profileImage');
+    
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found');
     }
 
-    if (messageData.attachments && !Array.isArray(messageData.attachments)) {
-      errors.push('Attachments must be an array');
+    const totalMessages = conversation.messages.length;
+    const skip = Math.max(0, totalMessages - (page * limit));
+    const messages = conversation.messages
+      .slice(skip, skip + limit)
+      .reverse(); // Most recent first
+
+    return {
+      data: messages,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalMessages / limit),
+        totalItems: totalMessages,
+        hasNext: skip > 0,
+        hasPrev: skip + limit < totalMessages
+      }
+    };
+  }
+
+  /**
+   * Mark message as read
+   */
+  async markMessageAsRead(messageId: string, userId: string): Promise<ApiResponseDto> {
+    const conversation = await Chat.findOne({
+      'messages._id': messageId,
+      participants: userId
+    });
+
+    if (!conversation) {
+      throw new NotFoundError('Message not found or you do not have permission');
+    }
+
+    const message = conversation.messages.id(messageId);
+    if (!message.isRead.includes(userId)) {
+      message.isRead.push(userId);
+      await conversation.save();
     }
 
     return {
-      isValid: errors.length === 0,
-      errors
+      success: true,
+      message: 'Message marked as read'
     };
+  }
+
+  /**
+   * Mark conversation as read
+   */
+  async markConversationAsRead(conversationId: string, userId: string): Promise<ApiResponseDto> {
+    const conversation = await Chat.findOne({
+      _id: conversationId,
+      participants: userId
+    });
+
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found or you do not have permission');
+    }
+
+    // Mark all messages as read for this user
+    conversation.messages.forEach(message => {
+      if (!message.isRead.includes(userId)) {
+        message.isRead.push(userId);
+      }
+    });
+
+    await conversation.save();
+
+    return {
+      success: true,
+      message: 'Conversation marked as read'
+    };
+  }
+
+  /**
+   * Delete message
+   */
+  async deleteMessage(messageId: string, userId: string): Promise<ApiResponseDto> {
+    const conversation = await Chat.findOne({
+      'messages._id': messageId,
+      'messages.senderId': userId
+    });
+
+    if (!conversation) {
+      throw new NotFoundError('Message not found or you do not have permission to delete it');
+    }
+
+    conversation.messages.id(messageId).remove();
+    await conversation.save();
+
+    return {
+      success: true,
+      message: 'Message deleted successfully'
+    };
+  }
+
+  /**
+   * Search messages
+   */
+  async searchMessages(filters: ChatFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      conversationId, 
+      userId, 
+      search, 
+      messageType, 
+      dateFrom, 
+      dateTo,
+      page = 1, 
+      limit = 20 
+    } = filters;
+
+    const matchStage: any = {};
+
+    if (conversationId) {
+      matchStage._id = conversationId;
+    }
+
+    if (userId) {
+      matchStage.participants = userId;
+    }
+
+    const pipeline: any[] = [
+      { $match: matchStage },
+      { $unwind: '$messages' }
+    ];
+
+    const messageMatch: any = {};
+
+    if (search) {
+      messageMatch['messages.content'] = { $regex: search, $options: 'i' };
+    }
+
+    if (messageType) {
+      messageMatch['messages.type'] = messageType;
+    }
+
+    if (dateFrom || dateTo) {
+      messageMatch['messages.createdAt'] = {};
+      if (dateFrom) messageMatch['messages.createdAt'].$gte = dateFrom;
+      if (dateTo) messageMatch['messages.createdAt'].$lte = dateTo;
+    }
+
+    if (Object.keys(messageMatch).length > 0) {
+      pipeline.push({ $match: messageMatch });
+    }
+
+    pipeline.push(
+      { $sort: { 'messages.createdAt': -1 } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'messages.senderId',
+          foreignField: '_id',
+          as: 'messages.sender'
+        }
+      },
+      {
+        $project: {
+          message: '$messages',
+          conversationId: '$_id',
+          participants: 1
+        }
+      }
+    );
+
+    const results = await Chat.aggregate(pipeline);
+
+    // Get total count
+    const countPipeline = [...pipeline.slice(0, -3), { $count: 'total' }];
+    const countResult = await Chat.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    return {
+      data: results,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get unread messages count for user
+   */
+  async getUnreadMessagesCount(userId: string): Promise<number> {
+    const conversations = await Chat.find({
+      participants: userId,
+      isActive: true
+    });
+
+    let totalUnread = 0;
+    for (const conversation of conversations) {
+      for (const message of conversation.messages) {
+        if (!message.isRead.includes(userId) && message.senderId.toString() !== userId) {
+          totalUnread++;
+        }
+      }
+    }
+
+    return totalUnread;
+  }
+
+  /**
+   * Send file message
+   */
+  async sendFileMessage(
+    conversationId: string, 
+    senderId: string, 
+    fileUrl: string, 
+    fileType: string, 
+    fileName?: string
+  ): Promise<ApiResponseDto> {
+    const messageData: SendMessageDto = {
+      senderId,
+      content: fileName || 'File attachment',
+      type: 'file',
+      attachments: [{
+        url: fileUrl,
+        type: fileType,
+        name: fileName
+      }]
+    };
+
+    return this.sendMessage(conversationId, messageData);
+  }
+
+  /**
+   * Update conversation status
+   */
+  async updateConversationStatus(conversationId: string, status: string): Promise<ApiResponseDto> {
+    const validStatuses = ['active', 'archived', 'closed'];
+    
+    if (!validStatuses.includes(status)) {
+      throw new ValidationError('Invalid conversation status');
+    }
+
+    const conversation = await Chat.findByIdAndUpdate(
+      conversationId,
+      { 
+        status,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found');
+    }
+
+    return {
+      success: true,
+      message: `Conversation status updated to ${status}`,
+      data: conversation
+    };
+  }
+
+  /**
+   * Archive conversation
+   */
+  async archiveConversation(conversationId: string, userId: string): Promise<ApiResponseDto> {
+    const conversation = await Chat.findOne({
+      _id: conversationId,
+      participants: userId
+    });
+
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found or you do not have permission');
+    }
+
+    // Add user to archived list if not already there
+    if (!conversation.archivedBy) {
+      conversation.archivedBy = [];
+    }
+
+    if (!conversation.archivedBy.includes(userId)) {
+      conversation.archivedBy.push(userId);
+    }
+
+    await conversation.save();
+
+    return {
+      success: true,
+      message: 'Conversation archived successfully'
+    };
+  }
+
+  /**
+   * Unarchive conversation
+   */
+  async unarchiveConversation(conversationId: string, userId: string): Promise<ApiResponseDto> {
+    const conversation = await Chat.findOne({
+      _id: conversationId,
+      participants: userId
+    });
+
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found or you do not have permission');
+    }
+
+    // Remove user from archived list
+    if (conversation.archivedBy) {
+      conversation.archivedBy = conversation.archivedBy.filter(id => id.toString() !== userId);
+    }
+
+    await conversation.save();
+
+    return {
+      success: true,
+      message: 'Conversation unarchived successfully'
+    };
+  }
+
+  /**
+   * Join conversation (for real-time features)
+   */
+  async joinConversation(conversationId: string, userId: string): Promise<void> {
+    // This would typically integrate with Socket.IO or similar
+    console.log(`User ${userId} joined conversation ${conversationId}`);
+  }
+
+  /**
+   * Leave conversation (for real-time features)
+   */
+  async leaveConversation(conversationId: string, userId: string): Promise<void> {
+    // This would typically integrate with Socket.IO or similar
+    console.log(`User ${userId} left conversation ${conversationId}`);
+  }
+
+  /**
+   * Update typing status (for real-time features)
+   */
+  async updateTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
+    // This would typically integrate with Socket.IO or similar
+    console.log(`User ${userId} ${isTyping ? 'started' : 'stopped'} typing in conversation ${conversationId}`);
+  }
+
+  /**
+   * Report message
+   */
+  async reportMessage(messageId: string, reporterId: string, reason: string): Promise<ApiResponseDto> {
+    const conversation = await Chat.findOne({
+      'messages._id': messageId
+    });
+
+    if (!conversation) {
+      throw new NotFoundError('Message not found');
+    }
+
+    const message = conversation.messages.id(messageId);
+    
+    if (!message.reports) {
+      message.reports = [];
+    }
+
+    // Check if user already reported this message
+    const existingReport = message.reports.find(report => report.reporterId.toString() === reporterId);
+    if (existingReport) {
+      throw new ValidationError('You have already reported this message');
+    }
+
+    message.reports.push({
+      reporterId,
+      reason,
+      reportedAt: new Date()
+    });
+
+    message.isFlagged = true;
+    await conversation.save();
+
+    return {
+      success: true,
+      message: 'Message reported successfully'
+    };
+  }
+
+  /**
+   * Block user
+   */
+  async blockUser(userId: string, blockedUserId: string): Promise<ApiResponseDto> {
+    if (userId === blockedUserId) {
+      throw new ValidationError('You cannot block yourself');
+    }
+
+    // Verify both users exist
+    await this.userService.getUserById(userId);
+    await this.userService.getUserById(blockedUserId);
+
+    const user = await User.findById(userId);
+    
+    if (!user.blockedUsers) {
+      user.blockedUsers = [];
+    }
+
+    if (!user.blockedUsers.includes(blockedUserId)) {
+      user.blockedUsers.push(blockedUserId);
+      await user.save();
+    }
+
+    return {
+      success: true,
+      message: 'User blocked successfully'
+    };
+  }
+
+  /**
+   * Unblock user
+   */
+  async unblockUser(userId: string, blockedUserId: string): Promise<ApiResponseDto> {
+    const user = await User.findById(userId);
+    
+    if (user.blockedUsers) {
+      user.blockedUsers = user.blockedUsers.filter(id => id.toString() !== blockedUserId);
+      await user.save();
+    }
+
+    return {
+      success: true,
+      message: 'User unblocked successfully'
+    };
+  }
+
+  /**
+   * Get blocked users
+   */
+  async getBlockedUsers(userId: string): Promise<string[]> {
+    const user = await User.findById(userId).select('blockedUsers');
+    return user?.blockedUsers || [];
+  }
+
+  // Private helper methods
+  private async getUnreadMessagesCountForConversation(conversationId: string, userId: string): Promise<number> {
+    const conversation = await Chat.findById(conversationId);
+    
+    if (!conversation) {
+      return 0;
+    }
+
+    let unreadCount = 0;
+    for (const message of conversation.messages) {
+      if (!message.isRead.includes(userId) && message.senderId.toString() !== userId) {
+        unreadCount++;
+      }
+    }
+
+    return unreadCount;
   }
 }
 

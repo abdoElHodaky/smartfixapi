@@ -1,52 +1,51 @@
-# SmartFix Service Providers API
+# Service Providers Platform - ExpressJS & MongoDB
 
-A comprehensive ExpressJS service providers platform built with TypeScript, MongoDB, and advanced dependency injection patterns.
+A comprehensive service providers platform built with ExpressJS, MongoDB, and TypeScript, featuring dependency injection, real-time chat, and admin management.
 
 ## 🚀 Features
 
-- **Dependency Injection Container**: Clean architecture with proper service management
-- **Type-Safe DTOs**: Comprehensive data transfer objects for all operations
-- **Service Layer Architecture**: Separated business logic with interface-based design
-- **Authentication & Authorization**: JWT-based auth with role management
-- **Service Provider Management**: Complete provider lifecycle management
-- **Service Request System**: End-to-end service request handling
-- **Review & Rating System**: Comprehensive review management
-- **Location-Based Services**: Geographic search and filtering
-- **Portfolio Management**: Provider portfolio and showcase features
+### Core Features
+- **User Management**: Registration, authentication, profile management
+- **Service Provider System**: Provider registration, verification, service listings
+- **Service Requests**: Request creation, matching, status tracking
+- **Review System**: Rating and review management
+- **Real-time Chat**: Messaging between users and providers
+- **Admin Dashboard**: Comprehensive admin panel with analytics
 
-## 🏗️ Architecture
+### Technical Features
+- **Dependency Injection**: Clean architecture with DI container
+- **TypeScript**: Full type safety and modern JavaScript features
+- **MongoDB**: Document-based database with Mongoose ODM
+- **JWT Authentication**: Secure token-based authentication
+- **Role-based Authorization**: User, Provider, and Admin roles
+- **Error Handling**: Centralized error handling middleware
+- **Input Validation**: Request validation and sanitization
+- **API Documentation**: RESTful API design
 
-### Dependency Injection
-The application uses a custom DI container that manages service lifecycles and dependencies:
+## 📁 Project Structure
 
-```typescript
-// Services are automatically resolved with their dependencies
-const authService = serviceRegistry.getService<IAuthService>('AuthService');
-const userService = serviceRegistry.getService<IUserService>('UserService');
+```
+src/
+├── config/           # Configuration files
+├── container/        # Dependency injection container
+├── controllers/      # Request handlers
+├── dtos/            # Data transfer objects
+├── interfaces/      # Service interfaces
+├── middleware/      # Express middleware
+├── models/          # Mongoose models
+├── routes/          # API routes
+├── services/        # Business logic services
+├── types/           # TypeScript type definitions
+├── app.ts           # Express app configuration
+└── server.ts        # Server entry point
 ```
 
-### Service Layer
-All business logic is encapsulated in service classes that implement well-defined interfaces:
-
-- `IAuthService` - Authentication and authorization
-- `IUserService` - User management operations
-- `IProviderService` - Service provider operations
-- `IServiceRequestService` - Service request lifecycle
-- `IReviewService` - Review and rating management
-
-### Data Transfer Objects (DTOs)
-Type-safe data contracts for all API operations:
-
-- Request DTOs: `UserRegistrationDto`, `CreateRequestDto`, etc.
-- Response DTOs: `LoginResponseDto`, `ApiResponseDto`, etc.
-- Filter DTOs: `UserFiltersDto`, `ProviderFiltersDto`, etc.
-
-## 📦 Installation
+## 🛠️ Installation
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd smartfix-service-providers
+   cd smartfixapi
    ```
 
 2. **Install dependencies**
@@ -54,10 +53,18 @@ Type-safe data contracts for all API operations:
    npm install
    ```
 
-3. **Set up environment variables**
+3. **Environment Setup**
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   ```
+   
+   Configure your environment variables:
+   ```env
+   NODE_ENV=development
+   PORT=3000
+   MONGODB_URI=mongodb://localhost:27017/serviceplatform
+   JWT_SECRET=your-jwt-secret
+   JWT_EXPIRES_IN=7d
    ```
 
 4. **Start MongoDB**
@@ -65,7 +72,8 @@ Type-safe data contracts for all API operations:
    # Using Docker
    docker run -d -p 27017:27017 --name mongodb mongo:latest
    
-   # Or use your local MongoDB installation
+   # Or start your local MongoDB instance
+   mongod
    ```
 
 5. **Run the application**
@@ -73,158 +81,162 @@ Type-safe data contracts for all API operations:
    # Development mode
    npm run dev
    
-   # Production build
+   # Production mode
    npm run build
    npm start
    ```
 
-## 🛠️ Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm run test` - Run tests
-- `npm run test:watch` - Run tests in watch mode
-- `npm run test:coverage` - Run tests with coverage
-- `npm run lint` - Lint code
-- `npm run format` - Format code with Prettier
-
-### Project Structure
-
-```
-src/
-├── app.ts                 # Application entry point
-├── config/               # Configuration files
-├── container/            # Dependency injection container
-├── controllers/          # Request handlers
-├── dtos/                # Data transfer objects
-├── interfaces/          # Service interfaces
-├── middleware/          # Express middleware
-├── models/              # Mongoose models
-├── routes/              # Route definitions
-├── services/            # Business logic services
-└── utils/               # Utility functions
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Key environment variables (see `.env.example` for complete list):
-
-- `PORT` - Server port (default: 3000)
-- `MONGODB_URI` - MongoDB connection string
-- `JWT_SECRET` - JWT signing secret
-- `JWT_EXPIRES_IN` - JWT expiration time
-- `BCRYPT_SALT_ROUNDS` - Password hashing rounds
-
-### Database Setup
-
-The application uses MongoDB with Mongoose ODM. Models include:
-
-- `User` - User accounts and profiles
-- `ServiceProvider` - Service provider profiles
-- `ServiceRequest` - Service requests and lifecycle
-- `Review` - Reviews and ratings
-
 ## 📚 API Documentation
 
 ### Authentication Endpoints
-
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/register-provider` - Register service provider
-- `POST /api/auth/login` - User login
-- `POST /api/auth/refresh-token` - Refresh JWT token
-- `PUT /api/auth/change-password` - Change password
-- `POST /api/auth/reset-password` - Reset password
+```
+POST /api/auth/register     # User registration
+POST /api/auth/login        # User login
+POST /api/auth/refresh      # Refresh JWT token
+POST /api/auth/logout       # User logout
+```
 
 ### User Management
+```
+GET    /api/users/profile           # Get user profile
+PUT    /api/users/profile           # Update user profile
+DELETE /api/users/profile           # Delete user account
+GET    /api/users/:id               # Get user by ID
+```
 
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update user profile
-- `DELETE /api/users/account` - Delete user account
-- `GET /api/users/search` - Search users
-- `GET /api/users/service-requests` - Get user's service requests
-- `GET /api/users/reviews` - Get user's reviews
-
-### Service Provider Management
-
-- `GET /api/providers/:id` - Get provider details
-- `PUT /api/providers/:id` - Update provider profile
-- `GET /api/providers/search` - Search providers
-- `POST /api/providers/:id/portfolio` - Add portfolio item
-- `PUT /api/providers/:id/portfolio/:itemId` - Update portfolio item
-- `DELETE /api/providers/:id/portfolio/:itemId` - Delete portfolio item
+### Provider Management
+```
+POST   /api/providers               # Register as provider
+GET    /api/providers               # Get all providers
+GET    /api/providers/:id           # Get provider details
+PUT    /api/providers/:id           # Update provider profile
+DELETE /api/providers/:id           # Delete provider
+```
 
 ### Service Requests
-
-- `POST /api/service-requests` - Create service request
-- `GET /api/service-requests/:id` - Get service request details
-- `PUT /api/service-requests/:id` - Update service request
-- `DELETE /api/service-requests/:id` - Delete service request
-- `POST /api/service-requests/:id/accept` - Accept service request
-- `POST /api/service-requests/:id/reject` - Reject service request
-- `POST /api/service-requests/:id/start` - Start service
-- `POST /api/service-requests/:id/complete` - Complete service
+```
+POST   /api/service-requests        # Create service request
+GET    /api/service-requests        # Get service requests
+GET    /api/service-requests/:id    # Get request details
+PUT    /api/service-requests/:id    # Update request
+DELETE /api/service-requests/:id    # Delete request
+```
 
 ### Reviews
+```
+POST   /api/reviews                 # Create review
+GET    /api/reviews                 # Get reviews
+GET    /api/reviews/:id             # Get review details
+PUT    /api/reviews/:id             # Update review
+DELETE /api/reviews/:id             # Delete review
+```
 
-- `POST /api/reviews` - Create review
-- `GET /api/reviews/:id` - Get review details
-- `PUT /api/reviews/:id` - Update review
-- `DELETE /api/reviews/:id` - Delete review
-- `GET /api/reviews/provider/:providerId` - Get provider reviews
-- `POST /api/reviews/:id/respond` - Respond to review
+### Chat System
+```
+POST   /api/chat/conversations      # Create conversation
+GET    /api/chat/conversations/:id  # Get conversation
+POST   /api/chat/conversations/:id/messages  # Send message
+GET    /api/chat/conversations/:id/messages  # Get messages
+PUT    /api/chat/messages/:id/read  # Mark message as read
+```
+
+### Admin Panel
+```
+GET    /api/admin/dashboard/stats   # Dashboard statistics
+GET    /api/admin/users             # Manage users
+GET    /api/admin/providers         # Manage providers
+GET    /api/admin/reviews           # Moderate reviews
+GET    /api/admin/system/health     # System health
+```
+
+## 🏗️ Architecture
+
+### Dependency Injection
+The application uses a custom DI container for clean architecture:
+
+```typescript
+// Service registration
+container.registerClass('UserService', UserService, {
+  singleton: true,
+  dependencies: []
+});
+
+// Service resolution
+const userService = container.resolve<IUserService>('UserService');
+```
+
+### Service Layer Pattern
+Business logic is encapsulated in service classes:
+
+```typescript
+export class UserService implements IUserService {
+  async createUser(userData: CreateUserDto): Promise<ApiResponseDto> {
+    // Business logic here
+  }
+}
+```
+
+### Data Transfer Objects (DTOs)
+Type-safe data contracts for API requests/responses:
+
+```typescript
+export interface CreateUserDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: 'user' | 'provider';
+}
+```
+
+## 🔐 Security Features
+
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: bcrypt for password security
+- **Input Validation**: Request validation middleware
+- **CORS Protection**: Cross-origin request security
+- **Helmet**: Security headers middleware
+- **Rate Limiting**: API rate limiting (can be added)
 
 ## 🧪 Testing
 
-The project includes comprehensive testing setup:
-
 ```bash
-# Run all tests
+# Run tests
 npm test
+
+# Run tests with coverage
+npm run test:coverage
 
 # Run tests in watch mode
 npm run test:watch
-
-# Generate coverage report
-npm run test:coverage
 ```
 
-Test structure:
-- Unit tests for services
-- Integration tests for API endpoints
-- Mock implementations for external dependencies
+## 📊 Monitoring & Logging
+
+- **Morgan**: HTTP request logging
+- **Error Handling**: Centralized error handling
+- **Health Checks**: System health monitoring endpoint
+- **Audit Logs**: Admin action logging
 
 ## 🚀 Deployment
 
-### Production Build
-
-```bash
-npm run build
-npm start
-```
-
 ### Docker Deployment
+```bash
+# Build Docker image
+docker build -t service-platform .
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist ./dist
-EXPOSE 3000
-CMD ["npm", "start"]
+# Run with Docker Compose
+docker-compose up -d
 ```
 
-### Environment Setup
-
-Ensure all production environment variables are set:
-- Database connection strings
-- JWT secrets
-- External API keys
-- CORS origins
+### Environment Variables
+```env
+NODE_ENV=production
+PORT=3000
+MONGODB_URI=mongodb://mongo:27017/serviceplatform
+JWT_SECRET=your-production-jwt-secret
+JWT_EXPIRES_IN=7d
+```
 
 ## 🤝 Contributing
 
@@ -234,7 +246,7 @@ Ensure all production environment variables are set:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
@@ -248,11 +260,15 @@ For support and questions:
 ## 🔄 Changelog
 
 ### v1.0.0
-- Initial release with complete service provider platform
-- Dependency injection container implementation
-- Comprehensive DTO system
-- Service layer architecture
-- Authentication and authorization
-- Service request lifecycle management
+- Initial release with core features
+- User and provider management
+- Service request system
 - Review and rating system
+- Real-time chat functionality
+- Admin dashboard
+- Dependency injection architecture
+
+---
+
+Built with ❤️ using ExpressJS, MongoDB, and TypeScript
 

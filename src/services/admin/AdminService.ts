@@ -2,548 +2,930 @@ import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { ServiceRequest } from '../../models/ServiceRequest';
 import { Review } from '../../models/Review';
-import { Chat } from '../../models/Chat';
-import { NotFoundError } from '../../middleware/errorHandler';
+import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
+import { IAdminService, IUserService, IProviderService, IServiceRequestService, IReviewService } from '../../interfaces/services';
+import {
+  AdminFiltersDto,
+  AdminStatsDto,
+  ApiResponseDto,
+  PaginatedResponseDto
+} from '../../dtos';
 
-export interface AdminDashboardData {
-  stats: {
-    totalUsers: number;
-    totalProviders: number;
-    totalRequests: number;
-    totalReviews: number;
-    activeRequests: number;
-    completedRequests: number;
-    pendingProviders: number;
-    verifiedProviders: number;
-  };
-  recentUsers: any[];
-  recentRequests: any[];
-}
+export class AdminService implements IAdminService {
+  constructor(
+    private userService: IUserService,
+    private providerService: IProviderService,
+    private serviceRequestService: IServiceRequestService,
+    private reviewService: IReviewService
+  ) {}
 
-export interface PlatformStatistics {
-  userStats: any[];
-  providerStats: any;
-  requestStats: any[];
-  reviewStats: any[];
-  monthlyGrowth: any[];
-}
-
-export class AdminService {
   /**
-   * Get admin dashboard data
+   * Get all users with admin filters
    */
-  async getDashboardData(): Promise<AdminDashboardData> {
-    const [
-      totalUsers,
-      totalProviders,
-      totalRequests,
-      totalReviews,
-      activeRequests,
-      completedRequests,
-      pendingProviders,
-      verifiedProviders,
-      recentUsers,
-      recentRequests
-    ] = await Promise.all([
-      User.countDocuments({ role: { $ne: 'admin' } }),
-      ServiceProvider.countDocuments(),
-      ServiceRequest.countDocuments(),
-      Review.countDocuments(),
-      ServiceRequest.countDocuments({ status: { $in: ['accepted', 'in_progress'] } }),
-      ServiceRequest.countDocuments({ status: 'completed' }),
-      ServiceProvider.countDocuments({ isVerified: false }),
-      ServiceProvider.countDocuments({ isVerified: true }),
-      User.find({ role: { $ne: 'admin' } })
-        .select('firstName lastName email role createdAt')
-        .sort({ createdAt: -1 })
-        .limit(5),
-      ServiceRequest.find()
-        .populate('userId', 'firstName lastName')
-        .populate('providerId', 'businessName')
-        .sort({ createdAt: -1 })
-        .limit(5)
-    ]);
+  async getAllUsers(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      role, 
+      status, 
+      isEmailVerified, 
+      search,
+      registrationDateFrom,
+      registrationDateTo,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (role) {
+      filter.role = role;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (typeof isEmailVerified === 'boolean') {
+      filter.isEmailVerified = isEmailVerified;
+    }
+
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (registrationDateFrom || registrationDateTo) {
+      filter.createdAt = {};
+      if (registrationDateFrom) filter.createdAt.$gte = registrationDateFrom;
+      if (registrationDateTo) filter.createdAt.$lte = registrationDateTo;
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const users = await User.find(filter)
+      .select('-password')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments(filter);
 
     return {
-      stats: {
-        totalUsers,
-        totalProviders,
-        totalRequests,
-        totalReviews,
-        activeRequests,
-        completedRequests,
-        pendingProviders,
-        verifiedProviders
-      },
-      recentUsers,
-      recentRequests
+      data: users,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
     };
   }
 
   /**
-   * Get platform statistics
+   * Get user by ID (admin view)
    */
-  async getPlatformStatistics(): Promise<PlatformStatistics> {
-    const [
-      userStats,
-      providerStats,
-      requestStats,
-      reviewStats,
-      monthlyGrowth
-    ] = await Promise.all([
-      User.aggregate([
-        { $match: { role: { $ne: 'admin' } } },
-        { $group: { 
-          _id: '$role', 
-          count: { $sum: 1 },
-          active: { $sum: { $cond: ['$isActive', 1, 0] } }
-        }}
-      ]),
-      ServiceProvider.aggregate([
-        { $group: { 
-          _id: null, 
-          total: { $sum: 1 },
-          verified: { $sum: { $cond: ['$isVerified', 1, 0] } },
-          available: { $sum: { $cond: ['$isAvailable', 1, 0] } }
-        }}
-      ]),
-      ServiceRequest.aggregate([
-        { $group: { 
-          _id: '$status', 
-          count: { $sum: 1 },
-          avgBudget: { $avg: '$budget.max' }
-        }}
-      ]),
+  async getUserById(userId: string): Promise<any> {
+    const user = await User.findById(userId).select('-password');
+    
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    // Get additional user statistics
+    const [serviceRequestsCount, reviewsCount] = await Promise.all([
+      ServiceRequest.countDocuments({ userId }),
+      Review.countDocuments({ userId })
+    ]);
+
+    return {
+      ...user.toObject(),
+      statistics: {
+        serviceRequestsCount,
+        reviewsCount
+      }
+    };
+  }
+
+  /**
+   * Update user status
+   */
+  async updateUserStatus(userId: string, status: string): Promise<ApiResponseDto> {
+    const validStatuses = ['active', 'inactive', 'suspended', 'banned'];
+    
+    if (!validStatuses.includes(status)) {
+      throw new ValidationError('Invalid status');
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { status, updatedAt: new Date() },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    await this.createAuditLog('user_status_updated', { userId, status, previousStatus: user.status }, 'admin');
+
+    return {
+      success: true,
+      message: `User status updated to ${status}`,
+      data: user
+    };
+  }
+
+  /**
+   * Delete user
+   */
+  async deleteUser(userId: string): Promise<ApiResponseDto> {
+    const user = await User.findByIdAndDelete(userId);
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    // Clean up related data
+    await Promise.all([
+      ServiceRequest.deleteMany({ userId }),
+      Review.deleteMany({ userId }),
+      ServiceProvider.deleteOne({ userId })
+    ]);
+
+    await this.createAuditLog('user_deleted', { userId, email: user.email }, 'admin');
+
+    return {
+      success: true,
+      message: 'User deleted successfully'
+    };
+  }
+
+  /**
+   * Get all providers with admin filters
+   */
+  async getAllProviders(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      isVerified, 
+      status,
+      category,
+      rating,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (typeof isVerified === 'boolean') {
+      filter.isVerified = isVerified;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (category) {
+      filter.services = { $in: [category] };
+    }
+
+    if (rating) {
+      filter.rating = { $gte: rating };
+    }
+
+    if (search) {
+      filter.$or = [
+        { businessName: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const providers = await ServiceProvider.find(filter)
+      .populate('userId', 'firstName lastName email')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceProvider.countDocuments(filter);
+
+    return {
+      data: providers,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get provider by ID (admin view)
+   */
+  async getProviderById(providerId: string): Promise<any> {
+    const provider = await ServiceProvider.findById(providerId)
+      .populate('userId', 'firstName lastName email phone');
+    
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    // Get additional provider statistics
+    const [serviceRequestsCount, reviewsCount, averageRating] = await Promise.all([
+      ServiceRequest.countDocuments({ providerId }),
+      Review.countDocuments({ providerId }),
       Review.aggregate([
-        { $group: { 
-          _id: '$rating', 
-          count: { $sum: 1 }
-        }},
-        { $sort: { _id: 1 } }
-      ]),
-      User.aggregate([
-        { $match: { 
-          role: { $ne: 'admin' },
-          createdAt: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) }
-        }},
-        { $group: {
-          _id: { 
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }},
-        { $sort: { '_id.year': 1, '_id.month': 1 } }
+        { $match: { providerId } },
+        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
       ])
     ]);
 
     return {
-      userStats,
-      providerStats: providerStats[0] || { total: 0, verified: 0, available: 0 },
-      requestStats,
-      reviewStats,
-      monthlyGrowth
+      ...provider.toObject(),
+      statistics: {
+        serviceRequestsCount,
+        reviewsCount,
+        averageRating: averageRating[0]?.avgRating || 0
+      }
     };
   }
 
   /**
-   * Get system health status
+   * Verify provider
    */
-  async getSystemHealth(): Promise<any> {
-    try {
-      // Test database connectivity
-      const dbTest = await User.findOne().limit(1);
-      
-      // Get basic metrics
-      const [userCount, providerCount, requestCount] = await Promise.all([
-        User.countDocuments(),
-        ServiceProvider.countDocuments(),
-        ServiceRequest.countDocuments()
-      ]);
+  async verifyProvider(providerId: string): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      { isVerified: true, verifiedAt: new Date() },
+      { new: true }
+    );
 
-      return {
-        status: 'healthy',
-        timestamp: new Date(),
-        database: 'connected',
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        version: process.version,
-        metrics: {
-          users: userCount,
-          providers: providerCount,
-          requests: requestCount
-        }
-      };
-    } catch (error) {
-      return {
-        status: 'unhealthy',
-        timestamp: new Date(),
-        database: 'disconnected',
-        error: (error as Error).message,
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        version: process.version
-      };
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
     }
+
+    await this.createAuditLog('provider_verified', { providerId }, 'admin');
+
+    return {
+      success: true,
+      message: 'Provider verified successfully',
+      data: provider
+    };
+  }
+
+  /**
+   * Update provider status
+   */
+  async updateProviderStatus(providerId: string, status: string): Promise<ApiResponseDto> {
+    const validStatuses = ['active', 'inactive', 'suspended', 'banned'];
+    
+    if (!validStatuses.includes(status)) {
+      throw new ValidationError('Invalid status');
+    }
+
+    const provider = await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      { status, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    await this.createAuditLog('provider_status_updated', { providerId, status }, 'admin');
+
+    return {
+      success: true,
+      message: `Provider status updated to ${status}`,
+      data: provider
+    };
+  }
+
+  /**
+   * Delete provider
+   */
+  async deleteProvider(providerId: string): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findByIdAndDelete(providerId);
+
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    // Clean up related data
+    await Promise.all([
+      ServiceRequest.deleteMany({ providerId }),
+      Review.deleteMany({ providerId })
+    ]);
+
+    await this.createAuditLog('provider_deleted', { providerId, businessName: provider.businessName }, 'admin');
+
+    return {
+      success: true,
+      message: 'Provider deleted successfully'
+    };
+  }
+
+  /**
+   * Get all service requests with admin filters
+   */
+  async getAllServiceRequests(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      requestStatus,
+      urgency,
+      budget,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (requestStatus) {
+      filter.status = requestStatus;
+    }
+
+    if (urgency) {
+      filter.urgency = urgency;
+    }
+
+    if (budget) {
+      filter.budget = { $lte: budget };
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const serviceRequests = await ServiceRequest.find(filter)
+      .populate('userId', 'firstName lastName email')
+      .populate('providerId', 'businessName')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceRequest.countDocuments(filter);
+
+    return {
+      data: serviceRequests,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get service request by ID (admin view)
+   */
+  async getServiceRequestById(requestId: string): Promise<any> {
+    const serviceRequest = await ServiceRequest.findById(requestId)
+      .populate('userId', 'firstName lastName email phone')
+      .populate('providerId', 'businessName rating');
+    
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
+    }
+
+    return serviceRequest;
+  }
+
+  /**
+   * Update service request status
+   */
+  async updateServiceRequestStatus(requestId: string, status: string): Promise<ApiResponseDto> {
+    const validStatuses = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'];
+    
+    if (!validStatuses.includes(status)) {
+      throw new ValidationError('Invalid status');
+    }
+
+    const serviceRequest = await ServiceRequest.findByIdAndUpdate(
+      requestId,
+      { status, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
+    }
+
+    await this.createAuditLog('service_request_status_updated', { requestId, status }, 'admin');
+
+    return {
+      success: true,
+      message: `Service request status updated to ${status}`,
+      data: serviceRequest
+    };
+  }
+
+  /**
+   * Get all reviews with admin filters
+   */
+  async getAllReviews(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      reviewRating,
+      isFlagged,
+      isModerated,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (reviewRating) {
+      filter.rating = reviewRating;
+    }
+
+    if (typeof isFlagged === 'boolean') {
+      filter.isFlagged = isFlagged;
+    }
+
+    if (typeof isModerated === 'boolean') {
+      filter.isModerated = isModerated;
+    }
+
+    if (search) {
+      filter.$or = [
+        { comment: { $regex: search, $options: 'i' } },
+        { response: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const reviews = await Review.find(filter)
+      .populate('userId', 'firstName lastName')
+      .populate('providerId', 'businessName')
+      .populate('serviceRequestId', 'title')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments(filter);
+
+    return {
+      data: reviews,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get review by ID (admin view)
+   */
+  async getReviewById(reviewId: string): Promise<any> {
+    const review = await Review.findById(reviewId)
+      .populate('userId', 'firstName lastName email')
+      .populate('providerId', 'businessName')
+      .populate('serviceRequestId', 'title category');
+    
+    if (!review) {
+      throw new NotFoundError('Review not found');
+    }
+
+    return review;
+  }
+
+  /**
+   * Moderate review
+   */
+  async moderateReview(reviewId: string, action: 'approve' | 'reject', reason?: string): Promise<ApiResponseDto> {
+    const updateData: any = {
+      isModerated: true,
+      moderatedAt: new Date(),
+      moderationAction: action
+    };
+
+    if (reason) {
+      updateData.moderationReason = reason;
+    }
+
+    if (action === 'reject') {
+      updateData.isVisible = false;
+    }
+
+    const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true });
+
+    if (!review) {
+      throw new NotFoundError('Review not found');
+    }
+
+    await this.createAuditLog('review_moderated', { reviewId, action, reason }, 'admin');
+
+    return {
+      success: true,
+      message: `Review ${action}ed successfully`,
+      data: review
+    };
+  }
+
+  /**
+   * Get dashboard statistics
+   */
+  async getDashboardStats(): Promise<AdminStatsDto> {
+    const [
+      userStats,
+      providerStats,
+      serviceRequestStats,
+      reviewStats
+    ] = await Promise.all([
+      this.getUserStats(),
+      this.getProviderStats(),
+      this.getServiceRequestStats(),
+      this.getReviewStats()
+    ]);
+
+    return {
+      users: userStats,
+      providers: providerStats,
+      serviceRequests: serviceRequestStats,
+      reviews: reviewStats,
+      revenue: await this.getRevenueStats(),
+      system: await this.getSystemStats(),
+      activity: await this.getActivityStats()
+    };
   }
 
   /**
    * Get user analytics
    */
-  async getUserAnalytics(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<any> {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (timeframe) {
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'year':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
-    }
-
-    const [
-      newUsers,
-      activeUsers,
-      usersByRole,
-      usersByLocation
-    ] = await Promise.all([
-      User.countDocuments({ 
-        role: { $ne: 'admin' },
-        createdAt: { $gte: startDate } 
-      }),
-      User.countDocuments({ 
-        role: { $ne: 'admin' },
-        lastLoginDate: { $gte: startDate } 
-      }),
-      User.aggregate([
-        { $match: { role: { $ne: 'admin' }, createdAt: { $gte: startDate } } },
-        { $group: { _id: '$role', count: { $sum: 1 } } }
-      ]),
-      User.aggregate([
-        { $match: { role: { $ne: 'admin' }, 'address.city': { $exists: true } } },
-        { $group: { _id: '$address.city', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 }
-      ])
+  async getUserAnalytics(period: string): Promise<any> {
+    const dateRange = this.getDateRange(period);
+    
+    const analytics = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: dateRange.start, $lte: dateRange.end }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
     ]);
 
-    return {
-      timeframe,
-      newUsers,
-      activeUsers,
-      usersByRole,
-      usersByLocation
-    };
+    return analytics;
   }
 
   /**
    * Get provider analytics
    */
-  async getProviderAnalytics(): Promise<any> {
-    const [
-      totalProviders,
-      verifiedProviders,
-      availableProviders,
-      providersByService,
-      topRatedProviders,
-      providersByLocation
-    ] = await Promise.all([
-      ServiceProvider.countDocuments(),
-      ServiceProvider.countDocuments({ isVerified: true }),
-      ServiceProvider.countDocuments({ isAvailable: true }),
-      ServiceProvider.aggregate([
-        { $unwind: '$services' },
-        { $group: { _id: '$services', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 }
-      ]),
-      ServiceProvider.find({ isVerified: true })
-        .sort({ 'rating.average': -1, completedJobs: -1 })
-        .limit(10)
-        .populate('userId', 'firstName lastName'),
-      ServiceProvider.aggregate([
-        { $match: { 'serviceArea.coordinates': { $exists: true } } },
-        { $group: { 
-          _id: { 
-            lat: { $round: [{ $arrayElemAt: ['$serviceArea.coordinates', 1] }, 0] },
-            lng: { $round: [{ $arrayElemAt: ['$serviceArea.coordinates', 0] }, 0] }
-          }, 
-          count: { $sum: 1 } 
-        }},
-        { $sort: { count: -1 } },
-        { $limit: 20 }
-      ])
-    ]);
-
-    return {
-      totalProviders,
-      verifiedProviders,
-      availableProviders,
-      verificationRate: totalProviders > 0 ? (verifiedProviders / totalProviders) * 100 : 0,
-      availabilityRate: totalProviders > 0 ? (availableProviders / totalProviders) * 100 : 0,
-      providersByService,
-      topRatedProviders,
-      providersByLocation
-    };
-  }
-
-  /**
-   * Get service request analytics
-   */
-  async getServiceRequestAnalytics(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<any> {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (timeframe) {
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'year':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
-    }
-
-    const [
-      totalRequests,
-      statusDistribution,
-      categoryDistribution,
-      averageBudget,
-      completionRate,
-      averageResponseTime
-    ] = await Promise.all([
-      ServiceRequest.countDocuments({ createdAt: { $gte: startDate } }),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ]),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        { $group: { _id: '$category', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
-      ]),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        { $group: { _id: null, avgBudget: { $avg: '$budget.max' } } }
-      ]),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } }
-          }
+  async getProviderAnalytics(period: string): Promise<any> {
+    const dateRange = this.getDateRange(period);
+    
+    const analytics = await ServiceProvider.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: dateRange.start, $lte: dateRange.end }
         }
-      ]),
-      ServiceRequest.aggregate([
-        { 
-          $match: { 
-            createdAt: { $gte: startDate },
-            status: { $in: ['accepted', 'completed'] },
-            'proposals.0': { $exists: true }
-          } 
-        },
-        {
-          $project: {
-            responseTime: {
-              $subtract: [
-                { $arrayElemAt: ['$proposals.submittedAt', 0] },
-                '$createdAt'
-              ]
-            }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            avgResponseTime: { $avg: '$responseTime' }
-          }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          count: { $sum: 1 },
+          verified: { $sum: { $cond: ['$isVerified', 1, 0] } }
         }
-      ])
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
     ]);
 
-    const completionRateData = completionRate[0] || { total: 0, completed: 0 };
-    const avgResponseTimeData = averageResponseTime[0] || { avgResponseTime: 0 };
+    return analytics;
+  }
 
+  /**
+   * Get revenue analytics
+   */
+  async getRevenueAnalytics(period: string): Promise<any> {
+    const dateRange = this.getDateRange(period);
+    
+    // This would typically come from a payments/transactions collection
+    // For now, we'll return mock data
     return {
-      timeframe,
-      totalRequests,
-      statusDistribution,
-      categoryDistribution,
-      averageBudget: averageBudget[0]?.avgBudget || 0,
-      completionRate: completionRateData.total > 0 
-        ? (completionRateData.completed / completionRateData.total) * 100 
-        : 0,
-      averageResponseTime: Math.round(avgResponseTimeData.avgResponseTime / (1000 * 60 * 60)) || 0 // Convert to hours
+      totalRevenue: 0,
+      periodRevenue: 0,
+      averageOrderValue: 0,
+      transactionCount: 0
     };
   }
 
   /**
-   * Get chat analytics
+   * Get system health
    */
-  async getChatAnalytics(): Promise<any> {
-    const [
-      totalChats,
-      activeChats,
-      totalMessages,
-      averageMessagesPerChat,
-      chatsByServiceRequest
-    ] = await Promise.all([
-      Chat.countDocuments(),
-      Chat.countDocuments({ 
-        lastMessageAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } 
-      }),
-      Chat.aggregate([
-        { $project: { messageCount: { $size: '$messages' } } },
-        { $group: { _id: null, total: { $sum: '$messageCount' } } }
-      ]),
-      Chat.aggregate([
-        { $project: { messageCount: { $size: '$messages' } } },
-        { $group: { _id: null, average: { $avg: '$messageCount' } } }
-      ]),
-      Chat.aggregate([
-        {
-          $lookup: {
-            from: 'servicerequests',
-            localField: 'serviceRequestId',
-            foreignField: '_id',
-            as: 'serviceRequest'
-          }
+  async getSystemHealth(): Promise<any> {
+    const startTime = Date.now();
+    
+    // Test database connection
+    try {
+      await User.findOne().limit(1);
+      const dbResponseTime = Date.now() - startTime;
+      
+      return {
+        status: 'healthy',
+        database: {
+          status: 'connected',
+          responseTime: dbResponseTime
         },
-        { $unwind: '$serviceRequest' },
-        { $group: { _id: '$serviceRequest.status', count: { $sum: 1 } } }
-      ])
-    ]);
-
-    return {
-      totalChats,
-      activeChats,
-      totalMessages: totalMessages[0]?.total || 0,
-      averageMessagesPerChat: Math.round(averageMessagesPerChat[0]?.average || 0),
-      chatsByServiceRequest
-    };
-  }
-
-  /**
-   * Get financial analytics (placeholder for future payment integration)
-   */
-  async getFinancialAnalytics(): Promise<any> {
-    // This would be implemented when payment system is integrated
-    const [
-      totalRevenue,
-      completedTransactions,
-      averageTransactionValue
-    ] = await Promise.all([
-      ServiceRequest.aggregate([
-        { $match: { status: 'completed', 'payment.status': 'paid' } },
-        { $group: { _id: null, total: { $sum: '$payment.amount' } } }
-      ]),
-      ServiceRequest.countDocuments({ status: 'completed', 'payment.status': 'paid' }),
-      ServiceRequest.aggregate([
-        { $match: { status: 'completed', 'payment.status': 'paid' } },
-        { $group: { _id: null, average: { $avg: '$payment.amount' } } }
-      ])
-    ]);
-
-    return {
-      totalRevenue: totalRevenue[0]?.total || 0,
-      completedTransactions,
-      averageTransactionValue: averageTransactionValue[0]?.average || 0,
-      platformFee: (totalRevenue[0]?.total || 0) * 0.1 // Assuming 10% platform fee
-    };
-  }
-
-  /**
-   * Export data for reporting
-   */
-  async exportData(
-    dataType: 'users' | 'providers' | 'requests' | 'reviews',
-    format: 'json' | 'csv' = 'json'
-  ): Promise<any> {
-    let data: any[] = [];
-
-    switch (dataType) {
-      case 'users':
-        data = await User.find({ role: { $ne: 'admin' } })
-          .select('-password')
-          .lean();
-        break;
-      case 'providers':
-        data = await ServiceProvider.find()
-          .populate('userId', 'firstName lastName email')
-          .lean();
-        break;
-      case 'requests':
-        data = await ServiceRequest.find()
-          .populate('userId', 'firstName lastName email')
-          .populate('providerId', 'businessName')
-          .lean();
-        break;
-      case 'reviews':
-        data = await Review.find()
-          .populate('userId', 'firstName lastName')
-          .populate('providerId', 'businessName')
-          .lean();
-        break;
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        timestamp: new Date()
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        database: {
+          status: 'disconnected',
+          error: error.message
+        },
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        timestamp: new Date()
+      };
     }
-
-    if (format === 'csv') {
-      // Convert to CSV format (simplified implementation)
-      if (data.length === 0) return '';
-      
-      const headers = Object.keys(data[0]).join(',');
-      const rows = data.map(item => 
-        Object.values(item).map(value => 
-          typeof value === 'object' ? JSON.stringify(value) : value
-        ).join(',')
-      );
-      
-      return [headers, ...rows].join('\n');
-    }
-
-    return data;
   }
 
   /**
-   * Generate platform report
+   * Get audit logs
    */
-  async generatePlatformReport(): Promise<any> {
-    const [
-      dashboardData,
-      userAnalytics,
-      providerAnalytics,
-      requestAnalytics,
-      chatAnalytics,
-      financialAnalytics
-    ] = await Promise.all([
-      this.getDashboardData(),
-      this.getUserAnalytics('month'),
-      this.getProviderAnalytics(),
-      this.getServiceRequestAnalytics('month'),
-      this.getChatAnalytics(),
-      this.getFinancialAnalytics()
-    ]);
-
+  async getAuditLogs(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
+    // This would typically come from an audit logs collection
+    // For now, we'll return empty data
     return {
-      generatedAt: new Date(),
-      period: 'last_30_days',
-      dashboard: dashboardData,
-      analytics: {
-        users: userAnalytics,
-        providers: providerAnalytics,
-        requests: requestAnalytics,
-        chat: chatAnalytics,
-        financial: financialAnalytics
+      data: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalItems: 0,
+        hasNext: false,
+        hasPrev: false
       }
     };
+  }
+
+  /**
+   * Create audit log
+   */
+  async createAuditLog(action: string, details: any, adminId: string): Promise<void> {
+    // This would typically save to an audit logs collection
+    console.log('Audit Log:', { action, details, adminId, timestamp: new Date() });
+  }
+
+  /**
+   * Get flagged content
+   */
+  async getFlaggedContent(type: string): Promise<PaginatedResponseDto<any>> {
+    let query: any;
+    
+    switch (type) {
+      case 'reviews':
+        query = Review.find({ isFlagged: true });
+        break;
+      case 'users':
+        query = User.find({ isFlagged: true });
+        break;
+      default:
+        throw new ValidationError('Invalid content type');
+    }
+
+    const content = await query.limit(10);
+    
+    return {
+      data: content,
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: content.length,
+        hasNext: false,
+        hasPrev: false
+      }
+    };
+  }
+
+  /**
+   * Moderate content
+   */
+  async moderateContent(contentId: string, type: string, action: string): Promise<ApiResponseDto> {
+    let model: any;
+    
+    switch (type) {
+      case 'review':
+        model = Review;
+        break;
+      case 'user':
+        model = User;
+        break;
+      default:
+        throw new ValidationError('Invalid content type');
+    }
+
+    const content = await model.findByIdAndUpdate(
+      contentId,
+      { 
+        isModerated: true,
+        moderatedAt: new Date(),
+        moderationAction: action
+      },
+      { new: true }
+    );
+
+    if (!content) {
+      throw new NotFoundError('Content not found');
+    }
+
+    await this.createAuditLog('content_moderated', { contentId, type, action }, 'admin');
+
+    return {
+      success: true,
+      message: 'Content moderated successfully',
+      data: content
+    };
+  }
+
+  // Private helper methods
+  private async getUserStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const [total, active, newThisMonth] = await Promise.all([
+      User.countDocuments({ role: { $ne: 'admin' } }),
+      User.countDocuments({ role: { $ne: 'admin' }, status: 'active' }),
+      User.countDocuments({ 
+        role: { $ne: 'admin' }, 
+        createdAt: { $gte: startOfMonth } 
+      })
+    ]);
+
+    return {
+      total,
+      active,
+      inactive: total - active,
+      newThisMonth,
+      growthRate: 0 // Calculate based on previous month
+    };
+  }
+
+  private async getProviderStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const [total, verified, newThisMonth, avgRating] = await Promise.all([
+      ServiceProvider.countDocuments(),
+      ServiceProvider.countDocuments({ isVerified: true }),
+      ServiceProvider.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      ServiceProvider.aggregate([
+        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+      ])
+    ]);
+
+    return {
+      total,
+      verified,
+      pending: total - verified,
+      active: total, // Assuming all are active for now
+      newThisMonth,
+      averageRating: avgRating[0]?.avgRating || 0
+    };
+  }
+
+  private async getServiceRequestStats() {
+    const [total, pending, inProgress, completed, cancelled] = await Promise.all([
+      ServiceRequest.countDocuments(),
+      ServiceRequest.countDocuments({ status: 'pending' }),
+      ServiceRequest.countDocuments({ status: 'in_progress' }),
+      ServiceRequest.countDocuments({ status: 'completed' }),
+      ServiceRequest.countDocuments({ status: 'cancelled' })
+    ]);
+
+    return {
+      total,
+      pending,
+      inProgress,
+      completed,
+      cancelled,
+      thisMonth: 0, // Calculate based on date range
+      completionRate: total > 0 ? (completed / total) * 100 : 0
+    };
+  }
+
+  private async getReviewStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const [total, thisMonth, avgRating, flagged] = await Promise.all([
+      Review.countDocuments(),
+      Review.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      Review.aggregate([
+        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+      ]),
+      Review.countDocuments({ isFlagged: true })
+    ]);
+
+    return {
+      total,
+      thisMonth,
+      averageRating: avgRating[0]?.avgRating || 0,
+      flagged,
+      pending: flagged // Assuming flagged reviews are pending moderation
+    };
+  }
+
+  private async getRevenueStats() {
+    return {
+      total: 0,
+      thisMonth: 0,
+      lastMonth: 0,
+      growthRate: 0,
+      averageOrderValue: 0
+    };
+  }
+
+  private async getSystemStats() {
+    return {
+      uptime: process.uptime(),
+      activeConnections: 0,
+      apiCalls: 0,
+      errorRate: 0,
+      responseTime: 0
+    };
+  }
+
+  private async getActivityStats() {
+    return {
+      dailyActiveUsers: 0,
+      monthlyActiveUsers: 0,
+      newRegistrations: 0,
+      completedServices: 0
+    };
+  }
+
+  private getDateRange(period: string) {
+    const now = new Date();
+    let start: Date;
+
+    switch (period) {
+      case 'today':
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'year':
+        start = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    return { start, end: now };
   }
 }
 
