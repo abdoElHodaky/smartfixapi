@@ -21,3 +21,9 @@ export * from './admin';
 
 // Chat DTOs
 export * from './chat';
+
+// Statistics DTOs
+export * from './statistics/UserStatisticsDto';
+export * from './statistics/ProviderStatisticsDto';
+export * from './statistics/ReviewStatisticsDto';
+export * from './statistics/ServiceRequestStatisticsDto';

@@ -2,19 +2,21 @@ import { ServiceRequest } from '../../models/ServiceRequest';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { User } from '../../models/User';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
-import { IServiceRequestService, IProviderService, IUserService } from '../../interfaces/services';
+import { IServiceRequestService, IProviderService, IUserService, IReviewService } from '../../interfaces/services';
 import {
   CreateRequestDto,
   UpdateRequestDto,
   RequestFiltersDto,
   ApiResponseDto,
-  PaginatedResponseDto
+  PaginatedResponseDto,
+  ServiceRequestStatisticsDto
 } from '../../dtos';
 
 export class ServiceRequestService implements IServiceRequestService {
   constructor(
     private providerService: IProviderService,
-    private userService: IUserService
+    private userService: IUserService,
+    private reviewService?: IReviewService
   ) {}
 
   /**
@@ -286,10 +288,8 @@ export class ServiceRequestService implements IServiceRequestService {
       throw new NotFoundError('Service request not found or cannot be completed');
     }
 
-    // Update provider's completed jobs count
-    await ServiceProvider.findByIdAndUpdate(providerId, {
-      $inc: { completedJobs: 1 }
-    });
+    // Update provider's completed jobs count (delegated to ProviderService)
+    await this.providerService.incrementCompletedJobs(providerId);
 
     return {
       success: true,
@@ -618,6 +618,92 @@ export class ServiceRequestService implements IServiceRequestService {
       success: true,
       message: `Service request status updated to ${status}`,
       data: serviceRequest
+    };
+  }
+
+  /**
+   * Get service request reviews (delegated to ReviewService)
+   */
+  async getServiceRequestReviews(
+    requestId: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    if (!this.reviewService) {
+      throw new Error('ReviewService not injected');
+    }
+
+    return await this.reviewService.getReviewsByServiceRequestId(requestId, page, limit);
+  }
+
+  /**
+   * Get service request statistics (delegated to ReviewService)
+   */
+  async getServiceRequestStatistics(requestId: string): Promise<any> {
+    if (!this.reviewService) {
+      throw new Error('ReviewService not injected');
+    }
+
+    return await this.reviewService.getReviewStatistics(requestId);
+  }
+
+  /**
+   * Get statistics by user
+   */
+  async getStatisticsByUser(userId: string): Promise<ServiceRequestStatisticsDto> {
+    const [
+      totalRequests,
+      pendingRequests,
+      activeRequests,
+      completedRequests,
+      cancelledRequests
+    ] = await Promise.all([
+      ServiceRequest.countDocuments({ userId }),
+      ServiceRequest.countDocuments({ userId, status: 'pending' }),
+      ServiceRequest.countDocuments({ 
+        userId, 
+        status: { $in: ['accepted', 'in_progress'] } 
+      }),
+      ServiceRequest.countDocuments({ userId, status: 'completed' }),
+      ServiceRequest.countDocuments({ userId, status: 'cancelled' })
+    ]);
+
+    return {
+      totalRequests,
+      pendingRequests,
+      activeRequests,
+      completedRequests,
+      cancelledRequests
+    };
+  }
+
+  /**
+   * Get statistics by provider
+   */
+  async getStatisticsByProvider(providerId: string): Promise<ServiceRequestStatisticsDto> {
+    const [
+      totalRequests,
+      pendingRequests,
+      activeRequests,
+      completedRequests,
+      cancelledRequests
+    ] = await Promise.all([
+      ServiceRequest.countDocuments({ providerId }),
+      ServiceRequest.countDocuments({ providerId, status: 'pending' }),
+      ServiceRequest.countDocuments({ 
+        providerId, 
+        status: { $in: ['accepted', 'in_progress'] } 
+      }),
+      ServiceRequest.countDocuments({ providerId, status: 'completed' }),
+      ServiceRequest.countDocuments({ providerId, status: 'cancelled' })
+    ]);
+
+    return {
+      totalRequests,
+      pendingRequests,
+      activeRequests,
+      completedRequests,
+      cancelledRequests
     };
   }
 }

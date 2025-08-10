@@ -1,6 +1,5 @@
 import { Review } from '../../models/Review';
 import { ServiceRequest } from '../../models/ServiceRequest';
-import { ServiceProvider } from '../../models/ServiceProvider';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
 import { IReviewService, IServiceRequestService, IProviderService } from '../../interfaces/services';
 import {
@@ -8,7 +7,8 @@ import {
   UpdateReviewDto,
   ReviewFiltersDto,
   ApiResponseDto,
-  PaginatedResponseDto
+  PaginatedResponseDto,
+  ReviewStatisticsDto
 } from '../../dtos';
 
 export class ReviewService implements IReviewService {
@@ -527,5 +527,146 @@ export class ReviewService implements IReviewService {
       message: `Review ${action}ed successfully`,
       data: review
     };
+  }
+
+  /**
+   * Get reviews by user ID
+   */
+  async getReviewsByUserId(
+    userId: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
+
+    const reviews = await Review.find({ userId })
+      .populate('providerId', 'businessName')
+      .populate('serviceRequestId', 'title category')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments({ userId });
+
+    return {
+      data: reviews,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get reviews by provider ID
+   */
+  async getReviewsByProviderId(
+    providerId: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
+
+    const reviews = await Review.find({ providerId })
+      .populate('userId', 'firstName lastName profileImage')
+      .populate('serviceRequestId', 'title category')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments({ providerId });
+
+    return {
+      data: reviews,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get reviews by service request ID
+   */
+  async getReviewsByServiceRequestId(
+    serviceRequestId: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
+
+    const reviews = await Review.find({ serviceRequestId })
+      .populate('userId', 'firstName lastName profileImage')
+      .populate('providerId', 'businessName')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments({ serviceRequestId });
+
+    return {
+      data: reviews,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get review statistics
+   */
+  async getReviewStatistics(entityId: string): Promise<ReviewStatisticsDto> {
+    const stats = await Review.aggregate([
+      { $match: { $or: [{ providerId: entityId }, { userId: entityId }, { serviceRequestId: entityId }] } },
+      {
+        $group: {
+          _id: null,
+          totalReviews: { $sum: 1 },
+          averageRating: { $avg: '$rating' },
+          ratingDistribution: {
+            $push: '$rating'
+          }
+        }
+      }
+    ]);
+
+    if (stats.length === 0) {
+      return {
+        totalReviews: 0,
+        averageRating: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      };
+    }
+
+    const stat = stats[0];
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    
+    stat.ratingDistribution.forEach((rating: number) => {
+      distribution[rating as keyof typeof distribution]++;
+    });
+
+    return {
+      totalReviews: stat.totalReviews,
+      averageRating: Math.round(stat.averageRating * 10) / 10,
+      ratingDistribution: distribution
+    };
+  }
+
+  /**
+   * Validate service request exists (for review creation)
+   */
+  async validateServiceRequest(serviceRequestId: string): Promise<boolean> {
+    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
+    return !!serviceRequest;
   }
 }

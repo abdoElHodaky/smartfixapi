@@ -1,16 +1,21 @@
 import { User } from '../../models/User';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
-import { IUserService } from '../../interfaces/services';
+import { IUserService, IReviewService, IServiceRequestService } from '../../interfaces/services';
 import {
   UpdateUserDto,
   UserFiltersDto,
   ApiResponseDto,
-  PaginatedResponseDto
+  PaginatedResponseDto,
+  UserStatisticsDto,
+  ServiceRequestStatisticsRequestDto,
+  ReviewStatisticsRequestDto
 } from '../../dtos';
 
 export class UserService implements IUserService {
+  constructor(
+    private reviewService?: IReviewService,
+    private serviceRequestService?: IServiceRequestService
+  ) {}
   /**
    * Get user by ID
    */
@@ -149,34 +154,18 @@ export class UserService implements IUserService {
   }
 
   /**
-   * Get user's reviews
+   * Get user's reviews (delegated to ReviewService)
    */
   async getUserReviews(
     userId: string, 
     page: number = 1, 
     limit: number = 10
   ): Promise<PaginatedResponseDto<any>> {
-    const skip = (page - 1) * limit;
+    if (!this.reviewService) {
+      throw new Error('ReviewService not injected');
+    }
 
-    const reviews = await Review.find({ userId })
-      .populate('providerId', 'businessName')
-      .populate('serviceRequestId', 'title category')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Review.countDocuments({ userId });
-
-    return {
-      data: reviews,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
-    };
+    return await this.reviewService.getReviewsByUserId(userId, page, limit);
   }
 
   /**
@@ -201,32 +190,25 @@ export class UserService implements IUserService {
   }
 
   /**
-   * Get user statistics
+   * Get user statistics (delegated to appropriate services)
    */
-  async getUserStatistics(userId: string): Promise<any> {
-    const [
-      totalRequests,
-      pendingRequests,
-      activeRequests,
-      completedRequests,
-      totalReviews
-    ] = await Promise.all([
-      ServiceRequest.countDocuments({ userId }),
-      ServiceRequest.countDocuments({ userId, status: 'pending' }),
-      ServiceRequest.countDocuments({ 
-        userId, 
-        status: { $in: ['accepted', 'in_progress'] } 
-      }),
-      ServiceRequest.countDocuments({ userId, status: 'completed' }),
-      Review.countDocuments({ userId })
-    ]);
+  async getUserStatistics(userId: string): Promise<UserStatisticsDto> {
+    if (!this.serviceRequestService || !this.reviewService) {
+      throw new Error('Required services not injected');
+    }
+
+    // Get service request statistics
+    const requestStats = await this.serviceRequestService.getStatisticsByUser(userId);
+    
+    // Get review statistics
+    const reviewStats = await this.reviewService.getReviewStatistics(userId);
 
     return {
-      totalRequests,
-      pendingRequests,
-      activeRequests,
-      completedRequests,
-      totalReviews
+      totalRequests: requestStats.totalRequests,
+      pendingRequests: requestStats.pendingRequests,
+      activeRequests: requestStats.activeRequests,
+      completedRequests: requestStats.completedRequests,
+      totalReviews: reviewStats.totalReviews
     };
   }
 
@@ -367,5 +349,21 @@ export class UserService implements IUserService {
         hasPrev: page > 1
       }
     };
+  }
+
+  /**
+   * Get user service requests (delegated to ServiceRequestService)
+   */
+  async getUserServiceRequests(
+    userId: string, 
+    status?: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    if (!this.serviceRequestService) {
+      throw new Error('ServiceRequestService not injected');
+    }
+
+    return await this.serviceRequestService.getServiceRequestsByUser(userId, status, page, limit);
   }
 }

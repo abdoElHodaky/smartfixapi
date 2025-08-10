@@ -99,4 +99,24 @@ export interface IServiceRequestService {
    * Update service request status (admin function)
    */
   updateServiceRequestStatus(requestId: string, status: string): Promise<ApiResponseDto>;
+
+  /**
+   * Get service request reviews by delegating to ReviewService
+   */
+  getServiceRequestReviews(requestId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get service request statistics by delegating to ReviewService
+   */
+  getServiceRequestStatistics(requestId: string): Promise<any>;
+
+  /**
+   * Get statistics by user
+   */
+  getStatisticsByUser(userId: string): Promise<ServiceRequestStatisticsDto>;
+
+  /**
+   * Get statistics by provider
+   */
+  getStatisticsByProvider(providerId: string): Promise<ServiceRequestStatisticsDto>;
 }

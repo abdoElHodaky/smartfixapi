@@ -1,19 +1,22 @@
 import { ServiceProvider } from '../../models/ServiceProvider';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
 import { User } from '../../models/User';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
-import { IProviderService, IUserService } from '../../interfaces/services';
+import { IProviderService, IUserService, IReviewService, IServiceRequestService } from '../../interfaces/services';
 import {
   UpdateProviderDto,
   ProviderFiltersDto,
   PortfolioItemDto,
   ApiResponseDto,
-  PaginatedResponseDto
+  PaginatedResponseDto,
+  ProviderStatisticsDto
 } from '../../dtos';
 
 export class ProviderService implements IProviderService {
-  constructor(private userService: IUserService) {}
+  constructor(
+    private userService: IUserService,
+    private reviewService?: IReviewService,
+    private serviceRequestService?: IServiceRequestService
+  ) {}
 
   /**
    * Get provider by ID
@@ -244,38 +247,26 @@ export class ProviderService implements IProviderService {
   }
 
   /**
-   * Get provider statistics
+   * Get provider statistics (delegated to appropriate services)
    */
-  async getProviderStatistics(providerId: string): Promise<any> {
-    const [
-      totalRequests,
-      pendingRequests,
-      activeRequests,
-      completedRequests,
-      totalReviews,
-      averageRating
-    ] = await Promise.all([
-      ServiceRequest.countDocuments({ providerId }),
-      ServiceRequest.countDocuments({ providerId, status: 'pending' }),
-      ServiceRequest.countDocuments({ 
-        providerId, 
-        status: { $in: ['accepted', 'in_progress'] } 
-      }),
-      ServiceRequest.countDocuments({ providerId, status: 'completed' }),
-      Review.countDocuments({ providerId }),
-      Review.aggregate([
-        { $match: { providerId } },
-        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
-      ])
-    ]);
+  async getProviderStatistics(providerId: string): Promise<ProviderStatisticsDto> {
+    if (!this.serviceRequestService || !this.reviewService) {
+      throw new Error('Required services not injected');
+    }
+
+    // Get service request statistics
+    const requestStats = await this.serviceRequestService.getStatisticsByProvider(providerId);
+    
+    // Get review statistics
+    const reviewStats = await this.reviewService.getReviewStatistics(providerId);
 
     return {
-      totalRequests,
-      pendingRequests,
-      activeRequests,
-      completedRequests,
-      totalReviews,
-      averageRating: averageRating[0]?.avgRating || 0
+      totalRequests: requestStats.totalRequests,
+      pendingRequests: requestStats.pendingRequests,
+      activeRequests: requestStats.activeRequests,
+      completedRequests: requestStats.completedRequests,
+      totalReviews: reviewStats.totalReviews,
+      averageRating: reviewStats.averageRating
     };
   }
 
@@ -300,93 +291,49 @@ export class ProviderService implements IProviderService {
   }
 
   /**
-   * Get provider reviews
+   * Get provider reviews (delegated to ReviewService)
    */
   async getProviderReviews(
     providerId: string, 
     page: number = 1, 
     limit: number = 10
   ): Promise<PaginatedResponseDto<any>> {
-    const skip = (page - 1) * limit;
+    if (!this.reviewService) {
+      throw new Error('ReviewService not injected');
+    }
 
-    const reviews = await Review.find({ providerId })
-      .populate('userId', 'firstName lastName profileImage')
-      .populate('serviceRequestId', 'title category')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Review.countDocuments({ providerId });
-
-    return {
-      data: reviews,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
-    };
+    return await this.reviewService.getReviewsByProviderId(providerId, page, limit);
   }
 
   /**
-   * Get provider service requests
+   * Get provider service requests (delegated to ServiceRequestService)
    */
   async getProviderServiceRequests(
     providerId: string, 
-    status?: string, 
-    page: number = 1, 
-    limit: number = 10
+    filters?: any
   ): Promise<PaginatedResponseDto<any>> {
-    const skip = (page - 1) * limit;
-    const filter: any = { providerId };
-    
-    if (status) {
-      filter.status = status;
+    if (!this.serviceRequestService) {
+      throw new Error('ServiceRequestService not injected');
     }
 
-    const serviceRequests = await ServiceRequest.find(filter)
-      .populate('userId', 'firstName lastName profileImage')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await ServiceRequest.countDocuments(filter);
-
-    return {
-      data: serviceRequests,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
-    };
+    const { status, page = 1, limit = 10 } = filters || {};
+    return await this.serviceRequestService.getServiceRequestsByProvider(providerId, status, page, limit);
   }
 
   /**
-   * Update provider rating
+   * Update provider rating (delegated to ReviewService)
    */
   async updateProviderRating(providerId: string): Promise<void> {
-    const ratingStats = await Review.aggregate([
-      { $match: { providerId } },
-      { 
-        $group: { 
-          _id: null, 
-          avgRating: { $avg: '$rating' },
-          totalReviews: { $sum: 1 }
-        } 
-      }
-    ]);
-
-    if (ratingStats.length > 0) {
-      await ServiceProvider.findByIdAndUpdate(providerId, {
-        rating: Math.round(ratingStats[0].avgRating * 10) / 10,
-        totalReviews: ratingStats[0].totalReviews
-      });
+    if (!this.reviewService) {
+      throw new Error('ReviewService not injected');
     }
+
+    const reviewStats = await this.reviewService.getReviewStatistics(providerId);
+    
+    await ServiceProvider.findByIdAndUpdate(providerId, {
+      rating: Math.round(reviewStats.averageRating * 10) / 10,
+      totalReviews: reviewStats.totalReviews
+    });
   }
 
   /**
@@ -501,5 +448,14 @@ export class ProviderService implements IProviderService {
         hasPrev: page > 1
       }
     };
+  }
+
+  /**
+   * Increment completed jobs count
+   */
+  async incrementCompletedJobs(providerId: string): Promise<void> {
+    await ServiceProvider.findByIdAndUpdate(providerId, {
+      $inc: { completedJobs: 1 }
+    });
   }
 }

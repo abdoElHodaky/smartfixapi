@@ -84,4 +84,29 @@ export interface IReviewService {
    * Moderate review (admin function)
    */
   moderateReview(reviewId: string, action: string, reason?: string): Promise<ApiResponseDto>;
+
+  /**
+   * Get reviews by user ID
+   */
+  getReviewsByUserId(userId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get reviews by provider ID
+   */
+  getReviewsByProviderId(providerId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get reviews by service request ID
+   */
+  getReviewsByServiceRequestId(serviceRequestId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get review statistics for provider
+   */
+  getReviewStatistics(providerId: string): Promise<ReviewStatisticsDto>;
+
+  /**
+   * Validate service request exists (for review creation)
+   */
+  validateServiceRequest(serviceRequestId: string): Promise<boolean>;
 }

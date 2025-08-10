@@ -94,4 +94,19 @@ export interface IProviderService {
    * Get all providers (admin function)
    */
   getAllProviders(filters: ProviderFiltersDto): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get provider reviews by delegating to ReviewService
+   */
+  getProviderReviews(providerId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get provider service requests by delegating to ServiceRequestService
+   */
+  getProviderServiceRequests(providerId: string, filters?: any): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Increment completed jobs count
+   */
+  incrementCompletedJobs(providerId: string): Promise<void>;
 }

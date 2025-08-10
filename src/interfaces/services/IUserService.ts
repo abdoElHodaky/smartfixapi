@@ -68,4 +68,14 @@ export interface IUserService {
    * Get all users (admin function)
    */
   getAllUsers(filters: UserFiltersDto): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get user reviews by delegating to ReviewService
+   */
+  getUserReviews(userId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get user service requests by delegating to ServiceRequestService
+   */
+  getUserServiceRequests(userId: string, status?: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
 }
