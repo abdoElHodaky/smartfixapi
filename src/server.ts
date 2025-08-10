@@ -17,21 +17,26 @@ process.on('unhandledRejection', (err: Error) => {
   process.exit(1);
 });
 
+// Server instance for graceful shutdown
+let server: any;
+
 // Graceful shutdown handler
 const gracefulShutdown = (signal: string) => {
   console.log(`\n${signal} received. Starting graceful shutdown...`);
   
-  server.close((err) => {
-    if (err) {
-      console.error('Error during server shutdown:', err);
-      process.exit(1);
-    }
-    
-    console.log('Server closed successfully');
-    
-    // Close database connection
-    process.exit(0);
-  });
+  if (server) {
+    server.close((err: Error) => {
+      if (err) {
+        console.error('Error during server shutdown:', err);
+        process.exit(1);
+      }
+      
+      console.log('Server closed successfully');
+      
+      // Close database connection
+      process.exit(0);
+    });
+  }
   
   // Force shutdown after 30 seconds
   setTimeout(() => {
@@ -51,7 +56,7 @@ const startServer = async (): Promise<void> => {
     const PORT = process.env.PORT || 3000;
     
     // Start the server
-    const server = app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
       console.log(`🚀 SmartFix API Server running on port ${PORT}`);
       console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🌐 API Base URL: http://localhost:${PORT}/api`);
@@ -94,4 +99,3 @@ startServer();
 
 // Export for testing
 export default app;
-

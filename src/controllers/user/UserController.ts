@@ -1,9 +1,10 @@
 import { Response } from 'express';
-import { User } from '../models/User';
-import { ServiceRequest } from '../models/ServiceRequest';
-import { Review } from '../models/Review';
-import { AuthRequest, PaginationOptions } from '../types';
-import { asyncHandler, NotFoundError, ValidationError } from '../middleware/errorHandler';
+import { User } from '../../models/User';
+import { ServiceRequest } from '../../models/ServiceRequest';
+import { Review } from '../../models/Review';
+import { UserService } from '../../services/user/UserService';
+import { AuthRequest, PaginationOptions } from '../../types';
+import { asyncHandler, NotFoundError, ValidationError } from '../../middleware/errorHandler';
 
 export class UserController {
   /**
@@ -411,4 +412,3 @@ export class UserController {
     });
   });
 }
-

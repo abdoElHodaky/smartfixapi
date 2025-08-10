@@ -10,13 +10,15 @@ import dotenv from 'dotenv';
 import { errorHandler, notFound } from './middleware/errorHandler';
 
 // Import routes
-import authRoutes from './routes/authRoutes';
-import userRoutes from './routes/userRoutes';
-import serviceProviderRoutes from './routes/serviceProviderRoutes';
-import serviceRequestRoutes from './routes/serviceRequestRoutes';
-import reviewRoutes from './routes/reviewRoutes';
-import chatRoutes from './routes/chatRoutes';
-import adminRoutes from './routes/adminRoutes';
+import {
+  authRoutes,
+  userRoutes,
+  providerRoutes,
+  requestRoutes,
+  reviewRoutes,
+  chatRoutes,
+  adminRoutes
+} from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -111,8 +113,8 @@ app.get('/api/health', (req: Request, res: Response) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/provider', serviceProviderRoutes);
-app.use('/api/requests', serviceRequestRoutes);
+app.use('/api/provider', providerRoutes);
+app.use('/api/requests', requestRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
@@ -150,4 +152,3 @@ app.use(notFound);
 app.use(errorHandler);
 
 export default app;
-

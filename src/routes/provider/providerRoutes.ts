@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { ServiceProviderController } from '../controllers/ServiceProviderController';
-import { authenticateToken, authorizeRole } from '../middleware/auth';
+import { ProviderController } from '../../controllers/provider';
+import { authenticateToken, authorizeRole } from '../../middleware/auth';
 import { 
   validateServiceProviderRegistration, 
   validatePagination, 
   validateObjectId,
   validateSearch 
-} from '../middleware/validation';
+} from '../../middleware/validation';
 import { body } from 'express-validator';
-import { handleValidationErrors } from '../middleware/validation';
+import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
 
@@ -20,7 +20,7 @@ const router = Router();
 router.get('/profile', [
   authenticateToken,
   authorizeRole('provider')
-], ServiceProviderController.getProfile);
+], ProviderController.getProfile);
 
 /**
  * @route   PUT /api/provider/profile
@@ -49,7 +49,7 @@ router.put('/profile', [
     .isFloat({ min: 1, max: 100 })
     .withMessage('Service radius must be between 1 and 100 kilometers'),
   handleValidationErrors
-], ServiceProviderController.updateProfile);
+], ProviderController.updateProfile);
 
 /**
  * @route   GET /api/provider/service-requests
@@ -60,7 +60,7 @@ router.get('/service-requests', [
   authenticateToken,
   authorizeRole('provider'),
   validatePagination
-], ServiceProviderController.getServiceRequests);
+], ProviderController.getServiceRequests);
 
 /**
  * @route   GET /api/provider/available-requests
@@ -71,7 +71,7 @@ router.get('/available-requests', [
   authenticateToken,
   authorizeRole('provider'),
   validatePagination
-], ServiceProviderController.getAvailableRequests);
+], ProviderController.getAvailableRequests);
 
 /**
  * @route   POST /api/provider/proposal/:requestId
@@ -102,7 +102,7 @@ router.post('/proposal/:requestId', [
       return true;
     }),
   handleValidationErrors
-], ServiceProviderController.submitProposal);
+], ProviderController.submitProposal);
 
 /**
  * @route   GET /api/provider/dashboard
@@ -112,7 +112,7 @@ router.post('/proposal/:requestId', [
 router.get('/dashboard', [
   authenticateToken,
   authorizeRole('provider')
-], ServiceProviderController.getDashboard);
+], ProviderController.getDashboard);
 
 /**
  * @route   PUT /api/provider/availability
@@ -126,7 +126,7 @@ router.put('/availability', [
     .isBoolean()
     .withMessage('isAvailable must be a boolean value'),
   handleValidationErrors
-], ServiceProviderController.updateAvailability);
+], ProviderController.updateAvailability);
 
 /**
  * @route   POST /api/provider/portfolio
@@ -158,14 +158,14 @@ router.post('/portfolio', [
     .isArray()
     .withMessage('Images must be an array'),
   handleValidationErrors
-], ServiceProviderController.addPortfolioItem);
+], ProviderController.addPortfolioItem);
 
 /**
  * @route   GET /api/provider/:providerId
  * @desc    Get provider by ID (public view)
  * @access  Public
  */
-router.get('/:providerId', validateObjectId('providerId'), ServiceProviderController.getProviderById);
+router.get('/:providerId', validateObjectId('providerId'), ProviderController.getProviderById);
 
 /**
  * @route   GET /api/provider/search/providers
@@ -175,7 +175,6 @@ router.get('/:providerId', validateObjectId('providerId'), ServiceProviderContro
 router.get('/search/providers', [
   validatePagination,
   validateSearch
-], ServiceProviderController.searchProviders);
+], ProviderController.searchProviders);
 
 export default router;
-

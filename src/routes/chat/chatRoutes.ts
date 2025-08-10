@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { ChatController } from '../controllers/ChatController';
-import { authenticateToken } from '../middleware/auth';
-import { validateMessage, validatePagination, validateObjectId } from '../middleware/validation';
+import { ChatController } from '../../controllers/chat';
+import { authenticateToken } from '../../middleware/auth';
+import { validateMessage, validatePagination, validateObjectId } from '../../middleware/validation';
 import { body } from 'express-validator';
-import { handleValidationErrors } from '../middleware/validation';
+import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
 
@@ -114,4 +114,3 @@ router.post('/', [
 ], ChatController.createChat);
 
 export default router;
-

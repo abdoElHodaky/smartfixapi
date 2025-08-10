@@ -1,8 +1,9 @@
 import { Response } from 'express';
-import { Chat } from '../models/Chat';
-import { ServiceRequest } from '../models/ServiceRequest';
-import { AuthRequest } from '../types';
-import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../middleware/errorHandler';
+import { Chat } from '../../models/Chat';
+import { ServiceRequest } from '../../models/ServiceRequest';
+import { ChatService } from '../../services/chat/ChatService';
+import { AuthRequest } from '../../types';
+import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class ChatController {
   /**

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { ReviewController } from '../controllers/ReviewController';
-import { authenticateToken, authorizeRole, optionalAuth } from '../middleware/auth';
-import { validateReview, validatePagination, validateObjectId } from '../middleware/validation';
+import { ReviewController } from '../../controllers/review';
+import { authenticateToken, authorizeRole, optionalAuth } from '../../middleware/auth';
+import { validateReview, validatePagination, validateObjectId } from '../../middleware/validation';
 import { body } from 'express-validator';
-import { handleValidationErrors } from '../middleware/validation';
+import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
 
@@ -146,4 +146,3 @@ router.get('/recent', [
 router.get('/statistics', ReviewController.getReviewStatistics);
 
 export default router;
-

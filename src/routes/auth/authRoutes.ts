@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { AuthController } from '../controllers/AuthController';
+import { AuthController } from '../../controllers/auth';
 import { 
   validateUserRegistration, 
   validateUserLogin,
   handleValidationErrors 
-} from '../middleware/validation';
-import { authenticateToken } from '../middleware/auth';
+} from '../../middleware/validation';
+import { authenticateToken } from '../../middleware/auth';
 import { body } from 'express-validator';
 
 const router = Router();
@@ -166,4 +166,3 @@ router.post('/verify-token', [
 ], AuthController.verifyToken);
 
 export default router;
-

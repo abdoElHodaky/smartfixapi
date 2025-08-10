@@ -1,9 +1,10 @@
 import { Response } from 'express';
-import { Review } from '../models/Review';
-import { ServiceRequest } from '../models/ServiceRequest';
-import { ServiceProvider } from '../models/ServiceProvider';
-import { AuthRequest } from '../types';
-import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../middleware/errorHandler';
+import { Review } from '../../models/Review';
+import { ServiceRequest } from '../../models/ServiceRequest';
+import { ServiceProvider } from '../../models/ServiceProvider';
+import { ReviewService } from '../../services/review/ReviewService';
+import { AuthRequest } from '../../types';
+import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class ReviewController {
   /**
@@ -415,4 +416,3 @@ export class ReviewController {
     });
   });
 }
-
