@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthService } from '../services/AuthService';
+import { AuthService } from '../services/auth/AuthService';
 import { AuthRequest } from '../types';
 import { asyncHandler } from '../middleware/errorHandler';
 
@@ -196,4 +196,3 @@ export class AuthController {
     });
   });
 }
-

@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { ServiceRequest } from '../models/ServiceRequest';
 import { ServiceProvider } from '../models/ServiceProvider';
 import { Chat } from '../models/Chat';
+import { ServiceRequestService } from '../services/request/ServiceRequestService';
 import { AuthRequest } from '../types';
 import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../middleware/errorHandler';
 
@@ -468,4 +469,3 @@ export class ServiceRequestController {
     });
   });
 }
-
