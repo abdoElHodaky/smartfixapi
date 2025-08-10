@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # SmartFix API Setup Script
 # This script sets up the complete SmartFix API project structure
