@@ -1,154 +1,111 @@
-import express, { Application, Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import compression from 'compression';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { connectDB } from './config/database';
+import { errorHandler } from './middleware/errorHandler';
+import { serviceRegistry } from './container';
 
-// Import middleware
-import { errorHandler, notFound } from './middleware/errorHandler';
-
-// Import routes
-import {
-  authRoutes,
-  userRoutes,
-  providerRoutes,
-  requestRoutes,
-  reviewRoutes,
-  chatRoutes,
-  adminRoutes
-} from './routes';
+// Import route handlers
+import authRoutes from './routes/auth';
+import userRoutes from './routes/user';
+import providerRoutes from './routes/provider';
+import serviceRequestRoutes from './routes/serviceRequest';
+import reviewRoutes from './routes/review';
 
 // Load environment variables
 dotenv.config();
 
-// Create Express application
-const app: Application = express();
+// Create Express app
+const app = express();
 
-// Trust proxy (important for rate limiting behind reverse proxy)
-app.set('trust proxy', 1);
-
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  crossOriginEmbedderPolicy: false
-}));
-
-// CORS configuration
-const corsOptions = {
-  origin: function (origin: string | undefined, callback: Function) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002'
-    ];
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
-
-app.use(cors(corsOptions));
-
-// Compression middleware
-app.use(compression());
-
-// Body parsing middleware
+// Middleware
+app.use(helmet());
+app.use(cors());
+app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Logging middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again later.',
-    error: 'Rate limit exceeded'
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-
-app.use('/api/', limiter);
+app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get('/api/health', (req: Request, res: Response) => {
+app.get('/health', (req, res) => {
   res.status(200).json({
-    success: true,
-    message: 'SmartFix API is running',
-    data: {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development'
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    services: {
+      database: 'connected',
+      container: 'initialized'
     }
   });
 });
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/provider', providerRoutes);
-app.use('/api/requests', requestRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/providers', providerRoutes);
+app.use('/api/service-requests', serviceRequestRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/admin', adminRoutes);
 
-// API documentation endpoint
-app.get('/api', (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: 'Welcome to SmartFix API',
-    data: {
-      version: '1.0.0',
-      description: 'On-demand Home Services Platform API',
-      endpoints: {
-        auth: '/api/auth',
-        users: '/api/user',
-        providers: '/api/provider',
-        requests: '/api/requests',
-        reviews: '/api/reviews',
-        chat: '/api/chat',
-        admin: '/api/admin',
-        health: '/api/health'
-      },
-      documentation: 'https://api-docs.smartfix.com' // Placeholder
-    }
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
   });
 });
 
-// Serve static files (for uploaded images, documents, etc.)
-app.use('/uploads', express.static('uploads'));
-
-// Handle 404 for undefined routes
-app.use(notFound);
-
-// Global error handler (must be last)
+// Error handling middleware
 app.use(errorHandler);
 
+// Start server
+const PORT = process.env.PORT || 3000;
+
+const startServer = async () => {
+  try {
+    // Connect to database
+    await connectDB();
+    console.log('✅ Database connected successfully');
+
+    // Verify DI container is working
+    const container = serviceRegistry.getContainer();
+    console.log('✅ DI Container initialized with services:', container.getRegisteredServices());
+
+    // Start the server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err: Error) => {
+  console.error('Unhandled Promise Rejection:', err);
+  process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err: Error) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  process.exit(0);
+});
+
+startServer();
+
 export default app;
+
