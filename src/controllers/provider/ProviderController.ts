@@ -1,13 +1,14 @@
 import { Response } from 'express';
-import { ProviderService } from '../../services/provider/ProviderService';
+import { serviceContainer } from '../../container/ServiceContainer';
 import { AuthRequest } from '../../types';
 import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
+import { IProviderService } from '../../interfaces/services';
 
 export class ProviderController {
-  private providerService: ProviderService;
+  private providerService: IProviderService;
 
-  constructor(providerService: ProviderService = new ProviderService()) {
-    this.providerService = providerService;
+  constructor() {
+    this.providerService = serviceContainer.getProviderService();
   }
 
   /**

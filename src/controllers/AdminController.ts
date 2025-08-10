@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ServiceRegistry } from '../container/ServiceRegistry';
+import { serviceRegistry } from '../container';
 import { IAdminService } from '../interfaces/services';
 import { AdminFiltersDto } from '../dtos';
 
@@ -7,8 +7,7 @@ export class AdminController {
   private adminService: IAdminService;
 
   constructor() {
-    const registry = new ServiceRegistry();
-    this.adminService = registry.getService<IAdminService>('AdminService');
+    this.adminService = serviceRegistry.getAdminService();
   }
 
   /**
@@ -365,4 +364,3 @@ export class AdminController {
     }
   };
 }
-

@@ -1,13 +1,14 @@
 import { Response } from 'express';
-import { ReviewService } from '../../services/review/ReviewService';
+import { serviceContainer } from '../../container/ServiceContainer';
 import { AuthRequest } from '../../types';
 import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
+import { IReviewService } from '../../interfaces/services';
 
 export class ReviewController {
-  private reviewService: ReviewService;
+  private reviewService: IReviewService;
 
-  constructor(reviewService: ReviewService = new ReviewService()) {
-    this.reviewService = reviewService;
+  constructor() {
+    this.reviewService = serviceContainer.getReviewService();
   }
 
   /**

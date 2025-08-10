@@ -1,15 +1,16 @@
 import { Response } from 'express';
 import { Chat } from '../../models/Chat';
 import { ServiceRequest } from '../../models/ServiceRequest';
-import { ChatService } from '../../services/chat/ChatService';
+import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
 import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
+import { IChatService } from '../../interfaces/services';
 
 export class ChatController {
-  private chatService: ChatService;
+  private chatService: IChatService;
 
-  constructor(chatService: ChatService = new ChatService()) {
-    this.chatService = chatService;
+  constructor() {
+    this.chatService = serviceRegistry.getChatService();
   }
 
   /**

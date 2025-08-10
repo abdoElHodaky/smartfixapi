@@ -1,96 +1,103 @@
-import { DIContainer } from './DIContainer';
+import { ServiceContainer } from './ServiceContainer';
 import { AuthService } from '../services/auth/AuthService';
-import { UserService } from '../services/user/UserService';
-import { ProviderService } from '../services/provider/ProviderService';
-import { ServiceRequestService } from '../services/request/ServiceRequestService';
-import { ReviewService } from '../services/review/ReviewService';
 import { AdminService } from '../services/admin/AdminService';
 import { ChatService } from '../services/chat/ChatService';
+import { 
+  IAuthService, 
+  IUserService, 
+  IProviderService, 
+  IServiceRequestService, 
+  IReviewService,
+  IAdminService,
+  IChatService
+} from '../interfaces/services';
 
 /**
- * Service Registry - Configures and registers all services in the DI container
+ * Service Registry - Provides access to all services via the ServiceContainer
+ * Maintains backward compatibility with existing controllers
  */
 export class ServiceRegistry {
-  private container: DIContainer;
+  private serviceContainer: ServiceContainer;
+  private authService: IAuthService;
+  private adminService: IAdminService;
+  private chatService: IChatService;
 
   constructor() {
-    this.container = new DIContainer();
-    this.registerServices();
+    this.serviceContainer = ServiceContainer.getInstance();
+    this.initializeAdditionalServices();
   }
 
   /**
-   * Register all services with their dependencies
+   * Initialize services not handled by ServiceContainer
    */
-  private registerServices(): void {
-    // Register AuthService (no dependencies)
-    this.container.registerClass('AuthService', AuthService, {
-      singleton: true,
-      dependencies: []
-    });
+  private initializeAdditionalServices(): void {
+    // AuthService has no dependencies on other domain services
+    this.authService = new AuthService();
 
-    // Register UserService (no external service dependencies)
-    this.container.registerClass('UserService', UserService, {
-      singleton: true,
-      dependencies: []
-    });
+    // AdminService depends on all core services
+    this.adminService = new AdminService(
+      this.serviceContainer.getUserService(),
+      this.serviceContainer.getProviderService(),
+      this.serviceContainer.getServiceRequestService(),
+      this.serviceContainer.getReviewService()
+    );
 
-    // Register ProviderService (depends on UserService for user operations)
-    this.container.registerClass('ProviderService', ProviderService, {
-      singleton: true,
-      dependencies: ['UserService']
-    });
-
-    // Register ServiceRequestService (depends on ProviderService and UserService)
-    this.container.registerClass('ServiceRequestService', ServiceRequestService, {
-      singleton: true,
-      dependencies: ['ProviderService', 'UserService']
-    });
-
-    // Register ReviewService (depends on ServiceRequestService and ProviderService)
-    this.container.registerClass('ReviewService', ReviewService, {
-      singleton: true,
-      dependencies: ['ServiceRequestService', 'ProviderService']
-    });
-
-    // Register AdminService (depends on all other services for admin operations)
-    this.container.registerClass('AdminService', AdminService, {
-      singleton: true,
-      dependencies: ['UserService', 'ProviderService', 'ServiceRequestService', 'ReviewService']
-    });
-
-    // Register ChatService (depends on UserService for user validation)
-    this.container.registerClass('ChatService', ChatService, {
-      singleton: true,
-      dependencies: ['UserService']
-    });
+    // ChatService depends on UserService
+    this.chatService = new ChatService(
+      this.serviceContainer.getUserService()
+    );
   }
 
   /**
-   * Get the configured DI container
-   */
-  getContainer(): DIContainer {
-    return this.container;
-  }
-
-  /**
-   * Get a service instance by name
+   * Get a service instance by name (maintains backward compatibility)
    */
   getService<T>(serviceName: string): T {
-    return this.container.resolve<T>(serviceName);
+    switch (serviceName) {
+      case 'AuthService':
+        return this.authService as T;
+      case 'UserService':
+        return this.serviceContainer.getUserService() as T;
+      case 'ProviderService':
+        return this.serviceContainer.getProviderService() as T;
+      case 'ServiceRequestService':
+        return this.serviceContainer.getServiceRequestService() as T;
+      case 'ReviewService':
+        return this.serviceContainer.getReviewService() as T;
+      case 'AdminService':
+        return this.adminService as T;
+      case 'ChatService':
+        return this.chatService as T;
+      default:
+        throw new Error(`Service '${serviceName}' not found`);
+    }
   }
 
   /**
-   * Register additional services at runtime
+   * Get the ServiceContainer instance
    */
-  registerService<T>(
-    name: string,
-    ServiceClass: new (...args: any[]) => T,
-    dependencies: string[] = []
-  ): void {
-    this.container.registerClass(name, ServiceClass, {
-      singleton: true,
-      dependencies
-    });
+  getServiceContainer(): ServiceContainer {
+    return this.serviceContainer;
+  }
+
+  /**
+   * Get AuthService instance
+   */
+  getAuthService(): IAuthService {
+    return this.authService;
+  }
+
+  /**
+   * Get AdminService instance
+   */
+  getAdminService(): IAdminService {
+    return this.adminService;
+  }
+
+  /**
+   * Get ChatService instance
+   */
+  getChatService(): IChatService {
+    return this.chatService;
   }
 
   /**
@@ -98,5 +105,12 @@ export class ServiceRegistry {
    */
   static create(): ServiceRegistry {
     return new ServiceRegistry();
+  }
+
+  /**
+   * Reset the registry (useful for testing)
+   */
+  static reset(): void {
+    ServiceContainer.reset();
   }
 }

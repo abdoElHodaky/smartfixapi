@@ -10,6 +10,7 @@ import { body } from 'express-validator';
 import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
+const requestController = new RequestController();
 
 /**
  * @route   POST /api/requests
@@ -19,7 +20,7 @@ const router = Router();
 router.post('/', [
   authenticateToken,
   validateServiceRequest
-], RequestController.createRequest);
+], requestController.createRequest);
 
 /**
  * @route   GET /api/requests/:requestId
@@ -29,7 +30,7 @@ router.post('/', [
 router.get('/:requestId', [
   optionalAuth,
   validateObjectId('requestId')
-], RequestController.getRequestById);
+], requestController.getRequestById);
 
 /**
  * @route   PUT /api/requests/:requestId
@@ -80,7 +81,7 @@ router.put('/:requestId', [
     .isIn(['low', 'medium', 'high', 'urgent'])
     .withMessage('Priority must be one of: low, medium, high, urgent'),
   handleValidationErrors
-], RequestController.updateRequest);
+], requestController.updateRequest);
 
 /**
  * @route   POST /api/requests/:requestId/accept-proposal/:proposalId
@@ -91,7 +92,7 @@ router.post('/:requestId/accept-proposal/:proposalId', [
   authenticateToken,
   validateObjectId('requestId'),
   validateObjectId('proposalId')
-], RequestController.acceptProposal);
+], requestController.acceptProposal);
 
 /**
  * @route   PUT /api/requests/:requestId/start
@@ -101,7 +102,7 @@ router.post('/:requestId/accept-proposal/:proposalId', [
 router.put('/:requestId/start', [
   authenticateToken,
   validateObjectId('requestId')
-], RequestController.startService);
+], requestController.startService);
 
 /**
  * @route   PUT /api/requests/:requestId/complete
@@ -121,7 +122,7 @@ router.put('/:requestId/complete', [
     .isArray()
     .withMessage('Completion images must be an array'),
   handleValidationErrors
-], RequestController.completeService);
+], requestController.completeService);
 
 /**
  * @route   PUT /api/requests/:requestId/approve
@@ -131,7 +132,7 @@ router.put('/:requestId/complete', [
 router.put('/:requestId/approve', [
   authenticateToken,
   validateObjectId('requestId')
-], RequestController.approveCompletion);
+], requestController.approveCompletion);
 
 /**
  * @route   PUT /api/requests/:requestId/cancel
@@ -146,7 +147,7 @@ router.put('/:requestId/cancel', [
     .isLength({ min: 5, max: 500 })
     .withMessage('Cancellation reason must be between 5 and 500 characters'),
   handleValidationErrors
-], RequestController.cancelRequest);
+], requestController.cancelRequest);
 
 /**
  * @route   GET /api/requests
@@ -181,13 +182,13 @@ router.get('/', [
     .isFloat({ min: 1, max: 100 })
     .withMessage('Radius must be between 1 and 100 kilometers'),
   handleValidationErrors
-], RequestController.getRequests);
+], requestController.getRequests);
 
 /**
  * @route   GET /api/requests/statistics
  * @desc    Get service request statistics
  * @access  Public
  */
-router.get('/statistics', RequestController.getStatistics);
+router.get('/statistics', requestController.getStatistics);
 
 export default router;

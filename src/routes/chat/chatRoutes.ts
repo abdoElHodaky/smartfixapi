@@ -6,6 +6,7 @@ import { body } from 'express-validator';
 import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
+const chatController = new ChatController();
 
 /**
  * @route   GET /api/chat/service-request/:serviceRequestId
@@ -15,7 +16,7 @@ const router = Router();
 router.get('/service-request/:serviceRequestId', [
   authenticateToken,
   validateObjectId('serviceRequestId')
-], ChatController.getChatByServiceRequest);
+], chatController.getChatByServiceRequest);
 
 /**
  * @route   POST /api/chat/:chatId/message
@@ -26,7 +27,7 @@ router.post('/:chatId/message', [
   authenticateToken,
   validateObjectId('chatId'),
   validateMessage
-], ChatController.sendMessage);
+], chatController.sendMessage);
 
 /**
  * @route   GET /api/chat/:chatId/messages
@@ -37,7 +38,7 @@ router.get('/:chatId/messages', [
   authenticateToken,
   validateObjectId('chatId'),
   validatePagination
-], ChatController.getMessages);
+], chatController.getMessages);
 
 /**
  * @route   PUT /api/chat/:chatId/read
@@ -56,7 +57,7 @@ router.put('/:chatId/read', [
     .isMongoId()
     .withMessage('Each message ID must be a valid MongoDB ObjectId'),
   handleValidationErrors
-], ChatController.markAsRead);
+], chatController.markAsRead);
 
 /**
  * @route   GET /api/chat/user/chats
@@ -66,7 +67,7 @@ router.put('/:chatId/read', [
 router.get('/user/chats', [
   authenticateToken,
   validatePagination
-], ChatController.getUserChats);
+], chatController.getUserChats);
 
 /**
  * @route   PUT /api/chat/:chatId/message/:messageId
@@ -82,7 +83,7 @@ router.put('/:chatId/message/:messageId', [
     .isLength({ min: 1, max: 2000 })
     .withMessage('Message content must be between 1 and 2000 characters'),
   handleValidationErrors
-], ChatController.editMessage);
+], chatController.editMessage);
 
 /**
  * @route   GET /api/chat/:chatId/unread-count
@@ -92,7 +93,7 @@ router.put('/:chatId/message/:messageId', [
 router.get('/:chatId/unread-count', [
   authenticateToken,
   validateObjectId('chatId')
-], ChatController.getUnreadCount);
+], chatController.getUnreadCount);
 
 /**
  * @route   POST /api/chat
@@ -111,6 +112,6 @@ router.post('/', [
     .isMongoId()
     .withMessage('Each participant must be a valid user ID'),
   handleValidationErrors
-], ChatController.createChat);
+], chatController.createChat);
 
 export default router;
