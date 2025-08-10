@@ -4,6 +4,8 @@ import { UserService } from '../services/user/UserService';
 import { ProviderService } from '../services/provider/ProviderService';
 import { ServiceRequestService } from '../services/request/ServiceRequestService';
 import { ReviewService } from '../services/review/ReviewService';
+import { AdminService } from '../services/admin/AdminService';
+import { ChatService } from '../services/chat/ChatService';
 
 /**
  * Service Registry - Configures and registers all services in the DI container
@@ -49,6 +51,18 @@ export class ServiceRegistry {
       singleton: true,
       dependencies: ['ServiceRequestService', 'ProviderService']
     });
+
+    // Register AdminService (depends on all other services for admin operations)
+    this.container.registerClass('AdminService', AdminService, {
+      singleton: true,
+      dependencies: ['UserService', 'ProviderService', 'ServiceRequestService', 'ReviewService']
+    });
+
+    // Register ChatService (depends on UserService for user validation)
+    this.container.registerClass('ChatService', ChatService, {
+      singleton: true,
+      dependencies: ['UserService']
+    });
   }
 
   /**
@@ -86,4 +100,3 @@ export class ServiceRegistry {
     return new ServiceRegistry();
   }
 }
-

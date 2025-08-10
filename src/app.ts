@@ -13,6 +13,8 @@ import userRoutes from './routes/user';
 import providerRoutes from './routes/provider';
 import serviceRequestRoutes from './routes/serviceRequest';
 import reviewRoutes from './routes/review';
+import adminRoutes from './routes/admin';
+import chatRoutes from './routes/chat';
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +48,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/service-requests', serviceRequestRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -108,4 +112,3 @@ process.on('SIGINT', () => {
 startServer();
 
 export default app;
-
