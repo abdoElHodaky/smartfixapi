@@ -6,6 +6,7 @@ import { body } from 'express-validator';
 import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
+const adminController = new AdminController();
 
 // All admin routes require authentication and admin role
 router.use(authenticateToken);
@@ -16,7 +17,7 @@ router.use(authorizeRole('admin'));
  * @desc    Get admin dashboard statistics
  * @access  Private (Admin only)
  */
-router.get('/dashboard', AdminController.getDashboard);
+router.get('/dashboard', adminController.getDashboard);
 
 /**
  * @route   GET /api/admin/users
@@ -43,7 +44,7 @@ router.get('/users', [
     .isLength({ min: 1, max: 100 })
     .withMessage('Search query must be between 1 and 100 characters'),
   handleValidationErrors
-], AdminController.getUsers);
+], adminController.getUsers);
 
 /**
  * @route   GET /api/admin/providers
@@ -66,7 +67,7 @@ router.get('/providers', [
     .isLength({ min: 1, max: 100 })
     .withMessage('Search query must be between 1 and 100 characters'),
   handleValidationErrors
-], AdminController.getProviders);
+], adminController.getProviders);
 
 /**
  * @route   PUT /api/admin/providers/:providerId/verify
@@ -79,7 +80,7 @@ router.put('/providers/:providerId/verify', [
     .isBoolean()
     .withMessage('isVerified must be a boolean value'),
   handleValidationErrors
-], AdminController.verifyProvider);
+], adminController.verifyProvider);
 
 /**
  * @route   PUT /api/admin/users/:userId/status
@@ -92,7 +93,7 @@ router.put('/users/:userId/status', [
     .isBoolean()
     .withMessage('isActive must be a boolean value'),
   handleValidationErrors
-], AdminController.toggleUserStatus);
+], adminController.toggleUserStatus);
 
 /**
  * @route   GET /api/admin/service-requests
@@ -115,7 +116,7 @@ router.get('/service-requests', [
     .isIn(['low', 'medium', 'high', 'urgent'])
     .withMessage('Priority must be one of: low, medium, high, urgent'),
   handleValidationErrors
-], AdminController.getServiceRequests);
+], adminController.getServiceRequests);
 
 /**
  * @route   GET /api/admin/reviews
@@ -133,7 +134,7 @@ router.get('/reviews', [
     .isBoolean()
     .withMessage('isVerified must be a boolean value'),
   handleValidationErrors
-], AdminController.getReviews);
+], adminController.getReviews);
 
 /**
  * @route   PUT /api/admin/reviews/:reviewId/verify
@@ -146,14 +147,14 @@ router.put('/reviews/:reviewId/verify', [
     .isBoolean()
     .withMessage('isVerified must be a boolean value'),
   handleValidationErrors
-], AdminController.toggleReviewVerification);
+], adminController.toggleReviewVerification);
 
 /**
  * @route   GET /api/admin/statistics
  * @desc    Get platform statistics
  * @access  Private (Admin only)
  */
-router.get('/statistics', AdminController.getStatistics);
+router.get('/statistics', adminController.getStatistics);
 
 /**
  * @route   DELETE /api/admin/users/:userId
@@ -162,13 +163,13 @@ router.get('/statistics', AdminController.getStatistics);
  */
 router.delete('/users/:userId', [
   validateObjectId('userId')
-], AdminController.deleteUser);
+], adminController.deleteUser);
 
 /**
  * @route   GET /api/admin/system/health
  * @desc    Get system health status
  * @access  Private (Admin only)
  */
-router.get('/system/health', AdminController.getSystemHealth);
+router.get('/system/health', adminController.getSystemHealth);
 
 export default router;

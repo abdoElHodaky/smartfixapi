@@ -9,13 +9,14 @@ import { authenticateToken } from '../../middleware/auth';
 import { body } from 'express-validator';
 
 const router = Router();
+const authController = new AuthController();
 
 /**
  * @route   POST /api/auth/register
  * @desc    Register a new user
  * @access  Public
  */
-router.post('/register', validateUserRegistration, AuthController.register);
+router.post('/register', validateUserRegistration, authController.register);
 
 /**
  * @route   POST /api/auth/register-provider
@@ -63,28 +64,28 @@ router.post('/register-provider', [
     .withMessage('Service radius must be between 1 and 100 kilometers'),
   
   handleValidationErrors
-], AuthController.registerProvider);
+], authController.registerProvider);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', validateUserLogin, AuthController.login);
+router.post('/login', validateUserLogin, authController.login);
 
 /**
  * @route   GET /api/auth/profile
  * @desc    Get current user profile
  * @access  Private
  */
-router.get('/profile', authenticateToken, AuthController.getProfile);
+router.get('/profile', authenticateToken, authController.getProfile);
 
 /**
  * @route   PUT /api/auth/profile
  * @desc    Update user profile
  * @access  Private
  */
-router.put('/profile', authenticateToken, AuthController.updateProfile);
+router.put('/profile', authenticateToken, authController.updateProfile);
 
 /**
  * @route   POST /api/auth/change-password
@@ -102,7 +103,7 @@ router.post('/change-password', [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('New password must contain at least one lowercase letter, one uppercase letter, and one number'),
   handleValidationErrors
-], AuthController.changePassword);
+], authController.changePassword);
 
 /**
  * @route   POST /api/auth/reset-password
@@ -118,7 +119,7 @@ router.post('/reset-password', [
     .isLength({ min: 6 })
     .withMessage('New password must be at least 6 characters long'),
   handleValidationErrors
-], AuthController.resetPassword);
+], authController.resetPassword);
 
 /**
  * @route   POST /api/auth/refresh-token
@@ -130,28 +131,28 @@ router.post('/refresh-token', [
     .notEmpty()
     .withMessage('Token is required'),
   handleValidationErrors
-], AuthController.refreshToken);
+], authController.refreshToken);
 
 /**
  * @route   POST /api/auth/verify-email
  * @desc    Verify user email
  * @access  Private
  */
-router.post('/verify-email', authenticateToken, AuthController.verifyEmail);
+router.post('/verify-email', authenticateToken, authController.verifyEmail);
 
 /**
  * @route   POST /api/auth/deactivate
  * @desc    Deactivate user account
  * @access  Private
  */
-router.post('/deactivate', authenticateToken, AuthController.deactivateAccount);
+router.post('/deactivate', authenticateToken, authController.deactivateAccount);
 
 /**
  * @route   POST /api/auth/logout
  * @desc    Logout user
  * @access  Private
  */
-router.post('/logout', authenticateToken, AuthController.logout);
+router.post('/logout', authenticateToken, authController.logout);
 
 /**
  * @route   POST /api/auth/verify-token
@@ -163,6 +164,6 @@ router.post('/verify-token', [
     .notEmpty()
     .withMessage('Token is required'),
   handleValidationErrors
-], AuthController.verifyToken);
+], authController.verifyToken);
 
 export default router;

@@ -6,6 +6,7 @@ import { body } from 'express-validator';
 import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
+const reviewController = new ReviewController();
 
 /**
  * @route   POST /api/reviews
@@ -19,14 +20,14 @@ router.post('/', [
     .isMongoId()
     .withMessage('Valid service request ID is required'),
   handleValidationErrors
-], ReviewController.createReview);
+], reviewController.createReview);
 
 /**
  * @route   GET /api/reviews/:reviewId
  * @desc    Get review by ID
  * @access  Public
  */
-router.get('/:reviewId', validateObjectId('reviewId'), ReviewController.getReviewById);
+router.get('/:reviewId', validateObjectId('reviewId'), reviewController.getReviewById);
 
 /**
  * @route   PUT /api/reviews/:reviewId
@@ -55,7 +56,7 @@ router.put('/:reviewId', [
     .isArray()
     .withMessage('Images must be an array'),
   handleValidationErrors
-], ReviewController.updateReview);
+], reviewController.updateReview);
 
 /**
  * @route   DELETE /api/reviews/:reviewId
@@ -65,7 +66,7 @@ router.put('/:reviewId', [
 router.delete('/:reviewId', [
   authenticateToken,
   validateObjectId('reviewId')
-], ReviewController.deleteReview);
+], reviewController.deleteReview);
 
 /**
  * @route   GET /api/reviews/provider/:providerId
@@ -80,7 +81,7 @@ router.get('/provider/:providerId', [
     .isInt({ min: 1, max: 5 })
     .withMessage('Rating filter must be between 1 and 5'),
   handleValidationErrors
-], ReviewController.getProviderReviews);
+], reviewController.getProviderReviews);
 
 /**
  * @route   POST /api/reviews/:reviewId/response
@@ -96,7 +97,7 @@ router.post('/:reviewId/response', [
     .isLength({ min: 10, max: 500 })
     .withMessage('Response message must be between 10 and 500 characters'),
   handleValidationErrors
-], ReviewController.addProviderResponse);
+], reviewController.addProviderResponse);
 
 /**
  * @route   POST /api/reviews/:reviewId/helpful
@@ -109,7 +110,7 @@ router.post('/:reviewId/helpful', [
     .isBoolean()
     .withMessage('helpful must be a boolean value'),
   handleValidationErrors
-], ReviewController.markHelpful);
+], reviewController.markHelpful);
 
 /**
  * @route   GET /api/reviews/user/my-reviews
@@ -119,7 +120,7 @@ router.post('/:reviewId/helpful', [
 router.get('/user/my-reviews', [
   authenticateToken,
   validatePagination
-], ReviewController.getUserReviews);
+], reviewController.getUserReviews);
 
 /**
  * @route   GET /api/reviews/recent
@@ -136,13 +137,13 @@ router.get('/recent', [
     .isInt({ min: 1, max: 5 })
     .withMessage('Minimum rating must be between 1 and 5'),
   handleValidationErrors
-], ReviewController.getRecentReviews);
+], reviewController.getRecentReviews);
 
 /**
  * @route   GET /api/reviews/statistics
  * @desc    Get review statistics
  * @access  Public
  */
-router.get('/statistics', ReviewController.getReviewStatistics);
+router.get('/statistics', reviewController.getReviewStatistics);
 
 export default router;

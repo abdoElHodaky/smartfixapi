@@ -1,19 +1,17 @@
 import { Response } from 'express';
-import { ServiceRequestService } from '../../services/request/ServiceRequestService';
+import { serviceContainer } from '../../container/ServiceContainer';
 import { RequestService } from '../../services/request/RequestService';
 import { AuthRequest } from '../../types';
 import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
+import { IServiceRequestService } from '../../interfaces/services';
 
 export class RequestController {
-  private serviceRequestService: ServiceRequestService;
+  private serviceRequestService: IServiceRequestService;
   private requestService: RequestService;
 
-  constructor(
-    serviceRequestService: ServiceRequestService = new ServiceRequestService(),
-    requestService: RequestService = new RequestService()
-  ) {
-    this.serviceRequestService = serviceRequestService;
-    this.requestService = requestService;
+  constructor() {
+    this.serviceRequestService = serviceContainer.getServiceRequestService();
+    this.requestService = new RequestService(); // This service may need refactoring later
   }
   /**
    * Create a new service request

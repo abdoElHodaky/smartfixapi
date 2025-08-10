@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ServiceRegistry } from '../container/ServiceRegistry';
+import { serviceRegistry } from '../container';
 import { IChatService } from '../interfaces/services';
 import { CreateConversationDto, SendMessageDto, ChatFiltersDto } from '../dtos';
 
@@ -7,8 +7,7 @@ export class ChatController {
   private chatService: IChatService;
 
   constructor() {
-    const registry = new ServiceRegistry();
-    this.chatService = registry.getService<IChatService>('ChatService');
+    this.chatService = serviceRegistry.getChatService();
   }
 
   /**
@@ -344,4 +343,3 @@ export class ChatController {
     }
   };
 }
-

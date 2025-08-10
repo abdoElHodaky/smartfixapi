@@ -1,13 +1,14 @@
 import { Response } from 'express';
-import { UserService } from '../../services/user/UserService';
+import { serviceContainer } from '../../container/ServiceContainer';
 import { AuthRequest } from '../../types';
 import { asyncHandler, ValidationError } from '../../middleware/errorHandler';
+import { IUserService } from '../../interfaces/services';
 
 export class UserController {
-  private userService: UserService;
+  private userService: IUserService;
 
-  constructor(userService: UserService = new UserService()) {
-    this.userService = userService;
+  constructor() {
+    this.userService = serviceContainer.getUserService();
   }
 
   /**

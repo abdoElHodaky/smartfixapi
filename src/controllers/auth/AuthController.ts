@@ -1,13 +1,14 @@
 import { Request, Response } from 'express';
-import { AuthService } from '../../services/auth/AuthService';
+import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
 import { asyncHandler } from '../../middleware/errorHandler';
+import { IAuthService } from '../../interfaces/services';
 
 export class AuthController {
-  private authService: AuthService;
+  private authService: IAuthService;
 
-  constructor(authService: AuthService = new AuthService()) {
-    this.authService = authService;
+  constructor() {
+    this.authService = serviceRegistry.getAuthService();
   }
   /**
    * Register a new user
