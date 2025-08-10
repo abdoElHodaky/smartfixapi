@@ -7,10 +7,16 @@ import { AuthRequest } from '../../types';
 import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class ReviewController {
+  private reviewService: ReviewService;
+
+  constructor(reviewService: ReviewService = new ReviewService()) {
+    this.reviewService = reviewService;
+  }
+
   /**
    * Create a new review
    */
-  static createReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  createReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -82,7 +88,7 @@ export class ReviewController {
   /**
    * Get review by ID
    */
-  static getReviewById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getReviewById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { reviewId } = req.params;
 
     const review = await Review.findById(reviewId)
@@ -104,7 +110,7 @@ export class ReviewController {
   /**
    * Update review
    */
-  static updateReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  updateReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -162,7 +168,7 @@ export class ReviewController {
   /**
    * Delete review
    */
-  static deleteReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  deleteReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -203,7 +209,7 @@ export class ReviewController {
   /**
    * Get reviews for a provider
    */
-  static getProviderReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getProviderReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { providerId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -247,7 +253,7 @@ export class ReviewController {
   /**
    * Add provider response to review
    */
-  static addProviderResponse = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  addProviderResponse = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -288,7 +294,7 @@ export class ReviewController {
   /**
    * Mark review as helpful/not helpful
    */
-  static markHelpful = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  markHelpful = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { reviewId } = req.params;
     const { helpful } = req.body; // boolean
 
@@ -312,7 +318,7 @@ export class ReviewController {
   /**
    * Get user's reviews (reviews they've written)
    */
-  static getUserReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getUserReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -351,7 +357,7 @@ export class ReviewController {
   /**
    * Get recent reviews (public endpoint)
    */
-  static getRecentReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getRecentReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const limit = parseInt(req.query.limit as string) || 10;
     const minRating = parseInt(req.query.minRating as string) || 1;
 
@@ -377,7 +383,7 @@ export class ReviewController {
   /**
    * Get review statistics
    */
-  static getReviewStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getReviewStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const [
       totalReviews,
       averageRating,

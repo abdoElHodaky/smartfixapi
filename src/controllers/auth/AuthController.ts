@@ -4,11 +4,16 @@ import { AuthRequest } from '../../types';
 import { asyncHandler } from '../../middleware/errorHandler';
 
 export class AuthController {
+  private authService: AuthService;
+
+  constructor(authService: AuthService = new AuthService()) {
+    this.authService = authService;
+  }
   /**
    * Register a new user
    */
-  static register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const result = await AuthService.register(req.body);
+  register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const result = await this.authService.register(req.body);
     
     res.status(201).json(result);
   });
@@ -16,10 +21,10 @@ export class AuthController {
   /**
    * Register a new service provider
    */
-  static registerProvider = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  registerProvider = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { userData, providerData } = req.body;
     
-    const result = await AuthService.registerProvider(userData, providerData);
+    const result = await this.authService.registerProvider(userData, providerData);
     
     res.status(201).json(result);
   });
@@ -27,8 +32,8 @@ export class AuthController {
   /**
    * Login user
    */
-  static login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const result = await AuthService.login(req.body);
+  login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const result = await this.authService.login(req.body);
     
     res.status(200).json(result);
   });
@@ -36,7 +41,7 @@ export class AuthController {
   /**
    * Get current user profile
    */
-  static getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -45,7 +50,7 @@ export class AuthController {
       return;
     }
 
-    const profile = await AuthService.getUserProfile(req.user.id);
+    const profile = await this.authService.getUserProfile(req.user.id);
     
     res.status(200).json({
       success: true,
@@ -57,7 +62,7 @@ export class AuthController {
   /**
    * Update user profile
    */
-  static updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -76,7 +81,7 @@ export class AuthController {
   /**
    * Change password
    */
-  static changePassword = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  changePassword = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -87,7 +92,7 @@ export class AuthController {
 
     const { currentPassword, newPassword } = req.body;
     
-    const result = await AuthService.changePassword(req.user.id, currentPassword, newPassword);
+    const result = await this.authService.changePassword(req.user.id, currentPassword, newPassword);
     
     res.status(200).json(result);
   });
@@ -95,10 +100,10 @@ export class AuthController {
   /**
    * Reset password
    */
-  static resetPassword = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  resetPassword = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { email, newPassword } = req.body;
     
-    const result = await AuthService.resetPassword(email, newPassword);
+    const result = await this.authService.resetPassword(email, newPassword);
     
     res.status(200).json(result);
   });
@@ -106,7 +111,7 @@ export class AuthController {
   /**
    * Refresh JWT token
    */
-  static refreshToken = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  refreshToken = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { token } = req.body;
     
     if (!token) {
@@ -117,7 +122,7 @@ export class AuthController {
       return;
     }
 
-    const result = await AuthService.refreshToken(token);
+    const result = await this.authService.refreshToken(token);
     
     res.status(200).json({
       success: true,
@@ -129,7 +134,7 @@ export class AuthController {
   /**
    * Verify email
    */
-  static verifyEmail = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  verifyEmail = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -138,7 +143,7 @@ export class AuthController {
       return;
     }
 
-    const result = await AuthService.verifyEmail(req.user.id);
+    const result = await this.authService.verifyEmail(req.user.id);
     
     res.status(200).json(result);
   });
@@ -146,7 +151,7 @@ export class AuthController {
   /**
    * Deactivate account
    */
-  static deactivateAccount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  deactivateAccount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -155,7 +160,7 @@ export class AuthController {
       return;
     }
 
-    const result = await AuthService.deactivateAccount(req.user.id);
+    const result = await this.authService.deactivateAccount(req.user.id);
     
     res.status(200).json(result);
   });
@@ -163,7 +168,7 @@ export class AuthController {
   /**
    * Logout (client-side token removal, but we can track it server-side if needed)
    */
-  static logout = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  logout = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     // In a more sophisticated implementation, we might maintain a blacklist of tokens
     // For now, we just return success as the client will remove the token
     
@@ -176,7 +181,7 @@ export class AuthController {
   /**
    * Verify token endpoint
    */
-  static verifyToken = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  verifyToken = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { token } = req.body;
     
     if (!token) {
@@ -187,7 +192,7 @@ export class AuthController {
       return;
     }
 
-    const result = await AuthService.verifyToken(token);
+    const result = await this.authService.verifyToken(token);
     
     res.status(200).json({
       success: true,

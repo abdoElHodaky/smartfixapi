@@ -53,7 +53,7 @@ export class ProviderService {
   /**
    * Get provider by ID
    */
-  static async getProviderById(providerId: string): Promise<any> {
+  async getProviderById(providerId: string): Promise<any> {
     const provider = await ServiceProvider.findById(providerId)
       .populate('userId', 'firstName lastName profileImage createdAt');
 
@@ -67,7 +67,7 @@ export class ProviderService {
   /**
    * Get provider by user ID
    */
-  static async getProviderByUserId(userId: string): Promise<any> {
+  async getProviderByUserId(userId: string): Promise<any> {
     const provider = await ServiceProvider.findOne({ userId })
       .populate('userId', '-password');
 
@@ -81,7 +81,7 @@ export class ProviderService {
   /**
    * Update provider profile
    */
-  static async updateProviderProfile(userId: string, updateData: ProviderUpdateData): Promise<any> {
+  async updateProviderProfile(userId: string, updateData: ProviderUpdateData): Promise<any> {
     const provider = await ServiceProvider.findOneAndUpdate(
       { userId },
       updateData,
@@ -98,7 +98,7 @@ export class ProviderService {
   /**
    * Get provider dashboard data
    */
-  static async getProviderDashboard(userId: string): Promise<any> {
+  async getProviderDashboard(userId: string): Promise<any> {
     const provider = await ServiceProvider.findOne({ userId });
     if (!provider) {
       throw new NotFoundError('Service provider profile not found');
@@ -162,7 +162,7 @@ export class ProviderService {
   /**
    * Search providers with filters
    */
-  static async searchProviders(filters: ProviderSearchFilters): Promise<any> {
+  async searchProviders(filters: ProviderSearchFilters): Promise<any> {
     const { 
       services, 
       location, 
@@ -242,7 +242,7 @@ export class ProviderService {
   /**
    * Update provider availability
    */
-  static async updateAvailability(userId: string, isAvailable: boolean): Promise<any> {
+  async updateAvailability(userId: string, isAvailable: boolean): Promise<any> {
     const provider = await ServiceProvider.findOneAndUpdate(
       { userId },
       { isAvailable, lastActiveDate: new Date() },
@@ -259,7 +259,7 @@ export class ProviderService {
   /**
    * Add portfolio item
    */
-  static async addPortfolioItem(userId: string, portfolioItem: PortfolioItem): Promise<any> {
+  async addPortfolioItem(userId: string, portfolioItem: PortfolioItem): Promise<any> {
     const provider = await ServiceProvider.findOne({ userId });
     if (!provider) {
       throw new NotFoundError('Service provider profile not found');
@@ -274,7 +274,7 @@ export class ProviderService {
   /**
    * Remove portfolio item
    */
-  static async removePortfolioItem(userId: string, portfolioItemId: string): Promise<void> {
+  async removePortfolioItem(userId: string, portfolioItemId: string): Promise<void> {
     const provider = await ServiceProvider.findOne({ userId });
     if (!provider) {
       throw new NotFoundError('Service provider profile not found');
@@ -289,7 +289,7 @@ export class ProviderService {
   /**
    * Verify provider
    */
-  static async verifyProvider(providerId: string, isVerified: boolean): Promise<any> {
+  async verifyProvider(providerId: string, isVerified: boolean): Promise<any> {
     const provider = await ServiceProvider.findByIdAndUpdate(
       providerId,
       { isVerified },
@@ -306,7 +306,7 @@ export class ProviderService {
   /**
    * Get provider statistics
    */
-  static async getProviderStatistics(): Promise<any> {
+  async getProviderStatistics(): Promise<any> {
     const [
       totalProviders,
       verifiedProviders,
@@ -335,7 +335,7 @@ export class ProviderService {
   /**
    * Get providers near location
    */
-  static async getProvidersNearLocation(
+  async getProvidersNearLocation(
     coordinates: [number, number], 
     radius: number = 25,
     services?: string[]

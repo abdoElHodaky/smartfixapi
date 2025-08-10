@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
-import { ServiceProvider } from '../models/ServiceProvider';
-import { ValidationError, AuthenticationError } from '../middleware/errorHandler';
+import { User } from '../../models/User';
+import { ServiceProvider } from '../../models/ServiceProvider';
+import { ValidationError, AuthenticationError } from '../../middleware/errorHandler';
 
 export interface UserRegistrationData {
   firstName: string;
@@ -54,13 +54,13 @@ export interface LoginCredentials {
 }
 
 export class AuthService {
-  private static readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-  private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+  private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+  private readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
   /**
    * Generate JWT token
    */
-  static generateToken(userId: string, email: string, role: string): string {
+  generateToken(userId: string, email: string, role: string): string {
     return jwt.sign(
       { id: userId, email, role },
       this.JWT_SECRET,
@@ -71,7 +71,7 @@ export class AuthService {
   /**
    * Verify JWT token
    */
-  static verifyToken(token: string): any {
+  verifyToken(token: string): any {
     try {
       return jwt.verify(token, this.JWT_SECRET);
     } catch (error) {
@@ -82,7 +82,7 @@ export class AuthService {
   /**
    * Hash password
    */
-  static async hashPassword(password: string): Promise<string> {
+  async hashPassword(password: string): Promise<string> {
     const saltRounds = 12;
     return bcrypt.hash(password, saltRounds);
   }
@@ -90,14 +90,14 @@ export class AuthService {
   /**
    * Compare password
    */
-  static async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+  async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 
   /**
    * Register a new user
    */
-  static async registerUser(userData: UserRegistrationData): Promise<any> {
+  async register(userData: UserRegistrationData): Promise<any> {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({ email: userData.email });
@@ -149,7 +149,7 @@ export class AuthService {
   /**
    * Register a new service provider
    */
-  static async registerServiceProvider(
+  async registerProvider(
     userData: UserRegistrationData,
     providerData: ServiceProviderRegistrationData
   ): Promise<any> {
@@ -226,7 +226,7 @@ export class AuthService {
   /**
    * Login user
    */
-  static async loginUser(credentials: LoginCredentials): Promise<any> {
+  async login(credentials: LoginCredentials): Promise<any> {
     try {
       // Find user by email
       const user = await User.findOne({ email: credentials.email }).select('+password');
@@ -283,7 +283,7 @@ export class AuthService {
   /**
    * Change user password
    */
-  static async changePassword(
+  async changePassword(
     userId: string,
     currentPassword: string,
     newPassword: string
@@ -323,7 +323,7 @@ export class AuthService {
   /**
    * Reset password
    */
-  static async resetPassword(email: string, newPassword: string): Promise<any> {
+  async resetPassword(email: string, newPassword: string): Promise<any> {
     try {
       // Find user by email
       const user = await User.findOne({ email });
@@ -353,7 +353,7 @@ export class AuthService {
   /**
    * Refresh JWT token
    */
-  static async refreshToken(token: string): Promise<any> {
+  async refreshToken(token: string): Promise<any> {
     try {
       // Verify the token (even if expired)
       const decoded = jwt.verify(token, this.JWT_SECRET, { ignoreExpiration: true }) as any;
@@ -383,7 +383,7 @@ export class AuthService {
   /**
    * Verify email (placeholder for email verification logic)
    */
-  static async verifyEmail(userId: string): Promise<any> {
+  async verifyEmail(userId: string): Promise<any> {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -403,9 +403,34 @@ export class AuthService {
   }
 
   /**
+   * Get user profile
+   */
+  async getUserProfile(userId: string): Promise<any> {
+    try {
+      const user = await User.findById(userId).select('-password');
+      if (!user) {
+        throw new ValidationError('User not found');
+      }
+
+      // Get provider profile if user is a provider
+      let providerProfile = null;
+      if (user.role === 'provider') {
+        providerProfile = await ServiceProvider.findOne({ userId: user._id });
+      }
+
+      return {
+        user,
+        provider: providerProfile
+      };
+    } catch (error) {
+      throw new ValidationError('Failed to retrieve user profile');
+    }
+  }
+
+  /**
    * Deactivate user account
    */
-  static async deactivateAccount(userId: string): Promise<any> {
+  async deactivateAccount(userId: string): Promise<any> {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -424,4 +449,3 @@ export class AuthService {
     }
   }
 }
-

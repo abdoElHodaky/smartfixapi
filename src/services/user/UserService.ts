@@ -33,7 +33,7 @@ export class UserService {
   /**
    * Get user by ID
    */
-  static async getUserById(userId: string, includePassword: boolean = false): Promise<any> {
+  async getUserById(userId: string, includePassword: boolean = false): Promise<any> {
     const selectFields = includePassword ? '+password' : '-password';
     const user = await User.findById(userId).select(selectFields);
     
@@ -47,7 +47,7 @@ export class UserService {
   /**
    * Update user profile
    */
-  static async updateUserProfile(userId: string, updateData: UserUpdateData): Promise<any> {
+  async updateUserProfile(userId: string, updateData: UserUpdateData): Promise<any> {
     const user = await User.findByIdAndUpdate(
       userId,
       updateData,
@@ -64,7 +64,7 @@ export class UserService {
   /**
    * Update user location
    */
-  static async updateUserLocation(
+  async updateUserLocation(
     userId: string, 
     coordinates: [number, number], 
     address?: any
@@ -96,7 +96,7 @@ export class UserService {
   /**
    * Get user dashboard data
    */
-  static async getUserDashboard(userId: string): Promise<any> {
+  async getUserDashboard(userId: string): Promise<any> {
     const [
       totalRequests,
       pendingRequests,
@@ -142,7 +142,7 @@ export class UserService {
   /**
    * Get user's service requests with pagination
    */
-  static async getUserServiceRequests(
+  async getUserServiceRequests(
     userId: string, 
     page: number = 1, 
     limit: number = 10, 
@@ -178,7 +178,7 @@ export class UserService {
   /**
    * Get user's reviews with pagination
    */
-  static async getUserReviews(
+  async getUserReviews(
     userId: string, 
     page: number = 1, 
     limit: number = 10
@@ -209,7 +209,7 @@ export class UserService {
   /**
    * Search users with filters
    */
-  static async searchUsers(filters: UserSearchFilters): Promise<any> {
+  async searchUsers(filters: UserSearchFilters): Promise<any> {
     const { 
       role, 
       isActive, 
@@ -257,7 +257,7 @@ export class UserService {
   /**
    * Deactivate user account
    */
-  static async deactivateUser(userId: string): Promise<any> {
+  async deactivateUser(userId: string): Promise<any> {
     const user = await User.findByIdAndUpdate(
       userId,
       { isActive: false },
@@ -274,7 +274,7 @@ export class UserService {
   /**
    * Activate user account
    */
-  static async activateUser(userId: string): Promise<any> {
+  async activateUser(userId: string): Promise<any> {
     const user = await User.findByIdAndUpdate(
       userId,
       { isActive: true },
@@ -291,7 +291,7 @@ export class UserService {
   /**
    * Get user statistics
    */
-  static async getUserStatistics(): Promise<any> {
+  async getUserStatistics(): Promise<any> {
     const [
       totalUsers,
       activeUsers,
@@ -350,4 +350,3 @@ export class UserService {
     };
   }
 }
-

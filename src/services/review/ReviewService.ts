@@ -31,7 +31,7 @@ export class ReviewService {
   /**
    * Create a new review
    */
-  static async createReview(userId: string, reviewData: ReviewData): Promise<any> {
+  async createReview(userId: string, reviewData: ReviewData): Promise<any> {
     const { serviceRequestId, rating, title, comment, images } = reviewData;
 
     // Check if service request exists and is completed
@@ -91,7 +91,7 @@ export class ReviewService {
   /**
    * Get review by ID
    */
-  static async getReviewById(reviewId: string): Promise<any> {
+  async getReviewById(reviewId: string): Promise<any> {
     const review = await Review.findById(reviewId)
       .populate('userId', 'firstName lastName profileImage')
       .populate('providerId', 'businessName')
@@ -107,7 +107,7 @@ export class ReviewService {
   /**
    * Update review
    */
-  static async updateReview(
+  async updateReview(
     reviewId: string, 
     userId: string, 
     updateData: ReviewUpdateData
@@ -150,7 +150,7 @@ export class ReviewService {
   /**
    * Delete review
    */
-  static async deleteReview(reviewId: string, userId: string, userRole: string): Promise<void> {
+  async deleteReview(reviewId: string, userId: string, userRole: string): Promise<void> {
     const review = await Review.findById(reviewId);
     if (!review) {
       throw new NotFoundError('Review not found');
@@ -176,7 +176,7 @@ export class ReviewService {
   /**
    * Get reviews for a provider
    */
-  static async getProviderReviews(
+  async getProviderReviews(
     providerId: string, 
     page: number = 1, 
     limit: number = 10, 
@@ -217,7 +217,7 @@ export class ReviewService {
   /**
    * Add provider response to review
    */
-  static async addProviderResponse(
+  async addProviderResponse(
     reviewId: string, 
     providerId: string, 
     message: string
@@ -250,7 +250,7 @@ export class ReviewService {
   /**
    * Mark review as helpful/not helpful
    */
-  static async markHelpful(reviewId: string, helpful: boolean): Promise<any> {
+  async markHelpful(reviewId: string, helpful: boolean): Promise<any> {
     const review = await Review.findById(reviewId);
     if (!review) {
       throw new NotFoundError('Review not found');
@@ -267,7 +267,7 @@ export class ReviewService {
   /**
    * Get user's reviews (reviews they've written)
    */
-  static async getUserReviews(
+  async getUserReviews(
     userId: string, 
     page: number = 1, 
     limit: number = 10
@@ -298,7 +298,7 @@ export class ReviewService {
   /**
    * Get recent reviews (public endpoint)
    */
-  static async getRecentReviews(
+  async getRecentReviews(
     limit: number = 10, 
     minRating: number = 1
   ): Promise<any[]> {
@@ -320,7 +320,7 @@ export class ReviewService {
   /**
    * Get review statistics
    */
-  static async getReviewStatistics(): Promise<any> {
+  async getReviewStatistics(): Promise<any> {
     const [
       totalReviews,
       averageRating,
@@ -356,7 +356,7 @@ export class ReviewService {
   /**
    * Search reviews
    */
-  static async searchReviews(filters: ReviewFilters): Promise<any> {
+  async searchReviews(filters: ReviewFilters): Promise<any> {
     const { 
       providerId, 
       userId, 
@@ -399,7 +399,7 @@ export class ReviewService {
   /**
    * Verify/unverify review (admin only)
    */
-  static async toggleReviewVerification(reviewId: string, isVerified: boolean): Promise<any> {
+  async toggleReviewVerification(reviewId: string, isVerified: boolean): Promise<any> {
     const review = await Review.findByIdAndUpdate(
       reviewId,
       { isVerified },
@@ -417,7 +417,7 @@ export class ReviewService {
   /**
    * Get top-rated providers based on reviews
    */
-  static async getTopRatedProviders(limit: number = 10): Promise<any[]> {
+  async getTopRatedProviders(limit: number = 10): Promise<any[]> {
     const topProviders = await Review.aggregate([
       {
         $group: {

@@ -7,10 +7,16 @@ import { AuthRequest, PaginationOptions } from '../../types';
 import { asyncHandler, NotFoundError, ValidationError } from '../../middleware/errorHandler';
 
 export class UserController {
+  private userService: UserService;
+
+  constructor(userService: UserService = new UserService()) {
+    this.userService = userService;
+  }
+
   /**
    * Get user profile
    */
-  static getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -35,7 +41,7 @@ export class UserController {
   /**
    * Update user profile
    */
-  static updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -76,7 +82,7 @@ export class UserController {
   /**
    * Upload profile image
    */
-  static uploadProfileImage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  uploadProfileImage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -115,7 +121,7 @@ export class UserController {
   /**
    * Get user's service requests
    */
-  static getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -159,7 +165,7 @@ export class UserController {
   /**
    * Get user's reviews (reviews they've written)
    */
-  static getMyReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getMyReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -198,7 +204,7 @@ export class UserController {
   /**
    * Get user dashboard data
    */
-  static getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -259,7 +265,7 @@ export class UserController {
   /**
    * Update user location
    */
-  static updateLocation = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  updateLocation = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -303,7 +309,7 @@ export class UserController {
   /**
    * Delete user account
    */
-  static deleteAccount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  deleteAccount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -337,7 +343,7 @@ export class UserController {
   /**
    * Get user by ID (for admin or public profile view)
    */
-  static getUserById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getUserById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { userId } = req.params;
 
     const user = await User.findById(userId)
@@ -372,7 +378,7 @@ export class UserController {
   /**
    * Search users (for admin purposes)
    */
-  static searchUsers = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  searchUsers = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     // This endpoint would typically be restricted to admin users
     const { q, role, isActive, page = 1, limit = 10 } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);

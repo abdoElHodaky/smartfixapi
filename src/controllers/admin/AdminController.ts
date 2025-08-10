@@ -8,10 +8,16 @@ import { AuthRequest } from '../../types';
 import { asyncHandler, NotFoundError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class AdminController {
+  private adminService: AdminService;
+
+  constructor(adminService: AdminService = new AdminService()) {
+    this.adminService = adminService;
+  }
+
   /**
    * Get admin dashboard statistics
    */
-  static getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -72,7 +78,7 @@ export class AdminController {
   /**
    * Get all users with pagination and filters
    */
-  static getUsers = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getUsers = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -126,7 +132,7 @@ export class AdminController {
   /**
    * Get all service providers with pagination and filters
    */
-  static getProviders = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getProviders = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -178,7 +184,7 @@ export class AdminController {
   /**
    * Verify a service provider
    */
-  static verifyProvider = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  verifyProvider = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -206,7 +212,7 @@ export class AdminController {
   /**
    * Deactivate/Activate user
    */
-  static toggleUserStatus = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  toggleUserStatus = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -234,7 +240,7 @@ export class AdminController {
   /**
    * Get all service requests with filters
    */
-  static getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -280,7 +286,7 @@ export class AdminController {
   /**
    * Get all reviews with filters
    */
-  static getReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -325,7 +331,7 @@ export class AdminController {
   /**
    * Verify/Unverify a review
    */
-  static toggleReviewVerification = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  toggleReviewVerification = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -354,7 +360,7 @@ export class AdminController {
   /**
    * Get platform statistics
    */
-  static getStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -430,7 +436,7 @@ export class AdminController {
   /**
    * Delete user (soft delete by deactivating)
    */
-  static deleteUser = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  deleteUser = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }
@@ -458,7 +464,7 @@ export class AdminController {
   /**
    * Get system health status
    */
-  static getSystemHealth = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getSystemHealth = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'admin') {
       throw new AuthorizationError('Admin access required');
     }

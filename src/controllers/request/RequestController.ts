@@ -3,14 +3,25 @@ import { ServiceRequest } from '../../models/ServiceRequest';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { Chat } from '../../models/Chat';
 import { ServiceRequestService } from '../../services/request/ServiceRequestService';
+import { RequestService } from '../../services/request/RequestService';
 import { AuthRequest } from '../../types';
 import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class RequestController {
+  private serviceRequestService: ServiceRequestService;
+  private requestService: RequestService;
+
+  constructor(
+    serviceRequestService: ServiceRequestService = new ServiceRequestService(),
+    requestService: RequestService = new RequestService()
+  ) {
+    this.serviceRequestService = serviceRequestService;
+    this.requestService = requestService;
+  }
   /**
    * Create a new service request
    */
-  static createRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  createRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -40,7 +51,7 @@ export class RequestController {
   /**
    * Get service request by ID
    */
-  static getRequestById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getRequestById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { requestId } = req.params;
 
     const serviceRequest = await ServiceRequest.findById(requestId)
@@ -76,7 +87,7 @@ export class RequestController {
   /**
    * Update service request
    */
-  static updateRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  updateRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -130,7 +141,7 @@ export class RequestController {
   /**
    * Accept a proposal
    */
-  static acceptProposal = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  acceptProposal = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -187,7 +198,7 @@ export class RequestController {
   /**
    * Start service (mark as in progress)
    */
-  static startService = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  startService = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -222,7 +233,7 @@ export class RequestController {
   /**
    * Complete service
    */
-  static completeService = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  completeService = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -266,7 +277,7 @@ export class RequestController {
   /**
    * Approve service completion (by customer)
    */
-  static approveCompletion = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  approveCompletion = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -307,7 +318,7 @@ export class RequestController {
   /**
    * Cancel service request
    */
-  static cancelRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  cancelRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -354,7 +365,7 @@ export class RequestController {
   /**
    * Get service requests with filters
    */
-  static getRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { 
       status, 
       category, 
@@ -434,7 +445,7 @@ export class RequestController {
   /**
    * Get service request statistics
    */
-  static getStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const [
       totalRequests,
       pendingRequests,
