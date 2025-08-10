@@ -3,57 +3,19 @@ import jwt from 'jsonwebtoken';
 import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { ValidationError, AuthenticationError } from '../../middleware/errorHandler';
+import { IAuthService } from '../../interfaces/services';
+import {
+  UserRegistrationDto,
+  ServiceProviderRegistrationDto,
+  LoginDto,
+  LoginResponseDto,
+  UserRegistrationResponseDto,
+  ServiceProviderRegistrationResponseDto,
+  TokenVerificationDto,
+  ApiResponseDto
+} from '../../dtos';
 
-export interface UserRegistrationData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phone: string;
-  role?: 'user' | 'provider';
-  address?: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  location?: {
-    type: 'Point';
-    coordinates: [number, number];
-  };
-}
-
-export interface ServiceProviderRegistrationData {
-  businessName: string;
-  description: string;
-  services: string[];
-  serviceArea: {
-    type: 'Point';
-    coordinates: [number, number];
-    radius: number;
-  };
-  pricing?: {
-    hourlyRate?: number;
-    fixedPrices?: Array<{
-      service: string;
-      price: number;
-    }>;
-  };
-  availability?: {
-    [key: string]: {
-      available: boolean;
-      startTime?: string;
-      endTime?: string;
-    };
-  };
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export class AuthService {
+export class AuthService implements IAuthService {
   private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
   private readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -71,9 +33,9 @@ export class AuthService {
   /**
    * Verify JWT token
    */
-  verifyToken(token: string): any {
+  verifyToken(token: string): TokenVerificationDto {
     try {
-      return jwt.verify(token, this.JWT_SECRET);
+      return jwt.verify(token, this.JWT_SECRET) as TokenVerificationDto;
     } catch (error) {
       throw new AuthenticationError('Invalid or expired token');
     }
@@ -97,7 +59,7 @@ export class AuthService {
   /**
    * Register a new user
    */
-  async register(userData: UserRegistrationData): Promise<any> {
+  async register(userData: UserRegistrationDto): Promise<UserRegistrationResponseDto> {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({ email: userData.email });
@@ -150,9 +112,9 @@ export class AuthService {
    * Register a new service provider
    */
   async registerProvider(
-    userData: UserRegistrationData,
-    providerData: ServiceProviderRegistrationData
-  ): Promise<any> {
+    userData: UserRegistrationDto,
+    providerData: ServiceProviderRegistrationDto
+  ): Promise<ServiceProviderRegistrationResponseDto> {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({ email: userData.email });
@@ -226,7 +188,7 @@ export class AuthService {
   /**
    * Login user
    */
-  async login(credentials: LoginCredentials): Promise<any> {
+  async login(credentials: LoginDto): Promise<LoginResponseDto> {
     try {
       // Find user by email
       const user = await User.findOne({ email: credentials.email }).select('+password');
@@ -287,7 +249,7 @@ export class AuthService {
     userId: string,
     currentPassword: string,
     newPassword: string
-  ): Promise<any> {
+  ): Promise<ApiResponseDto> {
     try {
       // Find user
       const user = await User.findById(userId).select('+password');
@@ -323,7 +285,7 @@ export class AuthService {
   /**
    * Reset password
    */
-  async resetPassword(email: string, newPassword: string): Promise<any> {
+  async resetPassword(email: string, newPassword: string): Promise<ApiResponseDto> {
     try {
       // Find user by email
       const user = await User.findOne({ email });
@@ -353,7 +315,7 @@ export class AuthService {
   /**
    * Refresh JWT token
    */
-  async refreshToken(token: string): Promise<any> {
+  async refreshToken(token: string): Promise<ApiResponseDto> {
     try {
       // Verify the token (even if expired)
       const decoded = jwt.verify(token, this.JWT_SECRET, { ignoreExpiration: true }) as any;
@@ -383,7 +345,7 @@ export class AuthService {
   /**
    * Verify email (placeholder for email verification logic)
    */
-  async verifyEmail(userId: string): Promise<any> {
+  async verifyEmail(userId: string): Promise<ApiResponseDto> {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -430,7 +392,7 @@ export class AuthService {
   /**
    * Deactivate user account
    */
-  async deactivateAccount(userId: string): Promise<any> {
+  async deactivateAccount(userId: string): Promise<ApiResponseDto> {
     try {
       const user = await User.findById(userId);
       if (!user) {

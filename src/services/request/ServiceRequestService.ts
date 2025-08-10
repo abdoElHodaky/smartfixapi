@@ -1,371 +1,509 @@
-import { ServiceRequest } from '../models/ServiceRequest';
-import { ServiceProvider } from '../models/ServiceProvider';
-import { User } from '../models/User';
-import { NotFoundError, ValidationError } from '../middleware/errorHandler';
+import { ServiceRequest } from '../../models/ServiceRequest';
+import { ServiceProvider } from '../../models/ServiceProvider';
+import { User } from '../../models/User';
+import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
+import { IServiceRequestService, IProviderService, IUserService } from '../../interfaces/services';
+import {
+  CreateRequestDto,
+  UpdateRequestDto,
+  RequestFiltersDto,
+  ApiResponseDto,
+  PaginatedResponseDto
+} from '../../dtos';
 
-export interface ServiceMatchCriteria {
-  location: [number, number]; // [longitude, latitude]
-  radius: number; // in kilometers
-  services: string[];
-  budget: {
-    min: number;
-    max: number;
-  };
-  scheduledDate: Date;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-}
+export class ServiceRequestService implements IServiceRequestService {
+  constructor(
+    private providerService: IProviderService,
+    private userService: IUserService
+  ) {}
 
-export class ServiceRequestService {
   /**
-   * Find matching service providers for a request
+   * Create a new service request
    */
-  static async findMatchingProviders(
-    serviceRequestId: string,
-    criteria: ServiceMatchCriteria
-  ): Promise<any[]> {
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
-    }
+  async createServiceRequest(userId: string, requestData: CreateRequestDto): Promise<ApiResponseDto> {
+    // Verify user exists
+    await this.userService.getUserById(userId);
 
-    // Build query to find matching providers
-    const matchQuery: any = {
-      isVerified: true,
-      isAvailable: true,
-      services: { $in: criteria.services }
-    };
-
-    // Location-based matching
-    const providers = await ServiceProvider.find(matchQuery)
-      .where('serviceArea')
-      .near({
-        center: criteria.location,
-        maxDistance: criteria.radius * 1000 // Convert km to meters
-      })
-      .populate('userId', 'firstName lastName profileImage phone')
-      .sort({ 'rating.average': -1, completedJobs: -1 });
-
-    // Filter providers based on additional criteria
-    const matchingProviders = providers.filter(provider => {
-      // Check if provider's service area covers the request location
-      const distance = this.calculateDistance(
-        criteria.location,
-        provider.serviceArea.coordinates
-      );
-      
-      if (distance > provider.serviceArea.radius) {
-        return false;
-      }
-
-      // Check pricing compatibility (if provider has hourly rate)
-      if (provider.pricing.hourlyRate) {
-        const estimatedCost = provider.pricing.hourlyRate * (serviceRequest.estimatedDuration || 1);
-        if (estimatedCost > criteria.budget.max) {
-          return false;
-        }
-      }
-
-      // Check availability for the scheduled date/time
-      const dayOfWeek = criteria.scheduledDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const availability = provider.availability[dayOfWeek as keyof typeof provider.availability];
-      
-      if (!availability || !availability.available) {
-        return false;
-      }
-
-      return true;
+    const serviceRequest = new ServiceRequest({
+      ...requestData,
+      userId,
+      status: 'pending'
     });
 
-    return matchingProviders;
+    await serviceRequest.save();
+
+    return {
+      success: true,
+      message: 'Service request created successfully',
+      data: serviceRequest
+    };
   }
 
   /**
-   * Calculate distance between two coordinates (Haversine formula)
+   * Get service request by ID
    */
-  private static calculateDistance(
-    coord1: [number, number],
-    coord2: [number, number]
-  ): number {
-    const [lon1, lat1] = coord1;
-    const [lon2, lat2] = coord2;
+  async getServiceRequestById(requestId: string): Promise<any> {
+    const serviceRequest = await ServiceRequest.findById(requestId)
+      .populate('userId', 'firstName lastName email phone profileImage')
+      .populate('providerId', 'businessName rating userId');
     
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = this.toRadians(lat2 - lat1);
-    const dLon = this.toRadians(lon2 - lon1);
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
+    }
     
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private static toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
+    return serviceRequest;
   }
 
   /**
-   * Auto-match service request with providers
+   * Update service request
    */
-  static async autoMatchServiceRequest(serviceRequestId: string): Promise<any[]> {
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
+  async updateServiceRequest(requestId: string, updateData: UpdateRequestDto): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findByIdAndUpdate(
+      requestId,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('userId', 'firstName lastName email phone')
+     .populate('providerId', 'businessName rating');
+
     if (!serviceRequest) {
       throw new NotFoundError('Service request not found');
     }
 
-    const criteria: ServiceMatchCriteria = {
-      location: serviceRequest.location.coordinates,
-      radius: 25, // Default 25km radius
-      services: [serviceRequest.serviceType],
-      budget: serviceRequest.budget,
-      scheduledDate: serviceRequest.scheduledDate,
-      priority: serviceRequest.priority
+    return {
+      success: true,
+      message: 'Service request updated successfully',
+      data: serviceRequest
     };
-
-    return this.findMatchingProviders(serviceRequestId, criteria);
   }
 
   /**
-   * Send notifications to matching providers
+   * Delete service request
    */
-  static async notifyMatchingProviders(
-    serviceRequestId: string,
-    providerIds: string[]
-  ): Promise<void> {
-    // In a real implementation, this would send push notifications, emails, or SMS
-    // For now, we'll just log the notification
-    console.log(`Notifying ${providerIds.length} providers about service request ${serviceRequestId}`);
+  async deleteServiceRequest(requestId: string): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findByIdAndDelete(requestId);
+
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
+    }
+
+    return {
+      success: true,
+      message: 'Service request deleted successfully'
+    };
+  }
+
+  /**
+   * Search service requests with filters
+   */
+  async searchServiceRequests(filters: RequestFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      category, 
+      status, 
+      location, 
+      radius = 10000,
+      minBudget, 
+      maxBudget, 
+      urgency,
+      page = 1, 
+      limit = 10 
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (location) {
+      filter.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: location
+          },
+          $maxDistance: radius
+        }
+      };
+    }
+
+    if (minBudget || maxBudget) {
+      filter.budget = {};
+      if (minBudget) filter.budget.$gte = minBudget;
+      if (maxBudget) filter.budget.$lte = maxBudget;
+    }
+
+    if (urgency) {
+      filter.urgency = urgency;
+    }
+
+    const serviceRequests = await ServiceRequest.find(filter)
+      .populate('userId', 'firstName lastName profileImage')
+      .populate('providerId', 'businessName rating')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceRequest.countDocuments(filter);
+
+    return {
+      data: serviceRequests,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Find matching providers for a request
+   */
+  async findMatchingProviders(serviceRequestId: string): Promise<any[]> {
+    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
     
-    // You could implement:
-    // - Push notifications via Firebase
-    // - Email notifications via SendGrid/Mailgun
-    // - SMS notifications via Twilio
-    // - In-app notifications
-  }
-
-  /**
-   * Calculate service request priority score
-   */
-  static calculatePriorityScore(serviceRequest: any): number {
-    let score = 0;
-
-    // Base score by priority level
-    const priorityScores = {
-      urgent: 100,
-      high: 75,
-      medium: 50,
-      low: 25
-    };
-    score += priorityScores[serviceRequest.priority as keyof typeof priorityScores] || 50;
-
-    // Increase score based on budget
-    score += Math.min(serviceRequest.budget.max / 100, 50);
-
-    // Increase score for sooner scheduled dates
-    const daysUntilService = Math.ceil(
-      (serviceRequest.scheduledDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    );
-    if (daysUntilService <= 1) score += 30;
-    else if (daysUntilService <= 3) score += 20;
-    else if (daysUntilService <= 7) score += 10;
-
-    return Math.min(score, 200); // Cap at 200
-  }
-
-  /**
-   * Get service request recommendations for a provider
-   */
-  static async getRecommendationsForProvider(
-    providerId: string,
-    limit: number = 10
-  ): Promise<any[]> {
-    const provider = await ServiceProvider.findById(providerId);
-    if (!provider) {
-      throw new NotFoundError('Service provider not found');
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
     }
 
-    // Find service requests that match provider's services and location
-    const matchingRequests = await ServiceRequest.find({
-      status: 'pending',
-      serviceType: { $in: provider.services },
-      location: {
-        $geoWithin: {
-          $centerSphere: [
-            provider.serviceArea.coordinates,
-            provider.serviceArea.radius / 6371 // Convert km to radians
-          ]
+    const providers = await ServiceProvider.find({
+      services: { $in: [serviceRequest.category] },
+      isAvailable: true,
+      isVerified: true,
+      serviceArea: {
+        $near: {
+          $geometry: serviceRequest.location,
+          $maxDistance: 50000 // 50km radius
         }
+      }
+    }).populate('userId', 'firstName lastName profileImage')
+      .sort({ rating: -1, completedJobs: -1 })
+      .limit(10);
+
+    return providers;
+  }
+
+  /**
+   * Accept service request (provider)
+   */
+  async acceptServiceRequest(requestId: string, providerId: string): Promise<ApiResponseDto> {
+    // Verify provider exists
+    await this.providerService.getProviderById(providerId);
+
+    const serviceRequest = await ServiceRequest.findOneAndUpdate(
+      { _id: requestId, status: 'pending' },
+      { 
+        status: 'accepted', 
+        providerId,
+        acceptedAt: new Date()
       },
-      // Exclude requests where provider already submitted a proposal
-      'proposals.providerId': { $ne: provider._id }
-    })
-    .populate('userId', 'firstName lastName profileImage')
-    .sort({ createdAt: -1 })
-    .limit(limit);
+      { new: true }
+    );
 
-    // Calculate priority scores and sort
-    const requestsWithScores = matchingRequests.map(request => ({
-      ...request.toJSON(),
-      priorityScore: this.calculatePriorityScore(request),
-      distance: this.calculateDistance(
-        provider.serviceArea.coordinates,
-        request.location.coordinates
-      )
-    }));
-
-    return requestsWithScores.sort((a, b) => b.priorityScore - a.priorityScore);
-  }
-
-  /**
-   * Validate service request data
-   */
-  static validateServiceRequest(data: any): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    // Required fields validation
-    if (!data.title || data.title.trim().length < 5) {
-      errors.push('Title must be at least 5 characters long');
-    }
-
-    if (!data.description || data.description.trim().length < 10) {
-      errors.push('Description must be at least 10 characters long');
-    }
-
-    if (!data.category || !data.serviceType) {
-      errors.push('Category and service type are required');
-    }
-
-    if (!data.location || !data.location.coordinates || data.location.coordinates.length !== 2) {
-      errors.push('Valid location coordinates are required');
-    }
-
-    if (!data.scheduledDate || new Date(data.scheduledDate) <= new Date()) {
-      errors.push('Scheduled date must be in the future');
-    }
-
-    if (!data.budget || data.budget.min < 0 || data.budget.max < data.budget.min) {
-      errors.push('Valid budget range is required');
-    }
-
-    if (!data.estimatedDuration || data.estimatedDuration < 0.5 || data.estimatedDuration > 24) {
-      errors.push('Estimated duration must be between 0.5 and 24 hours');
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found or already accepted');
     }
 
     return {
-      isValid: errors.length === 0,
-      errors
+      success: true,
+      message: 'Service request accepted successfully',
+      data: serviceRequest
     };
   }
 
   /**
-   * Get service request analytics
+   * Reject service request (provider)
    */
-  static async getServiceRequestAnalytics(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<any> {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (timeframe) {
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'year':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
+  async rejectServiceRequest(requestId: string, providerId: string, reason?: string): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findById(requestId);
+    
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
     }
 
-    const [
-      totalRequests,
-      statusDistribution,
-      categoryDistribution,
-      averageBudget,
-      completionRate
-    ] = await Promise.all([
-      ServiceRequest.countDocuments({ createdAt: { $gte: startDate } }),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ]),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        { $group: { _id: '$category', count: { $sum: 1 } } }
-      ]),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        { $group: { _id: null, avgBudget: { $avg: '$budget.max' } } }
-      ]),
-      ServiceRequest.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } }
-          }
-        }
-      ])
-    ]);
+    // Add rejection to history
+    serviceRequest.rejections = serviceRequest.rejections || [];
+    serviceRequest.rejections.push({
+      providerId,
+      reason,
+      rejectedAt: new Date()
+    });
 
-    const completionRateData = completionRate[0] || { total: 0, completed: 0 };
+    await serviceRequest.save();
 
     return {
-      timeframe,
-      totalRequests,
-      statusDistribution,
-      categoryDistribution,
-      averageBudget: averageBudget[0]?.avgBudget || 0,
-      completionRate: completionRateData.total > 0 
-        ? (completionRateData.completed / completionRateData.total) * 100 
-        : 0
+      success: true,
+      message: 'Service request rejected'
     };
   }
 
   /**
-   * Estimate service cost based on provider and request details
+   * Start service (provider)
    */
-  static estimateServiceCost(
-    provider: any,
-    serviceRequest: any
-  ): { estimatedCost: number; breakdown: any } {
-    let estimatedCost = 0;
-    const breakdown: any = {};
-
-    // Check if provider has fixed pricing for this service
-    const fixedPrice = provider.pricing.fixedPrices?.find(
-      (fp: any) => fp.service.toLowerCase() === serviceRequest.serviceType.toLowerCase()
+  async startService(requestId: string, providerId: string): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findOneAndUpdate(
+      { _id: requestId, providerId, status: 'accepted' },
+      { 
+        status: 'in_progress',
+        startedAt: new Date()
+      },
+      { new: true }
     );
 
-    if (fixedPrice) {
-      estimatedCost = fixedPrice.price;
-      breakdown.fixedPrice = fixedPrice.price;
-    } else if (provider.pricing.hourlyRate) {
-      const hourlyRate = provider.pricing.hourlyRate;
-      const duration = serviceRequest.estimatedDuration || 1;
-      estimatedCost = hourlyRate * duration;
-      breakdown.hourlyRate = hourlyRate;
-      breakdown.duration = duration;
-      breakdown.subtotal = estimatedCost;
-    }
-
-    // Add potential additional costs (travel, materials, etc.)
-    // This is a simplified calculation
-    const distance = this.calculateDistance(
-      provider.serviceArea.coordinates,
-      serviceRequest.location.coordinates
-    );
-
-    if (distance > 10) {
-      const travelCost = (distance - 10) * 2; // $2 per km beyond 10km
-      estimatedCost += travelCost;
-      breakdown.travelCost = travelCost;
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found or cannot be started');
     }
 
     return {
-      estimatedCost: Math.round(estimatedCost * 100) / 100, // Round to 2 decimal places
-      breakdown
+      success: true,
+      message: 'Service started successfully',
+      data: serviceRequest
+    };
+  }
+
+  /**
+   * Complete service (provider)
+   */
+  async completeService(requestId: string, providerId: string, completionData: any): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findOneAndUpdate(
+      { _id: requestId, providerId, status: 'in_progress' },
+      { 
+        status: 'completed',
+        completedAt: new Date(),
+        completionNotes: completionData.notes,
+        completionImages: completionData.images
+      },
+      { new: true }
+    );
+
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found or cannot be completed');
+    }
+
+    // Update provider's completed jobs count
+    await ServiceProvider.findByIdAndUpdate(providerId, {
+      $inc: { completedJobs: 1 }
+    });
+
+    return {
+      success: true,
+      message: 'Service completed successfully',
+      data: serviceRequest
+    };
+  }
+
+  /**
+   * Approve completion (customer)
+   */
+  async approveCompletion(requestId: string, userId: string): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findOneAndUpdate(
+      { _id: requestId, userId, status: 'completed' },
+      { 
+        status: 'approved',
+        approvedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found or cannot be approved');
+    }
+
+    return {
+      success: true,
+      message: 'Service completion approved',
+      data: serviceRequest
+    };
+  }
+
+  /**
+   * Request revision (customer)
+   */
+  async requestRevision(requestId: string, userId: string, revisionNotes: string): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findOneAndUpdate(
+      { _id: requestId, userId, status: 'completed' },
+      { 
+        status: 'revision_requested',
+        revisionNotes,
+        revisionRequestedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found or cannot request revision');
+    }
+
+    return {
+      success: true,
+      message: 'Revision requested successfully',
+      data: serviceRequest
+    };
+  }
+
+  /**
+   * Cancel service request
+   */
+  async cancelServiceRequest(requestId: string, userId: string, reason?: string): Promise<ApiResponseDto> {
+    const serviceRequest = await ServiceRequest.findOneAndUpdate(
+      { _id: requestId, userId, status: { $in: ['pending', 'accepted'] } },
+      { 
+        status: 'cancelled',
+        cancellationReason: reason,
+        cancelledAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found or cannot be cancelled');
+    }
+
+    return {
+      success: true,
+      message: 'Service request cancelled successfully',
+      data: serviceRequest
+    };
+  }
+
+  /**
+   * Get service request history
+   */
+  async getServiceRequestHistory(requestId: string): Promise<any[]> {
+    const serviceRequest = await ServiceRequest.findById(requestId);
+    
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
+    }
+
+    // Build history from service request data
+    const history = [];
+    
+    history.push({
+      action: 'created',
+      timestamp: serviceRequest.createdAt,
+      details: 'Service request created'
+    });
+
+    if (serviceRequest.acceptedAt) {
+      history.push({
+        action: 'accepted',
+        timestamp: serviceRequest.acceptedAt,
+        details: 'Service request accepted by provider'
+      });
+    }
+
+    if (serviceRequest.startedAt) {
+      history.push({
+        action: 'started',
+        timestamp: serviceRequest.startedAt,
+        details: 'Service started'
+      });
+    }
+
+    if (serviceRequest.completedAt) {
+      history.push({
+        action: 'completed',
+        timestamp: serviceRequest.completedAt,
+        details: 'Service completed'
+      });
+    }
+
+    if (serviceRequest.approvedAt) {
+      history.push({
+        action: 'approved',
+        timestamp: serviceRequest.approvedAt,
+        details: 'Service completion approved'
+      });
+    }
+
+    if (serviceRequest.cancelledAt) {
+      history.push({
+        action: 'cancelled',
+        timestamp: serviceRequest.cancelledAt,
+        details: `Service cancelled: ${serviceRequest.cancellationReason || 'No reason provided'}`
+      });
+    }
+
+    return history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }
+
+  /**
+   * Get service requests by user
+   */
+  async getServiceRequestsByUser(
+    userId: string, 
+    status?: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
+    const filter: any = { userId };
+    
+    if (status) {
+      filter.status = status;
+    }
+
+    const serviceRequests = await ServiceRequest.find(filter)
+      .populate('providerId', 'businessName rating')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceRequest.countDocuments(filter);
+
+    return {
+      data: serviceRequests,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get service requests by provider
+   */
+  async getServiceRequestsByProvider(
+    providerId: string, 
+    status?: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
+    const filter: any = { providerId };
+    
+    if (status) {
+      filter.status = status;
+    }
+
+    const serviceRequests = await ServiceRequest.find(filter)
+      .populate('userId', 'firstName lastName profileImage')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceRequest.countDocuments(filter);
+
+    return {
+      data: serviceRequests,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
     };
   }
 }
+

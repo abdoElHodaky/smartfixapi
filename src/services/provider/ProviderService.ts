@@ -3,64 +3,29 @@ import { ServiceRequest } from '../../models/ServiceRequest';
 import { Review } from '../../models/Review';
 import { User } from '../../models/User';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
+import { IProviderService, IUserService } from '../../interfaces/services';
+import {
+  UpdateProviderDto,
+  ProviderFiltersDto,
+  PortfolioItemDto,
+  ApiResponseDto,
+  PaginatedResponseDto
+} from '../../dtos';
 
-export interface ProviderUpdateData {
-  businessName?: string;
-  description?: string;
-  services?: string[];
-  serviceArea?: {
-    type: 'Point';
-    coordinates: [number, number];
-    radius: number;
-  };
-  pricing?: {
-    hourlyRate?: number;
-    fixedPrices?: Array<{
-      service: string;
-      price: number;
-    }>;
-  };
-  availability?: {
-    [key: string]: {
-      available: boolean;
-      startTime?: string;
-      endTime?: string;
-    };
-  };
-  isAvailable?: boolean;
-}
+export class ProviderService implements IProviderService {
+  constructor(private userService: IUserService) {}
 
-export interface ProviderSearchFilters {
-  services?: string[];
-  location?: [number, number];
-  radius?: number;
-  minRating?: number;
-  isVerified?: boolean;
-  isAvailable?: boolean;
-  page?: number;
-  limit?: number;
-  sort?: 'rating' | 'completedJobs' | 'newest';
-}
-
-export interface PortfolioItem {
-  title: string;
-  description: string;
-  images?: string[];
-  completedDate: Date;
-}
-
-export class ProviderService {
   /**
    * Get provider by ID
    */
   async getProviderById(providerId: string): Promise<any> {
     const provider = await ServiceProvider.findById(providerId)
-      .populate('userId', 'firstName lastName profileImage createdAt');
-
+      .populate('userId', 'firstName lastName email phone profileImage');
+    
     if (!provider) {
-      throw new NotFoundError('Service provider not found');
+      throw new NotFoundError('Provider not found');
     }
-
+    
     return provider;
   }
 
@@ -69,107 +34,47 @@ export class ProviderService {
    */
   async getProviderByUserId(userId: string): Promise<any> {
     const provider = await ServiceProvider.findOne({ userId })
-      .populate('userId', '-password');
-
+      .populate('userId', 'firstName lastName email phone profileImage');
+    
     if (!provider) {
-      throw new NotFoundError('Service provider profile not found');
+      throw new NotFoundError('Provider not found');
     }
-
+    
     return provider;
   }
 
   /**
    * Update provider profile
    */
-  async updateProviderProfile(userId: string, updateData: ProviderUpdateData): Promise<any> {
-    const provider = await ServiceProvider.findOneAndUpdate(
-      { userId },
+  async updateProviderProfile(providerId: string, updateData: UpdateProviderDto): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findByIdAndUpdate(
+      providerId,
       updateData,
       { new: true, runValidators: true }
-    ).populate('userId', '-password');
+    ).populate('userId', 'firstName lastName email phone profileImage');
 
     if (!provider) {
-      throw new NotFoundError('Service provider profile not found');
+      throw new NotFoundError('Provider not found');
     }
-
-    return provider;
-  }
-
-  /**
-   * Get provider dashboard data
-   */
-  async getProviderDashboard(userId: string): Promise<any> {
-    const provider = await ServiceProvider.findOne({ userId });
-    if (!provider) {
-      throw new NotFoundError('Service provider profile not found');
-    }
-
-    const [
-      totalJobs,
-      activeJobs,
-      completedJobs,
-      pendingProposals,
-      totalReviews,
-      averageRating
-    ] = await Promise.all([
-      ServiceRequest.countDocuments({ providerId: provider._id }),
-      ServiceRequest.countDocuments({ 
-        providerId: provider._id, 
-        status: { $in: ['accepted', 'in_progress'] } 
-      }),
-      ServiceRequest.countDocuments({ providerId: provider._id, status: 'completed' }),
-      ServiceRequest.countDocuments({ 
-        'proposals.providerId': provider._id,
-        'proposals.status': 'pending'
-      }),
-      Review.countDocuments({ providerId: provider._id }),
-      Review.getProviderAverageRating(provider._id.toString())
-    ]);
-
-    // Get recent jobs
-    const recentJobs = await ServiceRequest.find({ providerId: provider._id })
-      .populate('userId', 'firstName lastName profileImage')
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    // Get recent reviews
-    const recentReviews = await Review.find({ providerId: provider._id })
-      .populate('userId', 'firstName lastName profileImage')
-      .sort({ createdAt: -1 })
-      .limit(3);
 
     return {
-      stats: {
-        totalJobs,
-        activeJobs,
-        completedJobs,
-        pendingProposals,
-        totalReviews,
-        averageRating: averageRating.averageRating,
-        isVerified: provider.isVerified,
-        isAvailable: provider.isAvailable
-      },
-      recentJobs,
-      recentReviews,
-      provider: {
-        businessName: provider.businessName,
-        rating: provider.rating,
-        completedJobs: provider.completedJobs
-      }
+      success: true,
+      message: 'Provider profile updated successfully',
+      data: provider
     };
   }
 
   /**
    * Search providers with filters
    */
-  async searchProviders(filters: ProviderSearchFilters): Promise<any> {
+  async searchProviders(filters: ProviderFiltersDto): Promise<PaginatedResponseDto<any>> {
     const { 
       services, 
       location, 
-      radius = 10, 
+      radius = 10000, // 10km default
       minRating, 
-      isVerified,
-      isAvailable,
+      isVerified, 
+      isAvailable, 
       page = 1, 
       limit = 10,
       sort = 'rating'
@@ -178,57 +83,57 @@ export class ProviderService {
     const skip = (page - 1) * limit;
     const filter: any = {};
 
-    // Service filter
     if (services && services.length > 0) {
       filter.services = { $in: services };
     }
 
-    // Rating filter
-    if (minRating) {
-      filter['rating.average'] = { $gte: minRating };
+    if (location) {
+      filter.serviceArea = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: location
+          },
+          $maxDistance: radius
+        }
+      };
     }
 
-    // Verification filter
-    if (isVerified !== undefined) {
+    if (typeof minRating === 'number') {
+      filter.rating = { $gte: minRating };
+    }
+
+    if (typeof isVerified === 'boolean') {
       filter.isVerified = isVerified;
     }
 
-    // Availability filter
-    if (isAvailable !== undefined) {
+    if (typeof isAvailable === 'boolean') {
       filter.isAvailable = isAvailable;
     }
 
-    let query = ServiceProvider.find(filter)
-      .populate('userId', 'firstName lastName profileImage');
-
-    // Location-based search
-    if (location) {
-      const [lat, lng] = location;
-      query = query.where('serviceArea').near({
-        center: [lng, lat],
-        maxDistance: radius * 1000 // Convert km to meters
-      });
+    let sortOption: any = { createdAt: -1 };
+    switch (sort) {
+      case 'rating':
+        sortOption = { rating: -1, completedJobs: -1 };
+        break;
+      case 'completedJobs':
+        sortOption = { completedJobs: -1, rating: -1 };
+        break;
+      case 'newest':
+        sortOption = { createdAt: -1 };
+        break;
     }
 
-    // Sorting
-    const sortOptions: any = {};
-    if (sort === 'rating') {
-      sortOptions['rating.average'] = -1;
-    } else if (sort === 'completedJobs') {
-      sortOptions.completedJobs = -1;
-    } else if (sort === 'newest') {
-      sortOptions.createdAt = -1;
-    }
-
-    const providers = await query
-      .sort(sortOptions)
+    const providers = await ServiceProvider.find(filter)
+      .populate('userId', 'firstName lastName profileImage')
+      .sort(sortOption)
       .skip(skip)
       .limit(limit);
 
     const total = await ServiceProvider.countDocuments(filter);
 
     return {
-      providers,
+      data: providers,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -240,186 +145,248 @@ export class ProviderService {
   }
 
   /**
-   * Update provider availability
-   */
-  async updateAvailability(userId: string, isAvailable: boolean): Promise<any> {
-    const provider = await ServiceProvider.findOneAndUpdate(
-      { userId },
-      { isAvailable, lastActiveDate: new Date() },
-      { new: true }
-    );
-
-    if (!provider) {
-      throw new NotFoundError('Service provider profile not found');
-    }
-
-    return provider;
-  }
-
-  /**
    * Add portfolio item
    */
-  async addPortfolioItem(userId: string, portfolioItem: PortfolioItem): Promise<any> {
-    const provider = await ServiceProvider.findOne({ userId });
-    if (!provider) {
-      throw new NotFoundError('Service provider profile not found');
-    }
-
-    provider.portfolio.push(portfolioItem);
-    await provider.save();
-
-    return portfolioItem;
-  }
-
-  /**
-   * Remove portfolio item
-   */
-  async removePortfolioItem(userId: string, portfolioItemId: string): Promise<void> {
-    const provider = await ServiceProvider.findOne({ userId });
-    if (!provider) {
-      throw new NotFoundError('Service provider profile not found');
-    }
-
-    provider.portfolio = provider.portfolio.filter(
-      (item: any) => item._id.toString() !== portfolioItemId
-    );
-    await provider.save();
-  }
-
-  /**
-   * Verify provider
-   */
-  async verifyProvider(providerId: string, isVerified: boolean): Promise<any> {
+  async addPortfolioItem(providerId: string, portfolioItem: PortfolioItemDto): Promise<ApiResponseDto> {
     const provider = await ServiceProvider.findByIdAndUpdate(
       providerId,
-      { isVerified },
+      { $push: { portfolio: portfolioItem } },
       { new: true }
-    ).populate('userId', 'firstName lastName email');
+    );
 
     if (!provider) {
-      throw new NotFoundError('Service provider not found');
+      throw new NotFoundError('Provider not found');
     }
 
-    return provider;
+    return {
+      success: true,
+      message: 'Portfolio item added successfully',
+      data: portfolioItem
+    };
+  }
+
+  /**
+   * Update portfolio item
+   */
+  async updatePortfolioItem(
+    providerId: string, 
+    itemId: string, 
+    updateData: Partial<PortfolioItemDto>
+  ): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findOneAndUpdate(
+      { _id: providerId, 'portfolio._id': itemId },
+      { $set: { 'portfolio.$': { ...updateData, _id: itemId } } },
+      { new: true }
+    );
+
+    if (!provider) {
+      throw new NotFoundError('Provider or portfolio item not found');
+    }
+
+    return {
+      success: true,
+      message: 'Portfolio item updated successfully'
+    };
+  }
+
+  /**
+   * Delete portfolio item
+   */
+  async deletePortfolioItem(providerId: string, itemId: string): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      { $pull: { portfolio: { _id: itemId } } },
+      { new: true }
+    );
+
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    return {
+      success: true,
+      message: 'Portfolio item deleted successfully'
+    };
+  }
+
+  /**
+   * Get provider portfolio
+   */
+  async getProviderPortfolio(providerId: string): Promise<PortfolioItemDto[]> {
+    const provider = await ServiceProvider.findById(providerId).select('portfolio');
+    
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+    
+    return provider.portfolio || [];
+  }
+
+  /**
+   * Update provider availability
+   */
+  async updateProviderAvailability(providerId: string, availability: any): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      { availability },
+      { new: true }
+    );
+
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    return {
+      success: true,
+      message: 'Provider availability updated successfully',
+      data: { availability }
+    };
   }
 
   /**
    * Get provider statistics
    */
-  async getProviderStatistics(): Promise<any> {
+  async getProviderStatistics(providerId: string): Promise<any> {
     const [
-      totalProviders,
-      verifiedProviders,
-      availableProviders,
-      providersByService
+      totalRequests,
+      pendingRequests,
+      activeRequests,
+      completedRequests,
+      totalReviews,
+      averageRating
     ] = await Promise.all([
-      ServiceProvider.countDocuments(),
-      ServiceProvider.countDocuments({ isVerified: true }),
-      ServiceProvider.countDocuments({ isAvailable: true }),
-      ServiceProvider.aggregate([
-        { $unwind: '$services' },
-        { $group: { _id: '$services', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 }
+      ServiceRequest.countDocuments({ providerId }),
+      ServiceRequest.countDocuments({ providerId, status: 'pending' }),
+      ServiceRequest.countDocuments({ 
+        providerId, 
+        status: { $in: ['accepted', 'in_progress'] } 
+      }),
+      ServiceRequest.countDocuments({ providerId, status: 'completed' }),
+      Review.countDocuments({ providerId }),
+      Review.aggregate([
+        { $match: { providerId } },
+        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
       ])
     ]);
 
     return {
-      totalProviders,
-      verifiedProviders,
-      availableProviders,
-      providersByService
+      totalRequests,
+      pendingRequests,
+      activeRequests,
+      completedRequests,
+      totalReviews,
+      averageRating: averageRating[0]?.avgRating || 0
     };
   }
 
   /**
-   * Get providers near location
+   * Verify provider
    */
-  async getProvidersNearLocation(
-    coordinates: [number, number], 
-    radius: number = 25,
-    services?: string[]
-  ): Promise<any[]> {
-    const [lng, lat] = coordinates;
-    const filter: any = {
-      isVerified: true,
-      isAvailable: true
-    };
+  async verifyProvider(providerId: string): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      { isVerified: true },
+      { new: true }
+    );
 
-    if (services && services.length > 0) {
-      filter.services = { $in: services };
-    }
-
-    const providers = await ServiceProvider.find(filter)
-      .where('serviceArea')
-      .near({
-        center: [lng, lat],
-        maxDistance: radius * 1000 // Convert km to meters
-      })
-      .populate('userId', 'firstName lastName profileImage')
-      .sort({ 'rating.average': -1 })
-      .limit(20);
-
-    return providers;
-  }
-
-  /**
-   * Calculate distance between two coordinates
-   */
-  static calculateDistance(coord1: [number, number], coord2: [number, number]): number {
-    const [lon1, lat1] = coord1;
-    const [lon2, lat2] = coord2;
-    
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = this.toRadians(lat2 - lat1);
-    const dLon = this.toRadians(lon2 - lon1);
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private static toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
-  }
-
-  /**
-   * Validate provider data
-   */
-  static validateProviderData(providerData: any): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    if (!providerData.businessName || providerData.businessName.trim().length < 2) {
-      errors.push('Business name must be at least 2 characters long');
-    }
-
-    if (!providerData.description || providerData.description.trim().length < 10) {
-      errors.push('Description must be at least 10 characters long');
-    }
-
-    if (!providerData.services || !Array.isArray(providerData.services) || providerData.services.length === 0) {
-      errors.push('At least one service must be provided');
-    }
-
-    if (!providerData.serviceArea || !providerData.serviceArea.coordinates || 
-        !Array.isArray(providerData.serviceArea.coordinates) || 
-        providerData.serviceArea.coordinates.length !== 2) {
-      errors.push('Valid service area coordinates are required');
-    }
-
-    if (providerData.serviceArea && providerData.serviceArea.radius) {
-      if (providerData.serviceArea.radius < 1 || providerData.serviceArea.radius > 100) {
-        errors.push('Service radius must be between 1 and 100 kilometers');
-      }
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
     }
 
     return {
-      isValid: errors.length === 0,
-      errors
+      success: true,
+      message: 'Provider verified successfully'
     };
+  }
+
+  /**
+   * Get provider reviews
+   */
+  async getProviderReviews(
+    providerId: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
+
+    const reviews = await Review.find({ providerId })
+      .populate('userId', 'firstName lastName profileImage')
+      .populate('serviceRequestId', 'title category')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments({ providerId });
+
+    return {
+      data: reviews,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get provider service requests
+   */
+  async getProviderServiceRequests(
+    providerId: string, 
+    status?: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<PaginatedResponseDto<any>> {
+    const skip = (page - 1) * limit;
+    const filter: any = { providerId };
+    
+    if (status) {
+      filter.status = status;
+    }
+
+    const serviceRequests = await ServiceRequest.find(filter)
+      .populate('userId', 'firstName lastName profileImage')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceRequest.countDocuments(filter);
+
+    return {
+      data: serviceRequests,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Update provider rating
+   */
+  async updateProviderRating(providerId: string): Promise<void> {
+    const ratingStats = await Review.aggregate([
+      { $match: { providerId } },
+      { 
+        $group: { 
+          _id: null, 
+          avgRating: { $avg: '$rating' },
+          totalReviews: { $sum: 1 }
+        } 
+      }
+    ]);
+
+    if (ratingStats.length > 0) {
+      await ServiceProvider.findByIdAndUpdate(providerId, {
+        rating: Math.round(ratingStats[0].avgRating * 10) / 10,
+        totalReviews: ratingStats[0].totalReviews
+      });
+    }
   }
 }
 
