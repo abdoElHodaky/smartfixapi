@@ -417,5 +417,115 @@ export class ReviewService implements IReviewService {
       count: stats[0].count
     };
   }
-}
 
+  /**
+   * Get all reviews (admin function)
+   */
+  async getAllReviews(filters: ReviewFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      rating,
+      isFlagged,
+      isModerated,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (rating) {
+      filter.rating = rating;
+    }
+
+    if (typeof isFlagged === 'boolean') {
+      if (isFlagged) {
+        filter.flags = { $exists: true, $ne: [] };
+      } else {
+        filter.$or = [
+          { flags: { $exists: false } },
+          { flags: { $size: 0 } }
+        ];
+      }
+    }
+
+    if (typeof isModerated === 'boolean') {
+      filter.isModerated = isModerated;
+    }
+
+    if (search) {
+      filter.$or = [
+        { comment: { $regex: search, $options: 'i' } },
+        { providerResponse: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const reviews = await Review.find(filter)
+      .populate('userId', 'firstName lastName email')
+      .populate('providerId', 'businessName')
+      .populate('serviceRequestId', 'title category')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments(filter);
+
+    return {
+      data: reviews,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Moderate review (admin function)
+   */
+  async moderateReview(reviewId: string, action: string, reason?: string): Promise<ApiResponseDto> {
+    const validActions = ['approve', 'reject'];
+    
+    if (!validActions.includes(action)) {
+      throw new ValidationError('Invalid moderation action');
+    }
+
+    const updateData: any = {
+      isModerated: true,
+      moderatedAt: new Date(),
+      moderationAction: action
+    };
+
+    if (reason) {
+      updateData.moderationReason = reason;
+    }
+
+    if (action === 'reject') {
+      updateData.isVisible = false;
+    } else if (action === 'approve') {
+      updateData.isVisible = true;
+    }
+
+    const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true })
+      .populate('userId', 'firstName lastName email')
+      .populate('providerId', 'businessName')
+      .populate('serviceRequestId', 'title category');
+
+    if (!review) {
+      throw new NotFoundError('Review not found');
+    }
+
+    return {
+      success: true,
+      message: `Review ${action}ed successfully`,
+      data: review
+    };
+  }
+}

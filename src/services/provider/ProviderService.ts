@@ -388,5 +388,118 @@ export class ProviderService implements IProviderService {
       });
     }
   }
-}
 
+  /**
+   * Update provider status (admin function)
+   */
+  async updateProviderStatus(providerId: string, status: string): Promise<ApiResponseDto> {
+    const validStatuses = ['active', 'inactive', 'suspended', 'banned'];
+    
+    if (!validStatuses.includes(status)) {
+      throw new ValidationError('Invalid status');
+    }
+
+    const provider = await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      { status, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    return {
+      success: true,
+      message: `Provider status updated to ${status}`,
+      data: provider
+    };
+  }
+
+  /**
+   * Delete provider (admin function)
+   */
+  async deleteProvider(providerId: string): Promise<ApiResponseDto> {
+    const provider = await ServiceProvider.findByIdAndDelete(providerId);
+
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    // Clean up related data
+    await Promise.all([
+      ServiceRequest.deleteMany({ providerId }),
+      Review.deleteMany({ providerId })
+    ]);
+
+    return {
+      success: true,
+      message: 'Provider deleted successfully'
+    };
+  }
+
+  /**
+   * Get all providers (admin function)
+   */
+  async getAllProviders(filters: ProviderFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      isVerified, 
+      status,
+      category,
+      rating,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (typeof isVerified === 'boolean') {
+      filter.isVerified = isVerified;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (category) {
+      filter.services = { $in: [category] };
+    }
+
+    if (rating) {
+      filter.rating = { $gte: rating };
+    }
+
+    if (search) {
+      filter.$or = [
+        { businessName: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const providers = await ServiceProvider.find(filter)
+      .populate('userId', 'firstName lastName email')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceProvider.countDocuments(filter);
+
+    return {
+      data: providers,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+}
