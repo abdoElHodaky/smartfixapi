@@ -1,194 +1,256 @@
 # SmartFix API - Service Providers Platform
 
-A comprehensive RESTful API for an on-demand home services platform built with Express.js, TypeScript, and MongoDB.
+A comprehensive ExpressJS and Mongoose-based REST API for an on-demand home services platform. This API enables users to request home services and connects them with qualified service providers.
 
 ## 🚀 Features
 
-- **User Management**: Registration, authentication, and profile management
-- **Service Provider System**: Provider registration, verification, and management
+### Core Functionality
+- **User Management**: Registration, authentication, profile management
+- **Service Provider Management**: Provider registration, profile management, service offerings
 - **Service Requests**: Create, manage, and track service requests
 - **Real-time Chat**: Communication between users and providers
-- **Review System**: Rating and feedback system with provider responses
-- **Admin Dashboard**: Platform administration and monitoring
-- **Geolocation Services**: Location-based service matching
-- **File Upload**: Profile images and service documentation
-- **Security**: JWT authentication, rate limiting, input validation
+- **Review System**: Rating and review system for completed services
+- **Admin Panel**: Administrative controls and analytics
 
-## 🛠️ Tech Stack
-
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Language**: TypeScript
+### Technical Features
+- **Authentication & Authorization**: JWT-based auth with role-based access control
+- **Data Validation**: Comprehensive input validation using express-validator
+- **Error Handling**: Centralized error handling with custom error classes
+- **Rate Limiting**: API rate limiting to prevent abuse
+- **Security**: Helmet.js, CORS, input sanitization
+- **File Uploads**: Support for image and document uploads
 - **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT (JSON Web Tokens)
-- **Validation**: Express-validator
-- **Security**: Helmet, CORS, Rate limiting
-- **File Upload**: Multer
-- **Testing**: Jest
-- **Code Quality**: ESLint, Prettier
+- **TypeScript**: Full TypeScript support for type safety
+
+## 📋 Prerequisites
+
+- Node.js (v18.0.0 or higher)
+- npm (v9.0.0 or higher)
+- MongoDB (v5.0 or higher)
+
+## 🛠️ Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd smartfix-api
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**
+   ```bash
+   cp .env.example .env
+   ```
+   Edit the `.env` file with your configuration values.
+
+4. **Start MongoDB**
+   Make sure MongoDB is running on your system.
+
+5. **Run the application**
+   ```bash
+   # Development mode
+   npm run dev
+   
+   # Production mode
+   npm run build
+   npm start
+   ```
 
 ## 📁 Project Structure
 
 ```
 src/
-├── config/          # Configuration files
-├── controllers/     # Route controllers
-├── middleware/      # Custom middleware
-├── models/          # Mongoose models
-├── routes/          # API routes
-├── services/        # Business logic services
-├── types/           # TypeScript type definitions
-├── app.ts           # Express app configuration
-└── server.ts        # Server entry point
+├── config/           # Configuration files
+│   ├── database.ts   # Database connection
+│   └── constants.ts  # Application constants
+├── controllers/      # Route controllers organized by feature
+│   ├── auth/         # Authentication controllers
+│   ├── user/         # User management controllers
+│   ├── provider/     # Service provider controllers
+│   ├── request/      # Service request controllers
+│   ├── chat/         # Chat system controllers
+│   ├── review/       # Review system controllers
+│   ├── admin/        # Admin panel controllers
+│   └── index.ts      # Controller exports
+├── middleware/       # Custom middleware
+│   ├── auth.ts       # Authentication middleware
+│   ├── validation.ts # Input validation middleware
+│   ├── errorHandler.ts # Error handling middleware
+│   └── index.ts      # Middleware exports
+├── models/           # Mongoose models
+│   ├── User.ts       # User model
+│   ├── ServiceProvider.ts # Service provider model
+│   ├── ServiceRequest.ts  # Service request model
+│   ├── Chat.ts       # Chat model
+│   ├── Review.ts     # Review model
+│   └── index.ts      # Model exports
+├── routes/           # API routes organized by feature
+│   ├── auth/         # Authentication routes
+│   ├── user/         # User routes
+│   ├── provider/     # Provider routes
+│   ├── request/      # Request routes
+│   ├── chat/         # Chat routes
+│   ├── review/       # Review routes
+│   ├── admin/        # Admin routes
+│   └── index.ts      # Route exports
+├── services/         # Business logic layer
+│   ├── auth/         # Authentication services
+│   ├── user/         # User services
+│   ├── provider/     # Provider services
+│   ├── request/      # Request services
+│   ├── chat/         # Chat services
+│   ├── review/       # Review services
+│   ├── admin/        # Admin services
+│   └── index.ts      # Service exports
+├── types/            # TypeScript type definitions
+│   ├── auth.ts       # Authentication types
+│   ├── user.ts       # User types
+│   ├── provider.ts   # Provider types
+│   ├── request.ts    # Request types
+│   ├── chat.ts       # Chat types
+│   ├── review.ts     # Review types
+│   ├── common.ts     # Common types
+│   └── index.ts      # Type exports
+├── utils/            # Utility functions
+│   ├── helpers.ts    # General helper functions
+│   ├── validators.ts # Custom validators
+│   └── index.ts      # Utility exports
+├── app.ts            # Express app configuration
+└── server.ts         # Server bootstrap
 ```
 
-## 🚦 Getting Started
-
-### Prerequisites
-
-- Node.js (v16 or higher)
-- MongoDB (v4.4 or higher)
-- npm or yarn
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd smartfix-api
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your configuration:
-```env
-NODE_ENV=development
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/smartfix
-JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRES_IN=7d
-BCRYPT_SALT_ROUNDS=12
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-FRONTEND_URL=http://localhost:3000
-```
-
-4. Start the development server:
-```bash
-npm run dev
-```
-
-The API will be available at `http://localhost:3000/api`
-
-## 📚 API Endpoints
+## 🔌 API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/register-provider` - Register service provider
+- `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
-- `POST /api/auth/refresh-token` - Refresh JWT token
-- `POST /api/auth/change-password` - Change password
+- `POST /api/auth/refresh` - Refresh JWT token
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password
 
-### Users
+### User Management
 - `GET /api/user/profile` - Get user profile
 - `PUT /api/user/profile` - Update user profile
-- `GET /api/user/dashboard` - Get user dashboard
-- `GET /api/user/service-requests` - Get user's service requests
+- `DELETE /api/user/profile` - Delete user account
+- `GET /api/user/requests` - Get user's service requests
+- `GET /api/user/reviews` - Get user's reviews
 
 ### Service Providers
+- `POST /api/provider/register` - Provider registration
 - `GET /api/provider/profile` - Get provider profile
 - `PUT /api/provider/profile` - Update provider profile
-- `GET /api/provider/dashboard` - Get provider dashboard
-- `GET /api/provider/available-requests` - Get available service requests
-- `POST /api/provider/proposal/:requestId` - Submit proposal
+- `GET /api/provider/search` - Search providers
+- `GET /api/provider/:id` - Get provider details
+- `GET /api/provider/requests` - Get provider's requests
+- `PUT /api/provider/availability` - Update availability
 
 ### Service Requests
 - `POST /api/requests` - Create service request
-- `GET /api/requests/:requestId` - Get service request details
-- `PUT /api/requests/:requestId` - Update service request
-- `POST /api/requests/:requestId/accept-proposal/:proposalId` - Accept proposal
+- `GET /api/requests` - Get service requests
+- `GET /api/requests/:id` - Get request details
+- `PUT /api/requests/:id` - Update request
+- `DELETE /api/requests/:id` - Cancel request
+- `POST /api/requests/:id/accept` - Accept request (provider)
+- `POST /api/requests/:id/complete` - Mark as completed
+
+### Chat System
+- `GET /api/chat/conversations` - Get user conversations
+- `GET /api/chat/:conversationId/messages` - Get messages
+- `POST /api/chat/:conversationId/messages` - Send message
+- `PUT /api/chat/messages/:messageId/read` - Mark as read
 
 ### Reviews
 - `POST /api/reviews` - Create review
 - `GET /api/reviews/provider/:providerId` - Get provider reviews
-- `POST /api/reviews/:reviewId/response` - Add provider response
-
-### Chat
-- `GET /api/chat/service-request/:serviceRequestId` - Get chat for service request
-- `POST /api/chat/:chatId/message` - Send message
-- `GET /api/chat/:chatId/messages` - Get messages
+- `GET /api/reviews/user/:userId` - Get user reviews
+- `PUT /api/reviews/:id` - Update review
+- `DELETE /api/reviews/:id` - Delete review
 
 ### Admin
-- `GET /api/admin/dashboard` - Admin dashboard
 - `GET /api/admin/users` - Get all users
 - `GET /api/admin/providers` - Get all providers
-- `PUT /api/admin/providers/:providerId/verify` - Verify provider
+- `GET /api/admin/requests` - Get all requests
+- `GET /api/admin/analytics` - Get platform analytics
+- `PUT /api/admin/users/:id/status` - Update user status
+- `PUT /api/admin/providers/:id/verify` - Verify provider
 
 ## 🧪 Testing
 
-Run tests:
 ```bash
+# Run tests
 npm test
-```
 
-Run tests with coverage:
-```bash
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
 npm run test:coverage
 ```
 
-## 🏗️ Building for Production
+## 🔧 Development
 
-Build the project:
 ```bash
+# Start development server with hot reload
+npm run dev
+
+# Build for production
 npm run build
+
+# Lint code
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Format code
+npm run format
+
+# Check formatting
+npm run format:check
 ```
 
-Start production server:
-```bash
-npm start
-```
+## 📦 Scripts
 
-## 📝 Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build TypeScript to JavaScript
 - `npm start` - Start production server
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run clean` - Clean build directory
 - `npm test` - Run tests
-- `npm run lint` - Run ESLint
-- `npm run format` - Format code with Prettier
+- `npm run lint` - Lint code
+- `npm run format` - Format code
 
 ## 🔒 Security Features
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- Rate limiting to prevent abuse
-- Input validation and sanitization
-- CORS configuration
-- Security headers with Helmet
-- MongoDB injection protection
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: bcrypt for password security
+- **Rate Limiting**: Prevent API abuse
+- **CORS**: Cross-origin resource sharing configuration
+- **Helmet**: Security headers
+- **Input Validation**: Comprehensive request validation
+- **SQL Injection Prevention**: Mongoose ODM protection
 
 ## 🌍 Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment mode | `development` |
-| `PORT` | Server port | `3000` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/smartfix` |
-| `JWT_SECRET` | JWT signing secret | Required |
-| `JWT_EXPIRES_IN` | JWT expiration time | `7d` |
-| `BCRYPT_SALT_ROUNDS` | Bcrypt salt rounds | `12` |
-| `RATE_LIMIT_WINDOW_MS` | Rate limit window | `900000` |
-| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `100` |
-| `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` |
+See `.env.example` for all available environment variables.
+
+Key variables:
+- `NODE_ENV` - Environment (development/production)
+- `PORT` - Server port
+- `MONGODB_URI` - MongoDB connection string
+- `JWT_SECRET` - JWT signing secret
+- `FRONTEND_URL` - Frontend application URL
+
+## 📈 Performance
+
+- **Compression**: Gzip compression for responses
+- **Caching**: Redis caching (optional)
+- **Database Indexing**: Optimized MongoDB indexes
+- **Connection Pooling**: MongoDB connection pooling
 
 ## 🤝 Contributing
 
@@ -206,14 +268,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For support, email support@smartfix.com or create an issue in the repository.
 
-## 🚀 Deployment
+## 🔄 API Versioning
 
-The API can be deployed to various platforms:
+Current API version: v1
+Base URL: `/api/v1` (future versions will use `/api/v2`, etc.)
 
-- **Heroku**: Use the included `Procfile`
-- **AWS**: Deploy using AWS Elastic Beanstalk or ECS
-- **DigitalOcean**: Use App Platform or Droplets
-- **Vercel**: Serverless deployment
+## 📊 Monitoring
 
-Make sure to set up environment variables and MongoDB connection in your deployment platform.
+- Health check endpoint: `GET /api/health`
+- API documentation: `GET /api`
+- Metrics endpoint: `GET /api/metrics` (admin only)
 

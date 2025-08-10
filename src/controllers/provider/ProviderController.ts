@@ -1,12 +1,13 @@
 import { Response } from 'express';
-import { ServiceProvider } from '../models/ServiceProvider';
-import { ServiceRequest } from '../models/ServiceRequest';
-import { Review } from '../models/Review';
-import { User } from '../models/User';
-import { AuthRequest } from '../types';
-import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../middleware/errorHandler';
+import { ServiceProvider } from '../../models/ServiceProvider';
+import { ServiceRequest } from '../../models/ServiceRequest';
+import { Review } from '../../models/Review';
+import { User } from '../../models/User';
+import { ProviderService } from '../../services/provider/ProviderService';
+import { AuthRequest } from '../../types';
+import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 
-export class ServiceProviderController {
+export class ProviderController {
   /**
    * Get provider profile
    */
@@ -484,4 +485,3 @@ export class ServiceProviderController {
     });
   });
 }
-

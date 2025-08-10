@@ -1,10 +1,11 @@
 import { Response } from 'express';
-import { User } from '../models/User';
-import { ServiceProvider } from '../models/ServiceProvider';
-import { ServiceRequest } from '../models/ServiceRequest';
-import { Review } from '../models/Review';
-import { AuthRequest } from '../types';
-import { asyncHandler, NotFoundError, AuthorizationError } from '../middleware/errorHandler';
+import { User } from '../../models/User';
+import { ServiceProvider } from '../../models/ServiceProvider';
+import { ServiceRequest } from '../../models/ServiceRequest';
+import { Review } from '../../models/Review';
+import { AdminService } from '../../services/admin/AdminService';
+import { AuthRequest } from '../../types';
+import { asyncHandler, NotFoundError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class AdminController {
   /**
@@ -479,4 +480,3 @@ export class AdminController {
     });
   });
 }
-

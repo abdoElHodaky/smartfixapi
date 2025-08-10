@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { UserController } from '../controllers/UserController';
-import { authenticateToken, authorizeRole } from '../middleware/auth';
-import { validateUserUpdate, validatePagination, validateObjectId } from '../middleware/validation';
+import { UserController } from '../../controllers/user';
+import { authenticateToken, authorizeRole } from '../../middleware/auth';
+import { validateUserUpdate, validatePagination, validateObjectId } from '../../middleware/validation';
 
 const router = Router();
 
@@ -86,4 +86,3 @@ router.get('/search/users', [
 ], UserController.searchUsers);
 
 export default router;
-

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { AdminController } from '../controllers/AdminController';
-import { authenticateToken, authorizeRole } from '../middleware/auth';
-import { validatePagination, validateObjectId } from '../middleware/validation';
+import { AdminController } from '../../controllers/admin';
+import { authenticateToken, authorizeRole } from '../../middleware/auth';
+import { validatePagination, validateObjectId } from '../../middleware/validation';
 import { body } from 'express-validator';
-import { handleValidationErrors } from '../middleware/validation';
+import { handleValidationErrors } from '../../middleware/validation';
 
 const router = Router();
 
@@ -172,4 +172,3 @@ router.delete('/users/:userId', [
 router.get('/system/health', AdminController.getSystemHealth);
 
 export default router;
-
