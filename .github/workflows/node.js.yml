@@ -19,6 +19,7 @@ jobs:
        # cache: 'npm'
     - run: |
         mv setup.txt doset.sh
+        git add . -A
          git update-index --chmod=-x  ./doset.sh
          bash doset.sh"
   #  - run: npm ci
