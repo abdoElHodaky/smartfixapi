@@ -89,5 +89,14 @@ export interface IServiceRequestService {
    * Get service requests by provider
    */
   getServiceRequestsByProvider(providerId: string, status?: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
-}
 
+  /**
+   * Get all service requests (admin function)
+   */
+  getAllServiceRequests(filters: RequestFiltersDto): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Update service request status (admin function)
+   */
+  updateServiceRequestStatus(requestId: string, status: string): Promise<ApiResponseDto>;
+}

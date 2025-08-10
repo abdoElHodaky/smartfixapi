@@ -74,5 +74,14 @@ export interface IReviewService {
    * Calculate provider rating from reviews
    */
   calculateProviderRating(providerId: string): Promise<{ average: number; count: number }>;
-}
 
+  /**
+   * Get all reviews (admin function)
+   */
+  getAllReviews(filters: ReviewFiltersDto): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Moderate review (admin function)
+   */
+  moderateReview(reviewId: string, action: string, reason?: string): Promise<ApiResponseDto>;
+}

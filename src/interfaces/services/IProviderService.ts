@@ -79,5 +79,19 @@ export interface IProviderService {
    * Update provider rating
    */
   updateProviderRating(providerId: string): Promise<void>;
-}
 
+  /**
+   * Update provider status (admin function)
+   */
+  updateProviderStatus(providerId: string, status: string): Promise<ApiResponseDto>;
+
+  /**
+   * Delete provider (admin function)
+   */
+  deleteProvider(providerId: string): Promise<ApiResponseDto>;
+
+  /**
+   * Get all providers (admin function)
+   */
+  getAllProviders(filters: ProviderFiltersDto): Promise<PaginatedResponseDto<any>>;
+}

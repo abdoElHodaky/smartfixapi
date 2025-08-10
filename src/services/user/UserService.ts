@@ -272,5 +272,100 @@ export class UserService implements IUserService {
 
     return users;
   }
-}
 
+  /**
+   * Update user status (admin function)
+   */
+  async updateUserStatus(userId: string, status: string): Promise<ApiResponseDto> {
+    const validStatuses = ['active', 'inactive', 'suspended', 'banned'];
+    
+    if (!validStatuses.includes(status)) {
+      throw new ValidationError('Invalid status');
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { status, updatedAt: new Date() },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    return {
+      success: true,
+      message: `User status updated to ${status}`,
+      data: user
+    };
+  }
+
+  /**
+   * Get all users (admin function)
+   */
+  async getAllUsers(filters: UserFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      role, 
+      status, 
+      isEmailVerified, 
+      search,
+      registrationDateFrom,
+      registrationDateTo,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (role) {
+      filter.role = role;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (typeof isEmailVerified === 'boolean') {
+      filter.isEmailVerified = isEmailVerified;
+    }
+
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (registrationDateFrom || registrationDateTo) {
+      filter.createdAt = {};
+      if (registrationDateFrom) filter.createdAt.$gte = registrationDateFrom;
+      if (registrationDateTo) filter.createdAt.$lte = registrationDateTo;
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const users = await User.find(filter)
+      .select('-password')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments(filter);
+
+    return {
+      data: users,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+}

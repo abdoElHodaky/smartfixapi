@@ -23,93 +23,37 @@ export class AdminService implements IAdminService {
    * Get all users with admin filters
    */
   async getAllUsers(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
-    const { 
-      page = 1, 
-      limit = 10, 
-      role, 
-      status, 
-      isEmailVerified, 
-      search,
-      registrationDateFrom,
-      registrationDateTo,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = filters;
-
-    const skip = (page - 1) * limit;
-    const filter: any = {};
-
-    if (role) {
-      filter.role = role;
-    }
-
-    if (status) {
-      filter.status = status;
-    }
-
-    if (typeof isEmailVerified === 'boolean') {
-      filter.isEmailVerified = isEmailVerified;
-    }
-
-    if (search) {
-      filter.$or = [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    if (registrationDateFrom || registrationDateTo) {
-      filter.createdAt = {};
-      if (registrationDateFrom) filter.createdAt.$gte = registrationDateFrom;
-      if (registrationDateTo) filter.createdAt.$lte = registrationDateTo;
-    }
-
-    const sortOption: any = {};
-    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    const users = await User.find(filter)
-      .select('-password')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await User.countDocuments(filter);
-
-    return {
-      data: users,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+    // Convert admin filters to user filters format
+    const userFilters = {
+      page: filters.page,
+      limit: filters.limit,
+      role: filters.role,
+      status: filters.status,
+      isEmailVerified: filters.isEmailVerified,
+      search: filters.search,
+      registrationDateFrom: filters.registrationDateFrom,
+      registrationDateTo: filters.registrationDateTo,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
     };
+
+    // Delegate to UserService
+    return await this.userService.searchUsers(userFilters);
   }
 
   /**
    * Get user by ID (admin view)
    */
   async getUserById(userId: string): Promise<any> {
-    const user = await User.findById(userId).select('-password');
+    // Delegate to UserService to get user details
+    const user = await this.userService.getUserById(userId, false);
     
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    // Get additional user statistics
-    const [serviceRequestsCount, reviewsCount] = await Promise.all([
-      ServiceRequest.countDocuments({ userId }),
-      Review.countDocuments({ userId })
-    ]);
+    // Get additional statistics from UserService
+    const statistics = await this.userService.getUserStatistics(userId);
 
     return {
-      ...user.toObject(),
-      statistics: {
-        serviceRequestsCount,
-        reviewsCount
-      }
+      ...user,
+      statistics
     };
   }
 
@@ -117,149 +61,65 @@ export class AdminService implements IAdminService {
    * Update user status
    */
   async updateUserStatus(userId: string, status: string): Promise<ApiResponseDto> {
-    const validStatuses = ['active', 'inactive', 'suspended', 'banned'];
+    // Delegate to UserService
+    const result = await this.userService.updateUserStatus(userId, status);
     
-    if (!validStatuses.includes(status)) {
-      throw new ValidationError('Invalid status');
-    }
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { status, updatedAt: new Date() },
-      { new: true }
-    ).select('-password');
-
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    await this.createAuditLog('user_status_updated', { userId, status, previousStatus: user.status }, 'admin');
-
-    return {
-      success: true,
-      message: `User status updated to ${status}`,
-      data: user
-    };
+    // Create audit log for admin action
+    await this.createAuditLog('user_status_updated', { userId, status }, 'admin');
+    
+    return result;
   }
 
   /**
    * Delete user
    */
   async deleteUser(userId: string): Promise<ApiResponseDto> {
-    const user = await User.findByIdAndDelete(userId);
-
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    // Clean up related data
-    await Promise.all([
-      ServiceRequest.deleteMany({ userId }),
-      Review.deleteMany({ userId }),
-      ServiceProvider.deleteOne({ userId })
-    ]);
-
+    // Get user details before deletion for audit log
+    const user = await this.userService.getUserById(userId, false);
+    
+    // Delegate to UserService
+    const result = await this.userService.deleteUserAccount(userId);
+    
+    // Create audit log for admin action
     await this.createAuditLog('user_deleted', { userId, email: user.email }, 'admin');
-
-    return {
-      success: true,
-      message: 'User deleted successfully'
-    };
+    
+    return result;
   }
 
   /**
    * Get all providers with admin filters
    */
   async getAllProviders(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
-    const { 
-      page = 1, 
-      limit = 10, 
-      isVerified, 
-      status,
-      category,
-      rating,
-      search,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = filters;
-
-    const skip = (page - 1) * limit;
-    const filter: any = {};
-
-    if (typeof isVerified === 'boolean') {
-      filter.isVerified = isVerified;
-    }
-
-    if (status) {
-      filter.status = status;
-    }
-
-    if (category) {
-      filter.services = { $in: [category] };
-    }
-
-    if (rating) {
-      filter.rating = { $gte: rating };
-    }
-
-    if (search) {
-      filter.$or = [
-        { businessName: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    const sortOption: any = {};
-    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    const providers = await ServiceProvider.find(filter)
-      .populate('userId', 'firstName lastName email')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await ServiceProvider.countDocuments(filter);
-
-    return {
-      data: providers,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+    // Convert admin filters to provider filters format
+    const providerFilters = {
+      page: filters.page,
+      limit: filters.limit,
+      isVerified: filters.isVerified,
+      status: filters.status,
+      category: filters.category,
+      rating: filters.rating,
+      search: filters.search,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
     };
+
+    // Delegate to ProviderService
+    return await this.providerService.getAllProviders(providerFilters);
   }
 
   /**
    * Get provider by ID (admin view)
    */
   async getProviderById(providerId: string): Promise<any> {
-    const provider = await ServiceProvider.findById(providerId)
-      .populate('userId', 'firstName lastName email phone');
+    // Delegate to ProviderService to get provider details
+    const provider = await this.providerService.getProviderById(providerId);
     
-    if (!provider) {
-      throw new NotFoundError('Provider not found');
-    }
-
-    // Get additional provider statistics
-    const [serviceRequestsCount, reviewsCount, averageRating] = await Promise.all([
-      ServiceRequest.countDocuments({ providerId }),
-      Review.countDocuments({ providerId }),
-      Review.aggregate([
-        { $match: { providerId } },
-        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
-      ])
-    ]);
+    // Get additional statistics from ProviderService
+    const statistics = await this.providerService.getProviderStatistics(providerId);
 
     return {
-      ...provider.toObject(),
-      statistics: {
-        serviceRequestsCount,
-        reviewsCount,
-        averageRating: averageRating[0]?.avgRating || 0
-      }
+      ...provider,
+      statistics
     };
   }
 
@@ -267,292 +127,124 @@ export class AdminService implements IAdminService {
    * Verify provider
    */
   async verifyProvider(providerId: string): Promise<ApiResponseDto> {
-    const provider = await ServiceProvider.findByIdAndUpdate(
-      providerId,
-      { isVerified: true, verifiedAt: new Date() },
-      { new: true }
-    );
-
-    if (!provider) {
-      throw new NotFoundError('Provider not found');
-    }
-
+    // Delegate to ProviderService
+    const result = await this.providerService.verifyProvider(providerId);
+    
+    // Create audit log for admin action
     await this.createAuditLog('provider_verified', { providerId }, 'admin');
-
-    return {
-      success: true,
-      message: 'Provider verified successfully',
-      data: provider
-    };
+    
+    return result;
   }
 
   /**
    * Update provider status
    */
   async updateProviderStatus(providerId: string, status: string): Promise<ApiResponseDto> {
-    const validStatuses = ['active', 'inactive', 'suspended', 'banned'];
+    // Delegate to ProviderService
+    const result = await this.providerService.updateProviderStatus(providerId, status);
     
-    if (!validStatuses.includes(status)) {
-      throw new ValidationError('Invalid status');
-    }
-
-    const provider = await ServiceProvider.findByIdAndUpdate(
-      providerId,
-      { status, updatedAt: new Date() },
-      { new: true }
-    );
-
-    if (!provider) {
-      throw new NotFoundError('Provider not found');
-    }
-
+    // Create audit log for admin action
     await this.createAuditLog('provider_status_updated', { providerId, status }, 'admin');
-
-    return {
-      success: true,
-      message: `Provider status updated to ${status}`,
-      data: provider
-    };
+    
+    return result;
   }
 
   /**
    * Delete provider
    */
   async deleteProvider(providerId: string): Promise<ApiResponseDto> {
-    const provider = await ServiceProvider.findByIdAndDelete(providerId);
-
-    if (!provider) {
-      throw new NotFoundError('Provider not found');
-    }
-
-    // Clean up related data
-    await Promise.all([
-      ServiceRequest.deleteMany({ providerId }),
-      Review.deleteMany({ providerId })
-    ]);
-
+    // Get provider details before deletion for audit log
+    const provider = await this.providerService.getProviderById(providerId);
+    
+    // Delegate to ProviderService
+    const result = await this.providerService.deleteProvider(providerId);
+    
+    // Create audit log for admin action
     await this.createAuditLog('provider_deleted', { providerId, businessName: provider.businessName }, 'admin');
-
-    return {
-      success: true,
-      message: 'Provider deleted successfully'
-    };
+    
+    return result;
   }
 
   /**
    * Get all service requests with admin filters
    */
   async getAllServiceRequests(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
-    const { 
-      page = 1, 
-      limit = 10, 
-      requestStatus,
-      urgency,
-      budget,
-      search,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = filters;
-
-    const skip = (page - 1) * limit;
-    const filter: any = {};
-
-    if (requestStatus) {
-      filter.status = requestStatus;
-    }
-
-    if (urgency) {
-      filter.urgency = urgency;
-    }
-
-    if (budget) {
-      filter.budget = { $lte: budget };
-    }
-
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    const sortOption: any = {};
-    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    const serviceRequests = await ServiceRequest.find(filter)
-      .populate('userId', 'firstName lastName email')
-      .populate('providerId', 'businessName')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await ServiceRequest.countDocuments(filter);
-
-    return {
-      data: serviceRequests,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+    // Convert admin filters to request filters format
+    const requestFilters = {
+      page: filters.page,
+      limit: filters.limit,
+      status: filters.requestStatus,
+      urgency: filters.urgency,
+      budget: filters.budget,
+      search: filters.search,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
     };
+
+    // Delegate to ServiceRequestService
+    return await this.serviceRequestService.getAllServiceRequests(requestFilters);
   }
 
   /**
    * Get service request by ID (admin view)
    */
   async getServiceRequestById(requestId: string): Promise<any> {
-    const serviceRequest = await ServiceRequest.findById(requestId)
-      .populate('userId', 'firstName lastName email phone')
-      .populate('providerId', 'businessName rating');
-    
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
-    }
-
-    return serviceRequest;
+    // Delegate to ServiceRequestService
+    return await this.serviceRequestService.getServiceRequestById(requestId);
   }
 
   /**
    * Update service request status
    */
   async updateServiceRequestStatus(requestId: string, status: string): Promise<ApiResponseDto> {
-    const validStatuses = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'];
+    // Delegate to ServiceRequestService
+    const result = await this.serviceRequestService.updateServiceRequestStatus(requestId, status);
     
-    if (!validStatuses.includes(status)) {
-      throw new ValidationError('Invalid status');
-    }
-
-    const serviceRequest = await ServiceRequest.findByIdAndUpdate(
-      requestId,
-      { status, updatedAt: new Date() },
-      { new: true }
-    );
-
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
-    }
-
+    // Create audit log for admin action
     await this.createAuditLog('service_request_status_updated', { requestId, status }, 'admin');
-
-    return {
-      success: true,
-      message: `Service request status updated to ${status}`,
-      data: serviceRequest
-    };
+    
+    return result;
   }
 
   /**
    * Get all reviews with admin filters
    */
   async getAllReviews(filters: AdminFiltersDto): Promise<PaginatedResponseDto<any>> {
-    const { 
-      page = 1, 
-      limit = 10, 
-      reviewRating,
-      isFlagged,
-      isModerated,
-      search,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = filters;
-
-    const skip = (page - 1) * limit;
-    const filter: any = {};
-
-    if (reviewRating) {
-      filter.rating = reviewRating;
-    }
-
-    if (typeof isFlagged === 'boolean') {
-      filter.isFlagged = isFlagged;
-    }
-
-    if (typeof isModerated === 'boolean') {
-      filter.isModerated = isModerated;
-    }
-
-    if (search) {
-      filter.$or = [
-        { comment: { $regex: search, $options: 'i' } },
-        { response: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    const sortOption: any = {};
-    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    const reviews = await Review.find(filter)
-      .populate('userId', 'firstName lastName')
-      .populate('providerId', 'businessName')
-      .populate('serviceRequestId', 'title')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Review.countDocuments(filter);
-
-    return {
-      data: reviews,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+    // Convert admin filters to review filters format
+    const reviewFilters = {
+      page: filters.page,
+      limit: filters.limit,
+      rating: filters.reviewRating,
+      isFlagged: filters.isFlagged,
+      isModerated: filters.isModerated,
+      search: filters.search,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
     };
+
+    // Delegate to ReviewService
+    return await this.reviewService.getAllReviews(reviewFilters);
   }
 
   /**
    * Get review by ID (admin view)
    */
   async getReviewById(reviewId: string): Promise<any> {
-    const review = await Review.findById(reviewId)
-      .populate('userId', 'firstName lastName email')
-      .populate('providerId', 'businessName')
-      .populate('serviceRequestId', 'title category');
-    
-    if (!review) {
-      throw new NotFoundError('Review not found');
-    }
-
-    return review;
+    // Delegate to ReviewService
+    return await this.reviewService.getReviewById(reviewId);
   }
 
   /**
    * Moderate review
    */
   async moderateReview(reviewId: string, action: 'approve' | 'reject', reason?: string): Promise<ApiResponseDto> {
-    const updateData: any = {
-      isModerated: true,
-      moderatedAt: new Date(),
-      moderationAction: action
-    };
-
-    if (reason) {
-      updateData.moderationReason = reason;
-    }
-
-    if (action === 'reject') {
-      updateData.isVisible = false;
-    }
-
-    const review = await Review.findByIdAndUpdate(reviewId, updateData, { new: true });
-
-    if (!review) {
-      throw new NotFoundError('Review not found');
-    }
-
+    // Delegate to ReviewService
+    const result = await this.reviewService.moderateReview(reviewId, action, reason);
+    
+    // Create audit log for admin action
     await this.createAuditLog('review_moderated', { reviewId, action, reason }, 'admin');
-
-    return {
-      success: true,
-      message: `Review ${action}ed successfully`,
-      data: review
-    };
+    
+    return result;
   }
 
   /**
@@ -928,4 +620,3 @@ export class AdminService implements IAdminService {
     return { start, end: now };
   }
 }
-

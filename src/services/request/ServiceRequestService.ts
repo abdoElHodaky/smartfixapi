@@ -505,5 +505,119 @@ export class ServiceRequestService implements IServiceRequestService {
       }
     };
   }
-}
 
+  /**
+   * Get all service requests (admin function)
+   */
+  async getAllServiceRequests(filters: RequestFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      status, 
+      category,
+      priority,
+      search,
+      dateFrom,
+      dateTo,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (priority) {
+      filter.priority = priority;
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = dateFrom;
+      if (dateTo) filter.createdAt.$lte = dateTo;
+    }
+
+    const sortOption: any = {};
+    sortOption[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const serviceRequests = await ServiceRequest.find(filter)
+      .populate('userId', 'firstName lastName email')
+      .populate('providerId', 'businessName')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceRequest.countDocuments(filter);
+
+    return {
+      data: serviceRequests,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Update service request status (admin function)
+   */
+  async updateServiceRequestStatus(requestId: string, status: string): Promise<ApiResponseDto> {
+    const validStatuses = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled', 'rejected'];
+    
+    if (!validStatuses.includes(status)) {
+      throw new ValidationError('Invalid status');
+    }
+
+    const updateData: any = { status, updatedAt: new Date() };
+
+    // Set appropriate timestamps based on status
+    switch (status) {
+      case 'accepted':
+        updateData.acceptedAt = new Date();
+        break;
+      case 'in_progress':
+        updateData.startedAt = new Date();
+        break;
+      case 'completed':
+        updateData.completedAt = new Date();
+        break;
+      case 'cancelled':
+        updateData.cancelledAt = new Date();
+        break;
+    }
+
+    const serviceRequest = await ServiceRequest.findByIdAndUpdate(
+      requestId,
+      updateData,
+      { new: true }
+    ).populate('userId', 'firstName lastName email')
+     .populate('providerId', 'businessName');
+
+    if (!serviceRequest) {
+      throw new NotFoundError('Service request not found');
+    }
+
+    return {
+      success: true,
+      message: `Service request status updated to ${status}`,
+      data: serviceRequest
+    };
+  }
+}

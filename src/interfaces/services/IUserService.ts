@@ -58,5 +58,14 @@ export interface IUserService {
    * Get users by location
    */
   getUsersByLocation(coordinates: [number, number], radius: number): Promise<any[]>;
-}
 
+  /**
+   * Update user status (admin function)
+   */
+  updateUserStatus(userId: string, status: string): Promise<ApiResponseDto>;
+
+  /**
+   * Get all users (admin function)
+   */
+  getAllUsers(filters: UserFiltersDto): Promise<PaginatedResponseDto<any>>;
+}
