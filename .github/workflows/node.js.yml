@@ -21,7 +21,7 @@ jobs:
         mv setup.txt doset.sh
         git add . -A
          git update-index --chmod=-x  ./doset.sh
-         bash doset.sh"
+         bash doset.sh
   #  - run: npm ci
   #  - run: npm run build --if-present
    # - run: npm test
