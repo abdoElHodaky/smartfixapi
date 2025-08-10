@@ -8,10 +8,16 @@ import { AuthRequest } from '../../types';
 import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class ProviderController {
+  private providerService: ProviderService;
+
+  constructor(providerService: ProviderService = new ProviderService()) {
+    this.providerService = providerService;
+  }
+
   /**
    * Get provider profile
    */
-  static getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -37,7 +43,7 @@ export class ProviderController {
   /**
    * Update provider profile
    */
-  static updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -74,7 +80,7 @@ export class ProviderController {
   /**
    * Get provider's service requests
    */
-  static getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -119,7 +125,7 @@ export class ProviderController {
   /**
    * Get available service requests (for providers to browse)
    */
-  static getAvailableRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getAvailableRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -181,7 +187,7 @@ export class ProviderController {
   /**
    * Submit proposal for a service request
    */
-  static submitProposal = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  submitProposal = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -235,7 +241,7 @@ export class ProviderController {
   /**
    * Get provider dashboard data
    */
-  static getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -310,7 +316,7 @@ export class ProviderController {
   /**
    * Update availability status
    */
-  static updateAvailability = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  updateAvailability = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -337,7 +343,7 @@ export class ProviderController {
   /**
    * Add portfolio item
    */
-  static addPortfolioItem = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  addPortfolioItem = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user || req.user.role !== 'provider') {
       throw new AuthorizationError('Provider access required');
     }
@@ -369,7 +375,7 @@ export class ProviderController {
   /**
    * Get provider by ID (public view)
    */
-  static getProviderById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getProviderById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { providerId } = req.params;
 
     const provider = await ServiceProvider.findById(providerId)
@@ -401,7 +407,7 @@ export class ProviderController {
   /**
    * Search providers
    */
-  static searchProviders = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  searchProviders = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { 
       q, 
       services, 

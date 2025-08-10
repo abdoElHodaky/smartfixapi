@@ -32,7 +32,7 @@ export class AdminService {
   /**
    * Get admin dashboard data
    */
-  static async getDashboardData(): Promise<AdminDashboardData> {
+  async getDashboardData(): Promise<AdminDashboardData> {
     const [
       totalUsers,
       totalProviders,
@@ -83,7 +83,7 @@ export class AdminService {
   /**
    * Get platform statistics
    */
-  static async getPlatformStatistics(): Promise<PlatformStatistics> {
+  async getPlatformStatistics(): Promise<PlatformStatistics> {
     const [
       userStats,
       providerStats,
@@ -149,7 +149,7 @@ export class AdminService {
   /**
    * Get system health status
    */
-  static async getSystemHealth(): Promise<any> {
+  async getSystemHealth(): Promise<any> {
     try {
       // Test database connectivity
       const dbTest = await User.findOne().limit(1);
@@ -190,7 +190,7 @@ export class AdminService {
   /**
    * Get user analytics
    */
-  static async getUserAnalytics(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<any> {
+  async getUserAnalytics(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<any> {
     const now = new Date();
     let startDate: Date;
 
@@ -244,7 +244,7 @@ export class AdminService {
   /**
    * Get provider analytics
    */
-  static async getProviderAnalytics(): Promise<any> {
+  async getProviderAnalytics(): Promise<any> {
     const [
       totalProviders,
       verifiedProviders,
@@ -295,7 +295,7 @@ export class AdminService {
   /**
    * Get service request analytics
    */
-  static async getServiceRequestAnalytics(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<any> {
+  async getServiceRequestAnalytics(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<any> {
     const now = new Date();
     let startDate: Date;
 
@@ -389,7 +389,7 @@ export class AdminService {
   /**
    * Get chat analytics
    */
-  static async getChatAnalytics(): Promise<any> {
+  async getChatAnalytics(): Promise<any> {
     const [
       totalChats,
       activeChats,
@@ -435,7 +435,7 @@ export class AdminService {
   /**
    * Get financial analytics (placeholder for future payment integration)
    */
-  static async getFinancialAnalytics(): Promise<any> {
+  async getFinancialAnalytics(): Promise<any> {
     // This would be implemented when payment system is integrated
     const [
       totalRevenue,
@@ -464,7 +464,7 @@ export class AdminService {
   /**
    * Export data for reporting
    */
-  static async exportData(
+  async exportData(
     dataType: 'users' | 'providers' | 'requests' | 'reviews',
     format: 'json' | 'csv' = 'json'
   ): Promise<any> {
@@ -515,7 +515,7 @@ export class AdminService {
   /**
    * Generate platform report
    */
-  static async generatePlatformReport(): Promise<any> {
+  async generatePlatformReport(): Promise<any> {
     const [
       dashboardData,
       userAnalytics,

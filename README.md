@@ -1,6 +1,6 @@
-# SmartFix API - Service Providers Platform
+# Service Providers Platform 🔧
 
-A comprehensive ExpressJS and Mongoose-based REST API for an on-demand home services platform. This API enables users to request home services and connects them with qualified service providers.
+A comprehensive ExpressJS and Mongoose-based service providers platform that connects users with service providers. Built with modern architecture patterns including dependency injection, comprehensive error handling, and real-time communication.
 
 ## 🚀 Features
 
@@ -278,4 +278,3 @@ Base URL: `/api/v1` (future versions will use `/api/v2`, etc.)
 - Health check endpoint: `GET /api/health`
 - API documentation: `GET /api`
 - Metrics endpoint: `GET /api/metrics` (admin only)
-

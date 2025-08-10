@@ -18,7 +18,7 @@ export class ChatService {
   /**
    * Create a new chat for a service request
    */
-  static async createChat(serviceRequestId: string, participants: string[]): Promise<any> {
+  async createChat(serviceRequestId: string, participants: string[]): Promise<any> {
     // Verify service request exists
     const serviceRequest = await ServiceRequest.findById(serviceRequestId);
     if (!serviceRequest) {
@@ -44,7 +44,7 @@ export class ChatService {
   /**
    * Get chat by service request ID
    */
-  static async getChatByServiceRequest(serviceRequestId: string, userId: string): Promise<any> {
+  async getChatByServiceRequest(serviceRequestId: string, userId: string): Promise<any> {
     // Check if user has access to this service request
     const serviceRequest = await ServiceRequest.findById(serviceRequestId);
     if (!serviceRequest) {
@@ -73,7 +73,7 @@ export class ChatService {
   /**
    * Get chat by ID
    */
-  static async getChatById(chatId: string, userId: string): Promise<any> {
+  async getChatById(chatId: string, userId: string): Promise<any> {
     const chat = await Chat.findById(chatId);
     if (!chat) {
       throw new NotFoundError('Chat not found');
@@ -99,7 +99,7 @@ export class ChatService {
   /**
    * Send a message in a chat
    */
-  static async sendMessage(
+  async sendMessage(
     chatId: string, 
     senderId: string, 
     messageData: MessageData
@@ -135,7 +135,7 @@ export class ChatService {
   /**
    * Get messages with pagination
    */
-  static async getMessages(
+  async getMessages(
     chatId: string, 
     userId: string, 
     page: number = 1, 
@@ -161,7 +161,7 @@ export class ChatService {
   /**
    * Mark messages as read
    */
-  static async markAsRead(
+  async markAsRead(
     chatId: string, 
     userId: string, 
     messageIds?: string[]
@@ -186,7 +186,7 @@ export class ChatService {
   /**
    * Edit a message
    */
-  static async editMessage(
+  async editMessage(
     chatId: string, 
     messageId: string, 
     content: string, 
@@ -207,7 +207,7 @@ export class ChatService {
   /**
    * Get user's chats
    */
-  static async getUserChats(
+  async getUserChats(
     userId: string, 
     page: number = 1, 
     limit: number = 20
@@ -226,7 +226,7 @@ export class ChatService {
   /**
    * Get unread message count for a chat
    */
-  static async getUnreadCount(chatId: string, userId: string): Promise<number> {
+  async getUnreadCount(chatId: string, userId: string): Promise<number> {
     const chat = await Chat.findById(chatId);
     if (!chat) {
       throw new NotFoundError('Chat not found');
@@ -247,7 +247,7 @@ export class ChatService {
   /**
    * Get total unread messages count for user
    */
-  static async getTotalUnreadCount(userId: string): Promise<number> {
+  async getTotalUnreadCount(userId: string): Promise<number> {
     const chats = await Chat.find({ participants: userId });
     
     let totalUnread = 0;
@@ -261,7 +261,7 @@ export class ChatService {
   /**
    * Delete a message (soft delete)
    */
-  static async deleteMessage(
+  async deleteMessage(
     chatId: string, 
     messageId: string, 
     userId: string
@@ -289,7 +289,7 @@ export class ChatService {
   /**
    * Get chat statistics
    */
-  static async getChatStatistics(): Promise<any> {
+  async getChatStatistics(): Promise<any> {
     const [
       totalChats,
       activeChats,
@@ -321,7 +321,7 @@ export class ChatService {
   /**
    * Search messages in a chat
    */
-  static async searchMessages(
+  async searchMessages(
     chatId: string, 
     userId: string, 
     searchQuery: string,

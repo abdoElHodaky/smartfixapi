@@ -6,10 +6,16 @@ import { AuthRequest } from '../../types';
 import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 
 export class ChatController {
+  private chatService: ChatService;
+
+  constructor(chatService: ChatService = new ChatService()) {
+    this.chatService = chatService;
+  }
+
   /**
    * Get chat for a service request
    */
-  static getChatByServiceRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getChatByServiceRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -52,7 +58,7 @@ export class ChatController {
   /**
    * Send a message
    */
-  static sendMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  sendMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -94,7 +100,7 @@ export class ChatController {
   /**
    * Get messages with pagination
    */
-  static getMessages = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getMessages = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -133,7 +139,7 @@ export class ChatController {
   /**
    * Mark messages as read
    */
-  static markAsRead = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  markAsRead = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -170,7 +176,7 @@ export class ChatController {
   /**
    * Get user's chats
    */
-  static getUserChats = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getUserChats = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -200,7 +206,7 @@ export class ChatController {
   /**
    * Edit a message
    */
-  static editMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  editMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -232,7 +238,7 @@ export class ChatController {
   /**
    * Get unread message count
    */
-  static getUnreadCount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  getUnreadCount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -269,7 +275,7 @@ export class ChatController {
   /**
    * Create a new chat (usually done automatically when a proposal is accepted)
    */
-  static createChat = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  createChat = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
