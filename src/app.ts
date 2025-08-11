@@ -1,114 +1,79 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
+/**
+ * SmartFix Service Providers Platform - Main Application
+ * 
+ * This is the main entry point that uses the new modular architecture
+ * with decorator-based services and dependency injection.
+ */
+
+import 'reflect-metadata';
 import dotenv from 'dotenv';
-import { connectDB } from './config/database';
-import { errorHandler } from './middleware/errorHandler';
-import { serviceRegistry } from './container';
 
-// Import route handlers
-import authRoutes from './routes/auth';
-import userRoutes from './routes/user';
-import providerRoutes from './routes/provider';
-import serviceRequestRoutes from './routes/serviceRequest';
-import reviewRoutes from './routes/review';
-import adminRoutes from './routes/admin';
-import chatRoutes from './routes/chat';
-
-// Load environment variables
+// Load environment variables first
 dotenv.config();
 
-// Create Express app
-const app = express();
+// Import the modular server
+import { ModularSmartFixServer } from './app.modular';
 
-// Middleware
-app.use(helmet());
-app.use(cors());
-app.use(morgan('combined'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+/**
+ * Main application entry point
+ */
+async function main() {
+  console.log('🚀 Starting SmartFix Service Providers Platform...');
+  console.log('🏗️  Using Modular Architecture with Decorator-based Services');
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    services: {
-      database: 'connected',
-      container: 'initialized'
-    }
-  });
-});
-
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/providers', providerRoutes);
-app.use('/api/service-requests', serviceRequestRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/chat', chatRoutes);
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
-
-// Error handling middleware
-app.use(errorHandler);
-
-// Start server
-const PORT = process.env.PORT || 3000;
-
-const startServer = async () => {
   try {
-    // Connect to database
-    await connectDB();
-    console.log('✅ Database connected successfully');
+    // Create modular server instance
+    const server = new ModularSmartFixServer();
 
-    // Verify DI container is working
-    const container = serviceRegistry.getContainer();
-    console.log('✅ DI Container initialized with services:', container.getRegisteredServices());
+    // Initialize the modular server
+    await server.initialize();
 
     // Start the server
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check available at http://localhost:${PORT}/health`);
-    });
+    await server.start();
+
+    console.log('✅ SmartFix Platform started successfully!');
+    console.log('🎯 Architecture: Modular with Dependency Injection');
+    console.log('📦 All modules loaded and services initialized');
+
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('❌ Failed to start SmartFix Platform:', error);
     process.exit(1);
   }
-};
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {
-  console.error('Unhandled Promise Rejection:', err);
+  console.error('❌ Unhandled Promise Rejection:', err);
+  console.error('Stack:', err.stack);
   process.exit(1);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err: Error) => {
-  console.error('Uncaught Exception:', err);
+  console.error('❌ Uncaught Exception:', err);
+  console.error('Stack:', err.stack);
   process.exit(1);
 });
 
-// Graceful shutdown
+// Graceful shutdown handlers
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
+  console.log('🔄 SIGTERM received. Initiating graceful shutdown...');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received. Shutting down gracefully...');
+  console.log('🔄 SIGINT received. Initiating graceful shutdown...');
   process.exit(0);
 });
 
-startServer();
+// Start the application
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('❌ Application startup failed:', error);
+    process.exit(1);
+  });
+}
 
-export default app;
+// Export for testing and external use
+export { main };
+export default main;

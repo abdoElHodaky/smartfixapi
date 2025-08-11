@@ -1,23 +1,29 @@
+// NEW DECORATOR-BASED SERVICES
+// These services use advanced decorators for caching, retry logic, logging, and validation
+
 // Authentication Services
-export { AuthService } from './auth/AuthService';
+export { AuthService } from './auth/AuthService.decorator';
 
 // User Services
-export { UserService } from './user/UserService';
+export { UserService } from './user/UserService.decorator';
 
 // Provider Services
-export { ProviderService } from './provider/ProviderService';
+export { ProviderService } from './provider/ProviderService.decorator';
 
 // Service Request Services
-export { ServiceRequestService } from './request/ServiceRequestService';
-
-// Chat Services
-export { ChatService } from './chat/ChatService';
+export { ServiceRequestService } from './request/ServiceRequestService.decorator';
 
 // Review Services
-export { ReviewService } from './review/ReviewService';
+export { ReviewService } from './review/ReviewService.decorator';
 
 // Admin Services
-export { AdminService } from './admin/AdminService';
+export { AdminService } from './admin/AdminService.decorator';
+
+// Chat Services
+export { ChatService } from './chat/ChatService.decorator';
+
+// Service Registry for Decorator-based Services
+export { ServiceRegistry } from './ServiceRegistry.decorator';
 
 // Export service interfaces and types
 export type {
@@ -56,4 +62,3 @@ export type {
   AdminDashboardData,
   PlatformStatistics
 } from './admin/AdminService';
-
