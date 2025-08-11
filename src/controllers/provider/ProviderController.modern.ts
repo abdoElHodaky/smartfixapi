@@ -8,10 +8,15 @@
  * - Decorator-based routing
  */
 
+// External imports
 import { Request, Response } from 'express';
+
+// Internal imports
 import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IProviderService } from '../../interfaces/services';
+
+// DTO imports
 import { 
   ProviderProfileDto,
   ProviderUpdateDto,
@@ -19,6 +24,8 @@ import {
   ProviderSearchDto,
   ProviderProfileResponseDto
 } from '../../dtos';
+
+// Decorator imports
 import { 
   Controller, 
   Get, 
@@ -28,7 +35,7 @@ import {
   RequireAuth, 
   RequireRoles,
   Validate 
-} from '../../decorators/controller';
+} from '../../decorators';
 
 @Controller({ path: '/providers' })
 export class ProviderController extends BaseController {
@@ -508,4 +515,3 @@ export class ProviderController extends BaseController {
     }
   });
 }
-

@@ -8,10 +8,15 @@
  * - Decorator-based routing
  */
 
+// External imports
 import { Request, Response } from 'express';
+
+// Internal imports
 import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IAdminService } from '../../interfaces/services';
+
+// DTO imports
 import { 
   AdminDashboardDto,
   UserManagementDto,
@@ -19,6 +24,8 @@ import {
   SystemStatsDto,
   AdminReportDto
 } from '../../dtos';
+
+// Decorator imports
 import { 
   Controller, 
   Get, 
@@ -28,7 +35,7 @@ import {
   RequireAuth, 
   RequireRoles,
   Validate 
-} from '../../decorators/controller';
+} from '../../decorators';
 
 @Controller({ path: '/admin' })
 export class AdminController extends BaseController {

@@ -8,16 +8,23 @@
  * - Decorator-based routing
  */
 
+// External imports
 import { Request, Response } from 'express';
+
+// Internal imports
 import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IUserService } from '../../interfaces/services';
+
+// DTO imports
 import { 
   UserProfileDto,
   UserUpdateDto,
   UserProfileResponseDto,
   PaginationDto
 } from '../../dtos';
+
+// Decorator imports
 import { 
   Controller, 
   Get, 
@@ -27,7 +34,7 @@ import {
   RequireAuth, 
   RequireRoles,
   Validate 
-} from '../../decorators/controller';
+} from '../../decorators';
 
 @Controller({ path: '/users' })
 export class UserController extends BaseController {
@@ -438,4 +445,3 @@ export class UserController extends BaseController {
     }
   });
 }
-

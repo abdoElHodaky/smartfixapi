@@ -4,10 +4,13 @@
  * Provides automatic validation for request bodies using class-validator decorators
  */
 
+// External imports
 import { Request, Response, NextFunction } from 'express';
 import { validate, ValidationError } from 'class-validator';
 import { plainToClass, ClassConstructor } from 'class-transformer';
-import { ApiResponseDto } from '../dtos/common/response.dto';
+
+// DTO imports
+import { ApiResponseDto } from '../dtos';
 
 /**
  * Validation middleware factory

@@ -9,11 +9,15 @@
  * - Logging
  */
 
+// External imports
 import { Request, Response, NextFunction } from 'express';
+
+// Internal imports
 import { AuthRequest } from '../types';
-// Removed unused imports
-import { ApiResponseDto } from '../dtos/common/response.dto';
 import { serviceRegistry } from '../container';
+
+// DTO imports
+import { ApiResponseDto } from '../dtos';
 
 export abstract class BaseController {
   protected serviceRegistry = serviceRegistry;

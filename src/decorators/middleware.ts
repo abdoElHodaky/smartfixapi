@@ -1,7 +1,12 @@
+// External imports
 import 'reflect-metadata';
 import { Request, Response, NextFunction } from 'express';
 import { attachMiddleware } from '@decorators/express';
+
+// Internal imports
 import { authenticateToken } from '../middleware/auth';
+
+// Legacy validation imports (TODO: migrate to modern class-validator approach)
 import { validateUserRegistration, validateUserLogin } from '../middleware/validation';
 
 /**
@@ -150,4 +155,3 @@ export function Log(message?: string) {
     return descriptor;
   };
 }
-
