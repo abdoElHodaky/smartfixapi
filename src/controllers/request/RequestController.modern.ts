@@ -8,22 +8,31 @@
  * - Decorator-based routing
  */
 
+// External imports
 import { Request, Response } from 'express';
+
+// Internal imports
 import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IServiceRequestService } from '../../interfaces/services';
+
+// DTO imports
 import { 
   ServiceRequestDto,
   ServiceRequestUpdateDto,
   ServiceRequestResponseDto,
-  ServiceRequestSearchDto
+  ServiceRequestSearchDto,
+  CreateRequestDto,
+  UpdateRequestDto,
+  RequestQueryDto,
+  RequestLocationQueryDto,
+  RequestMatchingQueryDto,
+  ObjectIdParamDto,
+  RequestIdParamDto,
+  PaginationDto
 } from '../../dtos';
-import { CreateRequestDto } from '../../dtos/request/create-request.dto';
-import { UpdateRequestDto } from '../../dtos/request/update-request.dto';
-import { RequestQueryDto, RequestLocationQueryDto, RequestMatchingQueryDto } from '../../dtos/request/request-query.dto';
-import { ObjectIdParamDto, RequestIdParamDto } from '../../dtos/common/params.dto';
-import { PaginationDto } from '../../dtos/common/pagination.dto';
-import { validateBody, validateQuery, validateParams } from '../../middleware/validation.middleware';
+
+// Decorator imports
 import { 
   Controller, 
   Get, 
@@ -33,7 +42,10 @@ import {
   RequireAuth, 
   RequireRoles,
   UseMiddleware 
-} from '../../decorators/controller';
+} from '../../decorators';
+
+// Middleware imports
+import { validateBody, validateQuery, validateParams } from '../../middleware';
 
 @Controller({ path: '/requests' })
 export class RequestController extends BaseController {

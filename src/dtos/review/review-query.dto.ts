@@ -1,5 +1,8 @@
+// Validation imports
 import { IsOptional, IsString, IsNumberString, IsIn, IsBoolean, Length } from 'class-validator';
 import { Transform } from 'class-transformer';
+
+// Internal imports
 import { PaginationDto } from '../common';
 
 /**

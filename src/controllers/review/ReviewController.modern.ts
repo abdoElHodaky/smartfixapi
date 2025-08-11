@@ -8,10 +8,15 @@
  * - Decorator-based routing
  */
 
+// External imports
 import { Request, Response } from 'express';
+
+// Internal imports
 import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IReviewService } from '../../interfaces/services';
+
+// DTO imports
 import { 
   ReviewDto,
   ReviewCreationDto,
@@ -26,14 +31,14 @@ import {
   RecentReviewsQueryDto,
   TopProvidersQueryDto,
   ReviewReplyDto,
-  FlagReviewDto
-} from '../../dtos';
-import { 
+  FlagReviewDto,
   ReviewIdParamDto,
   UserIdParamDto,
   ProviderIdParamDto,
   ServiceRequestIdParamDto
-} from '../../dtos/common';
+} from '../../dtos';
+
+// Decorator imports
 import { 
   Controller, 
   Get, 
@@ -43,8 +48,10 @@ import {
   RequireAuth, 
   RequireRoles,
   UseMiddleware
-} from '../../decorators/controller';
-import { validateBody, validateQuery, validateParams } from '../../middleware/validation';
+} from '../../decorators';
+
+// Middleware imports
+import { validateBody, validateQuery, validateParams } from '../../middleware';
 
 @Controller({ path: '/reviews' })
 export class ReviewController extends BaseController {
