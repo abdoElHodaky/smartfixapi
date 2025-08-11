@@ -25,10 +25,7 @@ async function main() {
     // Create modular server instance
     const server = new ModularSmartFixServer();
 
-    // Initialize the modular server
-    await server.initialize();
-
-    // Start the server
+    // Start the server (initialization is handled internally)
     await server.start();
 
     console.log('✅ SmartFix Platform started successfully!');
