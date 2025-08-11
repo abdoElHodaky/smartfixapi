@@ -26,6 +26,25 @@ export interface IChat extends Document {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  
+  // Instance methods
+  addMessage(senderId: string, content: string, messageType?: string, attachments?: string[]): Promise<IChat>;
+  markAsRead(userId: string, messageIds?: string[]): Promise<IChat>;
+  getUnreadCount(userId: string): number;
+  editMessage(messageId: string, newContent: string, senderId: string): Promise<IChat>;
+  getMessages(page?: number, limit?: number): {
+    messages: IMessage[];
+    totalMessages: number;
+    currentPage: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface IChatModel extends mongoose.Model<IChat> {
+  findUserChats(userId: string, page?: number, limit?: number): Promise<IChat[]>;
+  createChat(serviceRequestId: string, participants: string[]): Promise<IChat>;
 }
 
 const messageSchema = new Schema<IMessage>({
@@ -280,5 +299,4 @@ chatSchema.statics.createChat = async function(serviceRequestId: string, partici
   return chat.save();
 };
 
-export const Chat = mongoose.model<IChat>('Chat', chatSchema);
-
+export const Chat = mongoose.model<IChat, IChatModel>('Chat', chatSchema);

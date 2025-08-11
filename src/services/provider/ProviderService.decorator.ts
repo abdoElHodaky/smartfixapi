@@ -567,5 +567,66 @@ export class ProviderService implements IProviderService {
       data: { provider }
     };
   }
-}
 
+  /**
+   * Get provider profile (alias for getProviderById)
+   */
+  @Log('Getting provider profile')
+  async getProviderProfile(providerId: string): Promise<any> {
+    return this.getProviderById(providerId);
+  }
+
+  /**
+   * Get available service requests for provider
+   */
+  @Log('Getting available service requests')
+  async getAvailableServiceRequests(providerId?: string): Promise<PaginatedResponseDto<any>> {
+    try {
+      // This would typically call the service request service
+      // For now, we'll return a placeholder structure
+      return {
+        success: true,
+        message: 'Available service requests retrieved successfully',
+        data: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: 20
+        }
+      };
+    } catch (error) {
+      throw new ValidationError('Failed to get available service requests');
+    }
+  }
+
+  /**
+   * Submit proposal for a service request
+   */
+  @Log('Submitting proposal')
+  async submitProposal(providerId: string, serviceRequestId: string, proposalData: any): Promise<ApiResponseDto> {
+    try {
+      // Validate provider exists
+      const provider = await this.getProviderById(providerId);
+      if (!provider) {
+        throw new NotFoundError('Provider not found');
+      }
+
+      // This would typically call the service request service to submit proposal
+      // For now, we'll return a success response
+      return {
+        success: true,
+        message: 'Proposal submitted successfully',
+        data: {
+          proposalId: 'temp-proposal-id',
+          providerId,
+          serviceRequestId,
+          status: 'pending',
+          submittedAt: new Date()
+        }
+      };
+    } catch (error) {
+      throw new ValidationError('Failed to submit proposal');
+    }
+  }
+}

@@ -1,169 +1,296 @@
+import 'reflect-metadata';
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
-import { ServiceRequestService } from '../../services/request/ServiceRequestService.decorator';
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Delete,
+  Body, 
+  Req, 
+  Res,
+  Params,
+  Query,
+  Status
+} from '@decorators/express';
+import { Injectable } from '@decorators/di';
+import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
-import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
+import { AuthorizationError } from '../../middleware/errorHandler';
+import { Auth, RateLimit, AsyncHandler } from '../../decorators/middleware';
 import { IServiceRequestService } from '../../interfaces/services';
 
+/**
+ * Service Request Controller using decorators
+ */
+@Injectable()
+@Controller('/api/requests')
 export class RequestController {
   private serviceRequestService: IServiceRequestService;
-  private requestService: ServiceRequestService;
 
   constructor() {
-    this.serviceRequestService = serviceContainer.getServiceRequestService();
-    this.requestService = new ServiceRequestService(); // Using decorator-based service
+    this.serviceRequestService = serviceRegistry.getService('serviceRequest') as IServiceRequestService;
   }
+
   /**
    * Create a new service request
    */
-  createRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
+  @Post('/')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 10 })
+  @AsyncHandler
+  async createRequest(@Req() req: AuthRequest, @Res() res: Response, @Body() body: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.requestService.createServiceRequest(req.user.id, req.body);
-    res.status(201).json(result);
-  });
+      const result = await this.serviceRequestService.createServiceRequest(req.user.id, body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to create request'
+      });
+    }
+  }
+
+  /**
+   * Get user's service requests
+   */
+  @Get('/my-requests')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getMyRequests(@Req() req: AuthRequest, @Res() res: Response, @Query() query: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 10;
+      
+      const result = await this.serviceRequestService.getUserServiceRequests(req.user.id, page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get requests'
+      });
+    }
+  }
 
   /**
    * Get service request by ID
    */
-  getRequestById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const { requestId } = req.params;
+  @Get('/:requestId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getRequestById(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.requestService.getServiceRequestById(requestId, req.user?.id, req.user?.role);
-    res.status(200).json(result);
-  });
+      const result = await this.serviceRequestService.getServiceRequestById(params.requestId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get request'
+      });
+    }
+  }
 
   /**
    * Update service request
    */
-  updateRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Put('/:requestId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 50 })
+  @AsyncHandler
+  async updateRequest(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any, @Body() body: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const result = await this.serviceRequestService.updateServiceRequest(params.requestId, req.user.id, body);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to update request'
       });
-      return;
     }
+  }
 
-    const { requestId } = req.params;
+  /**
+   * Delete service request
+   */
+  @Delete('/:requestId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 20 })
+  @AsyncHandler
+  async deleteRequest(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.requestService.updateServiceRequest(requestId, req.user.id, req.body);
-    res.status(200).json(result);
-  });
+      const result = await this.serviceRequestService.deleteServiceRequest(params.requestId, req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete request'
+      });
+    }
+  }
+
+  /**
+   * Search service requests
+   */
+  @Get('/')
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async searchRequests(@Req() req: AuthRequest, @Res() res: Response, @Query() query: any): Promise<void> {
+    try {
+      const searchParams: any = {
+        status: query.status as string,
+        category: query.category as string,
+        minBudget: query.minBudget ? parseFloat(query.minBudget as string) : undefined,
+        maxBudget: query.maxBudget ? parseFloat(query.maxBudget as string) : undefined,
+        page: parseInt(query.page as string) || 1,
+        limit: parseInt(query.limit as string) || 10,
+        search: query.search as string
+      };
+
+      // Handle location-based search
+      if (query.location) {
+        const coords = (query.location as string).split(',').map(coord => parseFloat(coord.trim()));
+        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          searchParams.location = {
+            coordinates: coords,
+            radius: parseInt(query.radius as string) || 10
+          };
+        }
+      }
+
+      const result = await this.serviceRequestService.searchServiceRequests(searchParams);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to search requests'
+      });
+    }
+  }
+
+  /**
+   * Submit proposal for a service request
+   */
+  @Post('/:requestId/proposals')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 20 })
+  @AsyncHandler
+  async submitProposal(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any, @Body() body: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const { requestId } = params;
+      const result = await this.serviceRequestService.submitProposal(requestId, req.user.id, body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to submit proposal'
+      });
+    }
+  }
 
   /**
    * Accept a proposal
    */
-  acceptProposal = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Put('/:requestId/proposals/:proposalId/accept')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 20 })
+  @AsyncHandler
+  async acceptProposal(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const { requestId, proposalId } = params;
+      const result = await this.serviceRequestService.acceptProposal(requestId, proposalId, req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to accept proposal'
       });
-      return;
     }
-
-    const { requestId, proposalId } = req.params;
-
-    const result = await this.requestService.acceptProposal(requestId, proposalId, req.user.id);
-    res.status(200).json(result);
-  });
+  }
 
   /**
-   * Start service (mark as in progress)
+   * Mark request as completed
    */
-  startService = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
-    }
+  @Put('/:requestId/complete')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 20 })
+  @AsyncHandler
+  async completeRequest(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const { requestId } = req.params;
-
-    const result = await this.requestService.startService(requestId, req.user.id);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Complete service
-   */
-  completeService = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
-    }
-
-    const { requestId } = req.params;
-
-    const result = await this.requestService.completeService(requestId, req.user.id, req.body);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Approve service completion (by customer)
-   */
-  approveCompletion = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+      const { requestId } = params;
+      const result = await this.serviceRequestService.completeServiceRequest(requestId, req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to complete request'
       });
-      return;
     }
-
-    const { requestId } = req.params;
-
-    const result = await this.requestService.approveCompletion(requestId, req.user.id);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Cancel service request
-   */
-  cancelRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const { requestId } = req.params;
-
-    const result = await this.requestService.cancelServiceRequest(requestId, req.user.id, req.body.reason);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Get service requests with filters
-   */
-  getRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const searchParams = {
-      status: req.query.status as string,
-      category: req.query.category as string,
-      location: req.query.location as string,
-      radius: parseInt(req.query.radius as string) || 10,
-      minBudget: req.query.minBudget ? parseFloat(req.query.minBudget as string) : undefined,
-      maxBudget: req.query.maxBudget ? parseFloat(req.query.maxBudget as string) : undefined,
-      page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 10,
-      sort: req.query.sort as string || 'createdAt'
-    };
-
-    const result = await this.requestService.getServiceRequests(searchParams);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Get service request statistics
-   */
-  getStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const result = await this.requestService.getServiceRequestStatistics();
-    res.status(200).json(result);
-  });
+  }
 }
+

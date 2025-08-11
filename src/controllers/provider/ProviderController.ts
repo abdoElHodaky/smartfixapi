@@ -1,154 +1,325 @@
+import 'reflect-metadata';
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Body, 
+  Req, 
+  Res,
+  Params,
+  Query,
+  Status
+} from '@decorators/express';
+import { Injectable } from '@decorators/di';
+import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
-import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
 import { IProviderService } from '../../interfaces/services';
 
+/**
+ * Provider Controller using decorators
+ * Handles service provider operations, profiles, and service management
+ */
+@Injectable()
+@Controller('/api/providers')
 export class ProviderController {
   private providerService: IProviderService;
 
   constructor() {
-    this.providerService = serviceContainer.getProviderService();
+    this.providerService = serviceRegistry.getService('provider') as IProviderService;
   }
 
   /**
    * Get provider profile
+   * GET /api/providers/profile
    */
-  getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
+  @Get('/profile')
+  @Status(200)
+  async getProfile(@Req() req: AuthRequest, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.providerService.getProviderProfile(req.user.id);
-    res.status(200).json(result);
-  });
+      const result = await this.providerService.getProviderProfile(req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to retrieve provider profile'
+      });
+    }
+  }
 
   /**
    * Update provider profile
+   * PUT /api/providers/profile
    */
-  updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
-    }
+  @Put('/profile')
+  @Status(200)
+  async updateProfile(@Req() req: AuthRequest, @Body() body: any, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.providerService.updateProviderProfile(req.user.id, req.body);
-    res.status(200).json(result);
-  });
+      const result = await this.providerService.updateProviderProfile(req.user.id, body);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update provider profile'
+      });
+    }
+  }
 
   /**
    * Get provider's service requests
+   * GET /api/providers/service-requests
    */
-  getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
+  @Get('/service-requests')
+  @Status(200)
+  async getServiceRequests(
+    @Req() req: AuthRequest,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status: string,
+    @Res() res: Response
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const filters = {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10,
+        status: status || undefined
+      };
+
+      const result = await this.providerService.getProviderServiceRequests(req.user.id, filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to retrieve service requests'
+      });
     }
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const status = req.query.status as string;
-
-    const result = await this.providerService.getProviderServiceRequests(req.user.id, { page, limit, status });
-    res.status(200).json(result);
-  });
+  }
 
   /**
-   * Get available service requests (for providers to browse)
+   * Get available service requests for provider
+   * GET /api/providers/available-requests
    */
-  getAvailableRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
+  @Get('/available-requests')
+  @Status(200)
+  async getAvailableRequests(
+    @Req() req: AuthRequest,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('service') service: string,
+    @Query('location') location: string,
+    @Res() res: Response
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const filters = {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10,
+        service: service || undefined,
+        location: location || undefined
+      };
+
+      const result = await this.providerService.getAvailableServiceRequests(req.user.id, filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to retrieve available requests'
+      });
     }
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const category = req.query.category as string;
-
-    const result = await this.providerService.getAvailableRequests(req.user.id, { page, limit, category });
-    res.status(200).json(result);
-  });
+  }
 
   /**
-   * Submit proposal for a service request
+   * Submit proposal for service request
+   * POST /api/providers/proposals
    */
-  submitProposal = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
+  @Post('/proposals')
+  @Status(201)
+  async submitProposal(@Req() req: AuthRequest, @Body() body: any, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const { serviceRequestId, ...proposalData } = body;
+      const result = await this.providerService.submitProposal(req.user.id, serviceRequestId, proposalData);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to submit proposal'
+      });
     }
-
-    const { requestId } = req.params;
-    const proposalData = req.body;
-
-    const result = await this.providerService.submitProposal(req.user.id, requestId, proposalData);
-    res.status(201).json(result);
-  });
+  }
 
   /**
-   * Get provider dashboard data
+   * Get provider dashboard
+   * GET /api/providers/dashboard
    */
-  getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
-    }
+  @Get('/dashboard')
+  @Status(200)
+  async getDashboard(@Req() req: AuthRequest, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.providerService.getProviderDashboard(req.user.id);
-    res.status(200).json(result);
-  });
+      const result = await this.providerService.getProviderDashboard(req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to retrieve dashboard data'
+      });
+    }
+  }
 
   /**
-   * Update availability status
+   * Update provider availability
+   * PUT /api/providers/availability
    */
-  updateAvailability = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
-    }
+  @Put('/availability')
+  @Status(200)
+  async updateAvailability(@Req() req: AuthRequest, @Body() body: any, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.providerService.updateProviderAvailability(req.user.id, req.body);
-    res.status(200).json(result);
-  });
+      const result = await this.providerService.updateProviderAvailability(req.user.id, body);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update availability'
+      });
+    }
+  }
 
   /**
    * Add portfolio item
+   * POST /api/providers/portfolio
    */
-  addPortfolioItem = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
-    }
+  @Post('/portfolio')
+  @Status(201)
+  async addPortfolioItem(@Req() req: AuthRequest, @Body() body: any, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.providerService.addPortfolioItem(req.user.id, req.body);
-    res.status(201).json(result);
-  });
+      const result = await this.providerService.addPortfolioItem(req.user.id, body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to add portfolio item'
+      });
+    }
+  }
 
   /**
-   * Get provider by ID (public view)
+   * Get provider by ID (public endpoint)
+   * GET /api/providers/:providerId
    */
-  getProviderById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const { providerId } = req.params;
-
-    const result = await this.providerService.getProviderById(providerId);
-    res.status(200).json(result);
-  });
+  @Get('/:providerId')
+  @Status(200)
+  async getProviderById(@Params('providerId') providerId: string, @Res() res: Response): Promise<void> {
+    try {
+      const result = await this.providerService.getProviderById(providerId);
+      res.json(result);
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Provider not found'
+      });
+    }
+  }
 
   /**
    * Search providers
+   * GET /api/providers/search
    */
-  searchProviders = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const searchParams = {
-      q: req.query.q as string,
-      services: req.query.services as string,
-      location: req.query.location as string,
-      radius: parseInt(req.query.radius as string) || 10,
-      minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
-      isVerified: req.query.isVerified as string,
-      page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 10,
-      sort: req.query.sort as string || 'rating'
-    };
+  @Get('/search')
+  @Status(200)
+  async searchProviders(
+    @Query('service') service: string,
+    @Query('location') location: string,
+    @Query('rating') rating: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Res() res: Response
+  ): Promise<void> {
+    try {
+      const filters: any = {
+        services: service ? [service] : undefined,
+        minRating: rating ? parseFloat(rating) : undefined,
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10
+      };
 
-    const result = await this.providerService.searchProviders(searchParams);
-    res.status(200).json(result);
-  });
+      // Parse location if provided (expecting "lat,lng" format)
+      if (location) {
+        const coords = location.split(',').map(coord => parseFloat(coord.trim()));
+        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          filters.location = [coords[0], coords[1]];
+        }
+      }
+
+      const result = await this.providerService.searchProviders(filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to search providers'
+      });
+    }
+  }
 }

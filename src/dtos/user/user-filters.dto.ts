@@ -8,6 +8,11 @@ export interface UserFiltersDto extends PaginationDto {
   isActive?: boolean;
   isEmailVerified?: boolean;
   search?: string;
+  searchTerm?: string;
+  location?: {
+    coordinates: [number, number];
+  };
+  radius?: number;
 }
 
 /**
@@ -40,4 +45,3 @@ export interface UserProfileResponseDto {
     updatedAt: Date;
   };
 }
-

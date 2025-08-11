@@ -341,7 +341,7 @@ export class UserService implements IUserService {
   @Log('Searching users')
   @Cached(1 * 60 * 1000) // Cache for 1 minute
   @Retryable(2)
-  async searchUsers(filters: UserFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto> {
+  async searchUsers(filters: UserFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto<any>> {
     try {
       const skip = (page - 1) * limit;
       let query: any = { status: 'active' };
@@ -356,7 +356,7 @@ export class UserService implements IUserService {
           $near: {
             $geometry: {
               type: 'Point',
-              coordinates: [filters.location.longitude, filters.location.latitude]
+              coordinates: filters.location.coordinates
             },
             $maxDistance: filters.radius * 1000 // Convert km to meters
           }
@@ -408,14 +408,12 @@ export class UserService implements IUserService {
 
       // In a real implementation, you would gather actual statistics from related services
       const statistics: UserStatisticsDto = {
+        totalRequests: 0,
         totalServiceRequests: 0,
-        activeServiceRequests: 0,
-        completedServiceRequests: 0,
-        totalReviews: 0,
-        averageRating: 0,
-        totalSpent: 0,
-        joinDate: user.createdAt,
-        lastActivity: user.lastLogin || user.updatedAt
+        pendingRequests: 0,
+        activeRequests: 0,
+        completedRequests: 0,
+        totalReviews: 0
       };
 
       return statistics;
@@ -455,14 +453,14 @@ export class UserService implements IUserService {
    */
   @Log('Getting user activity log')
   @Cached(2 * 60 * 1000) // Cache for 2 minutes
-  async getUserActivityLog(userId: string, page: number = 1, limit: number = 20): Promise<PaginatedResponseDto> {
+  async getUserActivityLog(userId: string, page: number = 1, limit: number = 20): Promise<PaginatedResponseDto<any>> {
     try {
       // In a real implementation, you would have an activity log collection
       // For now, return placeholder data
       
       return {
         success: true,
-        message: 'Activity log retrieved successfully',
+        message: `Activity log retrieved successfully for user ${userId}`,
         data: [], // Placeholder for activity entries
         pagination: {
           currentPage: page,
@@ -476,4 +474,3 @@ export class UserService implements IUserService {
     }
   }
 }
-

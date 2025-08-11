@@ -1,156 +1,251 @@
+import 'reflect-metadata';
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Delete,
+  Body, 
+  Req, 
+  Res,
+  Params,
+  Query,
+  Status
+} from '@decorators/express';
+import { Injectable } from '@decorators/di';
+import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
-import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
+import { AuthorizationError } from '../../middleware/errorHandler';
+import { Auth, RateLimit, AsyncHandler } from '../../decorators/middleware';
 import { IReviewService } from '../../interfaces/services';
 
+/**
+ * Review Controller using decorators
+ */
+@Injectable()
+@Controller('/api/reviews')
 export class ReviewController {
   private reviewService: IReviewService;
 
   constructor() {
-    this.reviewService = serviceContainer.getReviewService();
+    this.reviewService = serviceRegistry.getService('review') as IReviewService;
   }
 
   /**
    * Create a new review
    */
-  createReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Post('/')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 10 })
+  @AsyncHandler
+  async createReview(@Req() req: AuthRequest, @Res() res: Response, @Body() body: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const result = await this.reviewService.createReview(req.user.id, body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to create review'
       });
-      return;
     }
-
-    const result = await this.reviewService.createReview(req.user.id, req.body);
-    res.status(201).json(result);
-  });
-
-  /**
-   * Get review by ID
-   */
-  getReviewById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const { reviewId } = req.params;
-
-    const result = await this.reviewService.getReviewById(reviewId);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Update review
-   */
-  updateReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const { reviewId } = req.params;
-
-    const result = await this.reviewService.updateReview(reviewId, req.user.id, req.body);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Delete review
-   */
-  deleteReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const { reviewId } = req.params;
-
-    const result = await this.reviewService.deleteReview(reviewId, req.user.id, req.user.role);
-    res.status(200).json(result);
-  });
+  }
 
   /**
    * Get reviews for a provider
    */
-  getProviderReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const { providerId } = req.params;
-    const searchParams = {
-      page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 10,
-      rating: req.query.rating ? parseInt(req.query.rating as string) : undefined
-    };
-
-    const result = await this.reviewService.getProviderReviews(providerId, searchParams);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Add provider response to review
-   */
-  addProviderResponse = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user || req.user.role !== 'provider') {
-      throw new AuthorizationError('Provider access required');
-    }
-
-    const { reviewId } = req.params;
-
-    const result = await this.reviewService.addProviderResponse(reviewId, req.user.id, req.body.message);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Mark review as helpful/not helpful
-   */
-  markHelpful = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const { reviewId } = req.params;
-
-    const result = await this.reviewService.markReviewHelpful(reviewId, req.body.helpful);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Get user's reviews (reviews they've written)
-   */
-  getUserReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Get('/provider/:providerId')
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getProviderReviews(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any, @Query() query: any): Promise<void> {
+    try {
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 10;
+      
+      const result = await this.reviewService.getProviderReviews(params.providerId, page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to get provider reviews'
       });
-      return;
     }
-
-    const searchParams = {
-      page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 10
-    };
-
-    const result = await this.reviewService.getUserReviews(req.user.id, searchParams);
-    res.status(200).json(result);
-  });
+  }
 
   /**
-   * Get recent reviews (public endpoint)
+   * Get reviews by a user
    */
-  getRecentReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const searchParams = {
-      limit: parseInt(req.query.limit as string) || 10,
-      minRating: parseInt(req.query.minRating as string) || 1
-    };
-
-    const result = await this.reviewService.getRecentReviews(searchParams);
-    res.status(200).json(result);
-  });
+  @Get('/user/:userId')
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getUserReviews(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any, @Query() query: any): Promise<void> {
+    try {
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 10;
+      
+      const result = await this.reviewService.getUserReviews(params.userId, page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get user reviews'
+      });
+    }
+  }
 
   /**
-   * Get review statistics
+   * Get review by ID
    */
-  getReviewStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const result = await this.reviewService.getReviewStatistics();
-    res.status(200).json(result);
-  });
+  @Get('/:reviewId')
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getReviewById(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      const result = await this.reviewService.getReviewById(params.reviewId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get review'
+      });
+    }
+  }
+
+  /**
+   * Update review
+   */
+  @Put('/:reviewId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 20 })
+  @AsyncHandler
+  async updateReview(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any, @Body() body: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const result = await this.reviewService.updateReview(params.reviewId, req.user.id, body);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update review'
+      });
+    }
+  }
+
+  /**
+   * Delete review
+   */
+  @Delete('/:reviewId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 10 })
+  @AsyncHandler
+  async deleteReview(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const result = await this.reviewService.deleteReview(params.reviewId, req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete review'
+      });
+    }
+  }
+
+  /**
+   * Get review statistics for a provider
+   */
+  @Get('/provider/:providerId/stats')
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getProviderReviewStats(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      const result = await this.reviewService.getProviderReviewStats(params.providerId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get review statistics'
+      });
+    }
+  }
+
+  /**
+   * Report a review
+   */
+  @Post('/:reviewId/report')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 5 })
+  @AsyncHandler
+  async reportReview(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any, @Body() body: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const result = await this.reviewService.reportReview(params.reviewId, req.user.id, body.reason);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to report review'
+      });
+    }
+  }
+
+  /**
+   * Get all reviews with pagination (admin only)
+   */
+  @Get('/')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getAllReviews(@Req() req: AuthRequest, @Res() res: Response, @Query() query: any): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          message: 'Admin access required'
+        });
+        return;
+      }
+
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 10;
+      
+      const result = await this.reviewService.getAllReviews(page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get reviews'
+      });
+    }
+  }
 }
+

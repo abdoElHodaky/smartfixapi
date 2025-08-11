@@ -1,179 +1,318 @@
+import 'reflect-metadata';
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Delete,
+  Body, 
+  Req, 
+  Res,
+  Params,
+  Query,
+  Status
+} from '@decorators/express';
+import { Injectable } from '@decorators/di';
+import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
-import { asyncHandler, ValidationError } from '../../middleware/errorHandler';
 import { IUserService } from '../../interfaces/services';
 
+/**
+ * User Controller using decorators
+ * Handles user profile management, service requests, and account operations
+ */
+@Injectable()
+@Controller('/api/users')
 export class UserController {
   private userService: IUserService;
 
   constructor() {
-    this.userService = serviceContainer.getUserService();
+    this.userService = serviceRegistry.getService('user') as IUserService;
   }
 
   /**
    * Get user profile
+   * GET /api/users/profile
    */
-  getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
+  @Get('/profile')
+  @Status(200)
+  async getProfile(@Req() req: AuthRequest, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.userService.getUserProfile(req.user.id);
-    res.status(200).json(result);
-  });
+      const result = await this.userService.getUserById(req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to retrieve profile'
+      });
+    }
+  }
 
   /**
    * Update user profile
+   * PUT /api/users/profile
    */
-  updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
+  @Put('/profile')
+  @Status(200)
+  async updateProfile(@Req() req: AuthRequest, @Body() body: any, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.userService.updateUserProfile(req.user.id, req.body);
-    res.status(200).json(result);
-  });
+      const result = await this.userService.updateUserProfile(req.user.id, body);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update profile'
+      });
+    }
+  }
 
   /**
    * Upload profile image
+   * POST /api/users/upload-image
    */
-  uploadProfileImage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Post('/upload-image')
+  @Status(200)
+  async uploadProfileImage(@Req() req: AuthRequest, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+        return;
+      }
+
+      const result = await this.userService.uploadProfileImage(req.user.id, req.file.path);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to upload image'
       });
-      return;
     }
-
-    if (!req.file) {
-      throw new ValidationError('No image file provided');
-    }
-
-    const result = await this.userService.uploadProfileImage(req.user.id, req.file);
-    res.status(200).json(result);
-  });
+  }
 
   /**
    * Get user's service requests
+   * GET /api/users/service-requests
    */
-  getServiceRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Get('/service-requests')
+  @Status(200)
+  async getServiceRequests(
+    @Req() req: AuthRequest, 
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status: string,
+    @Res() res: Response
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const filters = {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10,
+        status: status || undefined
+      };
+
+      const result = await this.userService.getUserServiceRequests(req.user.id, filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to retrieve service requests'
       });
-      return;
     }
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const status = req.query.status as string;
-
-    const result = await this.userService.getUserServiceRequests(req.user.id, { page, limit, status });
-    res.status(200).json(result);
-  });
+  }
 
   /**
-   * Get user's reviews (reviews they've written)
+   * Get user's reviews
+   * GET /api/users/reviews
    */
-  getMyReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Get('/reviews')
+  @Status(200)
+  async getMyReviews(
+    @Req() req: AuthRequest,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Res() res: Response
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const filters = {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10
+      };
+
+      const result = await this.userService.getUserReviews(req.user.id, filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to retrieve reviews'
       });
-      return;
     }
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-
-    const result = await this.userService.getUserReviews(req.user.id, { page, limit });
-    res.status(200).json(result);
-  });
+  }
 
   /**
    * Get user dashboard data
+   * GET /api/users/dashboard
    */
-  getDashboard = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
+  @Get('/dashboard')
+  @Status(200)
+  async getDashboard(@Req() req: AuthRequest, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.userService.getUserDashboard(req.user.id);
-    res.status(200).json(result);
-  });
+      const result = await this.userService.getUserDashboard(req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to retrieve dashboard data'
+      });
+    }
+  }
 
   /**
    * Update user location
+   * PUT /api/users/location
    */
-  updateLocation = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
+  @Put('/location')
+  @Status(200)
+  async updateLocation(@Req() req: AuthRequest, @Body() body: any, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-    const result = await this.userService.updateUserLocation(req.user.id, req.body);
-    res.status(200).json(result);
-  });
+      const result = await this.userService.updateUserLocation(req.user.id, body);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update location'
+      });
+    }
+  }
 
   /**
    * Delete user account
+   * DELETE /api/users/account
    */
-  deleteAccount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+  @Delete('/account')
+  @Status(200)
+  async deleteAccount(@Req() req: AuthRequest, @Res() res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const result = await this.userService.deleteUserAccount(req.user.id);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to delete account'
       });
-      return;
     }
-
-    const result = await this.userService.deleteUserAccount(req.user.id);
-    res.status(200).json(result);
-  });
+  }
 
   /**
-   * Get user by ID (for admin or public profile view)
+   * Get user by ID (public endpoint)
+   * GET /api/users/:userId
    */
-  getUserById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const { userId } = req.params;
-
-    const result = await this.userService.getUserById(userId);
-    res.status(200).json(result);
-  });
+  @Get('/:userId')
+  @Status(200)
+  async getUserById(@Params('userId') userId: string, @Res() res: Response): Promise<void> {
+    try {
+      const result = await this.userService.getUserById(userId);
+      res.json(result);
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'User not found'
+      });
+    }
+  }
 
   /**
-   * Search users (for admin purposes)
+   * Search users
+   * GET /api/users/search
    */
-  searchUsers = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const { q, role, isActive, page = 1, limit = 10 } = req.query;
+  @Get('/search')
+  @Status(200)
+  async searchUsers(
+    @Query('query') query: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Res() res: Response
+  ): Promise<void> {
+    try {
+      const filters = {
+        query: query || '',
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10
+      };
 
-    const result = await this.userService.searchUsers({
-      q: q as string,
-      role: role as string,
-      isActive: isActive as string,
-      page: parseInt(page as string),
-      limit: parseInt(limit as string)
-    });
-    
-    res.status(200).json(result);
-  });
+      const result = await this.userService.searchUsers(filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to search users'
+      });
+    }
+  }
 }

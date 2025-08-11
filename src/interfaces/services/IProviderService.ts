@@ -109,4 +109,24 @@ export interface IProviderService {
    * Increment completed jobs count
    */
   incrementCompletedJobs(providerId: string): Promise<void>;
+
+  /**
+   * Get provider profile (alias for getProviderById)
+   */
+  getProviderProfile(providerId: string): Promise<any>;
+
+  /**
+   * Get available service requests for provider
+   */
+  getAvailableServiceRequests(providerId?: string, filters?: any): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Submit proposal for a service request
+   */
+  submitProposal(providerId: string, serviceRequestId: string, proposalData: any): Promise<ApiResponseDto>;
+
+  /**
+   * Get provider dashboard data
+   */
+  getProviderDashboard(providerId: string): Promise<any>;
 }

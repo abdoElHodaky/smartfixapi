@@ -1,314 +1,381 @@
+import 'reflect-metadata';
 import { Response } from 'express';
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Delete,
+  Body, 
+  Req, 
+  Res,
+  Params,
+  Query,
+  Status
+} from '@decorators/express';
+import { Injectable } from '@decorators/di';
 import { Chat } from '../../models/Chat';
 import { ServiceRequest } from '../../models/ServiceRequest';
 import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
-import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
+import { NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
+import { Auth, RateLimit, AsyncHandler } from '../../decorators/middleware';
 import { IChatService } from '../../interfaces/services';
 
+/**
+ * Chat Controller using decorators
+ */
+@Injectable()
+@Controller('/api/chats')
 export class ChatController {
   private chatService: IChatService;
 
   constructor() {
-    this.chatService = serviceRegistry.getChatService();
+    this.chatService = serviceRegistry.getService('chat') as IChatService;
   }
 
   /**
    * Get chat for a service request
    */
-  getChatByServiceRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const { serviceRequestId } = req.params;
-
-    // Check if user has access to this service request
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
-    }
-
-    const isOwner = serviceRequest.userId.toString() === req.user.id;
-    const isProvider = serviceRequest.providerId && 
-      (serviceRequest.providerId as any).userId?.toString() === req.user.id;
-
-    if (!isOwner && !isProvider) {
-      throw new AuthorizationError('Access denied');
-    }
-
-    const chat = await Chat.findOne({ serviceRequestId })
-      .populate('participants', 'firstName lastName profileImage')
-      .populate('serviceRequest', 'title status');
-
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Chat retrieved successfully',
-      data: chat
-    });
-  });
-
-  /**
-   * Send a message
-   */
-  sendMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const { chatId } = req.params;
-    const { content, messageType = 'text', attachments } = req.body;
-
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    await chat.addMessage(req.user.id, content, messageType, attachments);
-
-    res.status(201).json({
-      success: true,
-      message: 'Message sent successfully',
-      data: {
-        content,
-        messageType,
-        timestamp: new Date()
+  @Get('/service-request/:serviceRequestId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getChatByServiceRequest(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
       }
-    });
-  });
+
+      const { serviceRequestId } = params;
+
+      // Check if user has access to this service request
+      const serviceRequest = await ServiceRequest.findById(serviceRequestId);
+      if (!serviceRequest) {
+        res.status(404).json({
+          success: false,
+          message: 'Service request not found'
+        });
+        return;
+      }
+
+      // Check if user is either the requester or the assigned provider
+      if (serviceRequest.userId.toString() !== req.user.id && 
+          (!serviceRequest.providerId || serviceRequest.providerId.toString() !== req.user.id)) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+        return;
+      }
+
+      let chat = await Chat.findOne({ serviceRequestId })
+        .populate('participants', 'name email')
+        .populate('messages.senderId', 'name email');
+
+      if (!chat) {
+        // Create new chat if it doesn't exist
+        chat = new Chat({
+          serviceRequestId,
+          participants: [serviceRequest.userId, serviceRequest.providerId].filter(Boolean),
+          messages: []
+        });
+        await chat.save();
+        await chat.populate('participants', 'name email');
+      }
+
+      res.json({
+        success: true,
+        data: chat
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get chat'
+      });
+    }
+  }
 
   /**
-   * Get messages with pagination
+   * Send a message in a chat
    */
-  getMessages = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
+  @Post('/:chatId/messages')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 50 })
+  @AsyncHandler
+  async sendMessage(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any, @Body() body: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const { chatId } = params;
+      const { message, messageType = 'text' } = body;
+
+      if (!message || message.trim().length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Message content is required'
+        });
+        return;
+      }
+
+      const chat = await Chat.findById(chatId);
+      if (!chat) {
+        res.status(404).json({
+          success: false,
+          message: 'Chat not found'
+        });
+        return;
+      }
+
+      // Check if user is a participant in this chat
+      if (!chat.participants.includes(req.user.id)) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+        return;
+      }
+
+      const newMessage = {
+        senderId: req.user.id,
+        message: message.trim(),
+        messageType,
+        timestamp: new Date(),
+        isRead: false
+      };
+
+      chat.messages.push(newMessage);
+      chat.lastMessage = message.trim();
+      chat.lastMessageAt = new Date();
+      chat.updatedAt = new Date();
+
+      await chat.save();
+      await chat.populate('messages.senderId', 'name email');
+
+      const savedMessage = chat.messages[chat.messages.length - 1];
+
+      res.status(201).json({
+        success: true,
+        message: 'Message sent successfully',
+        data: savedMessage
       });
-      return;
-    }
-
-    const { chatId } = req.params;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
-
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    const messagesData = chat.getMessages(page, limit);
-
-    res.status(200).json({
-      success: true,
-      message: 'Messages retrieved successfully',
-      data: messagesData
-    });
-  });
-
-  /**
-   * Mark messages as read
-   */
-  markAsRead = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Authentication required'
+        message: error instanceof Error ? error.message : 'Failed to send message'
       });
-      return;
     }
-
-    const { chatId } = req.params;
-    const { messageIds } = req.body; // Optional: specific message IDs to mark as read
-
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    await chat.markAsRead(req.user.id, messageIds);
-
-    res.status(200).json({
-      success: true,
-      message: 'Messages marked as read'
-    });
-  });
+  }
 
   /**
    * Get user's chats
    */
-  getUserChats = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-
-    const chats = await Chat.findUserChats(req.user.id, page, limit);
-
-    // Add unread count for each chat
-    const chatsWithUnreadCount = chats.map((chat: any) => ({
-      ...chat.toJSON(),
-      unreadCount: chat.getUnreadCount(req.user!.id)
-    }));
-
-    res.status(200).json({
-      success: true,
-      message: 'User chats retrieved successfully',
-      data: chatsWithUnreadCount
-    });
-  });
-
-  /**
-   * Edit a message
-   */
-  editMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const { chatId, messageId } = req.params;
-    const { content } = req.body;
-
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
+  @Get('/my-chats')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getMyChats(@Req() req: AuthRequest, @Res() res: Response, @Query() query: any): Promise<void> {
     try {
-      await chat.editMessage(messageId, content, req.user.id);
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
 
-      res.status(200).json({
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      const chats = await Chat.find({ participants: req.user.id })
+        .populate('participants', 'name email')
+        .populate('serviceRequestId', 'title status')
+        .sort({ lastMessageAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      const total = await Chat.countDocuments({ participants: req.user.id });
+
+      res.json({
         success: true,
-        message: 'Message edited successfully'
+        data: chats,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: limit,
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPreviousPage: page > 1
+        }
       });
     } catch (error) {
-      throw new ValidationError((error as Error).message);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get chats'
+      });
     }
-  });
+  }
 
   /**
-   * Get unread message count
+   * Mark messages as read
    */
-  getUnreadCount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
+  @Put('/:chatId/messages/read')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async markMessagesAsRead(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const { chatId } = params;
+
+      const chat = await Chat.findById(chatId);
+      if (!chat) {
+        res.status(404).json({
+          success: false,
+          message: 'Chat not found'
+        });
+        return;
+      }
+
+      // Check if user is a participant in this chat
+      if (!chat.participants.includes(req.user.id)) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+        return;
+      }
+
+      // Mark all messages as read for this user
+      chat.messages.forEach(message => {
+        if (message.senderId.toString() !== req.user.id) {
+          message.isRead = true;
+        }
       });
-      return;
+
+      await chat.save();
+
+      res.json({
+        success: true,
+        message: 'Messages marked as read'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to mark messages as read'
+      });
     }
-
-    const { chatId } = req.params;
-
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    const unreadCount = chat.getUnreadCount(req.user.id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Unread count retrieved successfully',
-      data: { unreadCount }
-    });
-  });
+  }
 
   /**
-   * Create a new chat (usually done automatically when a proposal is accepted)
+   * Get chat by ID
    */
-  createChat = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
+  @Get('/:chatId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 100 })
+  @AsyncHandler
+  async getChatById(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      const { chatId } = params;
+
+      const chat = await Chat.findById(chatId)
+        .populate('participants', 'name email')
+        .populate('messages.senderId', 'name email')
+        .populate('serviceRequestId', 'title status');
+
+      if (!chat) {
+        res.status(404).json({
+          success: false,
+          message: 'Chat not found'
+        });
+        return;
+      }
+
+      // Check if user is a participant in this chat
+      if (!chat.participants.some((participant: any) => participant._id.toString() === req.user.id)) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: chat
       });
-      return;
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get chat'
+      });
     }
+  }
 
-    const { serviceRequestId, participants } = req.body;
+  /**
+   * Delete a chat (admin only)
+   */
+  @Delete('/:chatId')
+  @Auth
+  @RateLimit({ windowMs: 60000, max: 10 })
+  @AsyncHandler
+  async deleteChat(@Req() req: AuthRequest, @Res() res: Response, @Params() params: any): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          message: 'Admin access required'
+        });
+        return;
+      }
 
-    // Verify service request exists and user has permission
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
+      const { chatId } = params;
+
+      const chat = await Chat.findByIdAndDelete(chatId);
+      if (!chat) {
+        res.status(404).json({
+          success: false,
+          message: 'Chat not found'
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Chat deleted successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete chat'
+      });
     }
-
-    const isOwner = serviceRequest.userId.toString() === req.user.id;
-    if (!isOwner && req.user.role !== 'admin') {
-      throw new AuthorizationError('Only the service request owner can create a chat');
-    }
-
-    const chat = await Chat.createChat(serviceRequestId, participants);
-
-    await chat.populate([
-      { path: 'participants', select: 'firstName lastName profileImage' },
-      { path: 'serviceRequest', select: 'title status' }
-    ]);
-
-    res.status(201).json({
-      success: true,
-      message: 'Chat created successfully',
-      data: chat
-    });
-  });
+  }
 }
+
