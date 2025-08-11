@@ -13,7 +13,7 @@ import {
   Status
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { IProviderService } from '../../interfaces/services';
 
@@ -315,4 +315,3 @@ export class ProviderController {
     }
   }
 }
-

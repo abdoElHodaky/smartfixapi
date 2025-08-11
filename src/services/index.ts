@@ -25,40 +25,40 @@ export { ChatService } from './chat/ChatService.decorator';
 // Service Registry for Decorator-based Services
 export { ServiceRegistry } from './ServiceRegistry.decorator';
 
-// Export service interfaces and types
+// Export service interfaces and types from decorator services
 export type {
   UserRegistrationData,
   ServiceProviderRegistrationData,
   LoginCredentials
-} from './auth/AuthService';
+} from './auth/AuthService.decorator';
 
 export type {
   UserUpdateData,
   UserSearchFilters
-} from './user/UserService';
+} from './user/UserService.decorator';
 
 export type {
   ProviderUpdateData,
   ProviderSearchFilters,
   PortfolioItem
-} from './provider/ProviderService';
+} from './provider/ProviderService.decorator';
 
 export type {
   ServiceMatchCriteria
-} from './request/ServiceRequestService';
+} from './request/ServiceRequestService.decorator';
 
 export type {
   MessageData,
   ChatFilters
-} from './chat/ChatService';
+} from './chat/ChatService.decorator';
 
 export type {
   ReviewData,
   ReviewFilters,
   ReviewUpdateData
-} from './review/ReviewService';
+} from './review/ReviewService.decorator';
 
 export type {
   AdminDashboardData,
   PlatformStatistics
-} from './admin/AdminService';
+} from './admin/AdminService.decorator';

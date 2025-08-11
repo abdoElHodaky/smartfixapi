@@ -11,8 +11,8 @@ import dotenv from 'dotenv';
 // Load environment variables first
 dotenv.config();
 
-// Import the modular server
-import { ModularSmartFixServer } from './app.modular';
+// Import the modular server from modules
+import { ModularSmartFixServer } from './modules/ModularSmartFixServer';
 
 /**
  * Main application entry point
