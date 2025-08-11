@@ -219,6 +219,221 @@ export function IsUrl(validationOptions?: ValidationOptions) {
 }
 
 /**
+ * Custom validator for time format (HH:MM)
+ */
+export function IsTimeFormat(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isTimeFormat',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (typeof value !== 'string') return false;
+          
+          const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+          return timeRegex.test(value);
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be in HH:MM format (24-hour)`;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * Custom validator for date format (YYYY-MM-DD)
+ */
+export function IsDateFormat(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isDateFormat',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (typeof value !== 'string') return false;
+          
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dateRegex.test(value)) return false;
+          
+          // Check if it's a valid date
+          const date = new Date(value);
+          return date instanceof Date && !isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be in YYYY-MM-DD format`;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * Custom validator for currency codes (ISO 4217)
+ */
+export function IsCurrencyCode(validationOptions?: ValidationOptions) {
+  const validCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY', 'INR', 'BRL', 'MXN', 'ZAR'];
+  
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isCurrencyCode',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          return typeof value === 'string' && validCurrencies.includes(value.toUpperCase());
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be a valid currency code (${validCurrencies.join(', ')})`;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * Custom validator for timezone strings
+ */
+export function IsTimezone(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isTimezone',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (typeof value !== 'string') return false;
+          
+          try {
+            // Check if timezone is valid by trying to create a date with it
+            Intl.DateTimeFormat(undefined, { timeZone: value });
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be a valid timezone`;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * Custom validator for image file extensions
+ */
+export function IsImageUrl(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isImageUrl',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (typeof value !== 'string') return false;
+          
+          try {
+            const url = new URL(value);
+            const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+            const pathname = url.pathname.toLowerCase();
+            return imageExtensions.some(ext => pathname.endsWith(ext));
+          } catch {
+            return false;
+          }
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be a valid image URL (jpg, jpeg, png, gif, webp, svg, bmp)`;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * Custom validator for postal codes (flexible format)
+ */
+export function IsPostalCode(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isPostalCode',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (typeof value !== 'string') return false;
+          
+          // Flexible postal code regex (supports various international formats)
+          const postalCodeRegex = /^[A-Za-z0-9\s\-]{3,10}$/;
+          return postalCodeRegex.test(value);
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be a valid postal code`;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * Custom validator for price values (positive numbers with up to 2 decimal places)
+ */
+export function IsPrice(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isPrice',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (typeof value !== 'number') return false;
+          
+          // Must be positive and have at most 2 decimal places
+          return value >= 0 && Number.isFinite(value) && (value * 100) % 1 === 0;
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be a positive number with at most 2 decimal places`;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * Custom validator for duration in minutes
+ */
+export function IsDurationMinutes(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isDurationMinutes',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (typeof value !== 'number') return false;
+          
+          // Must be positive integer, minimum 15 minutes, maximum 24 hours (1440 minutes)
+          return Number.isInteger(value) && value >= 15 && value <= 1440;
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be an integer between 15 and 1440 minutes`;
+        }
+      }
+    });
+  };
+}
+
+/**
  * Validation error messages constants
  */
 export const ValidationMessages = {
@@ -233,5 +448,13 @@ export const ValidationMessages = {
   USER_ROLE: (field: string) => `${field} must be a valid user role`,
   RATING: (field: string) => `${field} must be a rating between 1 and 5`,
   COORDINATE: (field: string) => `${field} must be a valid coordinate`,
-  URL: (field: string) => `${field} must be a valid URL`
+  URL: (field: string) => `${field} must be a valid URL`,
+  TIME_FORMAT: (field: string) => `${field} must be in HH:MM format`,
+  DATE_FORMAT: (field: string) => `${field} must be in YYYY-MM-DD format`,
+  CURRENCY_CODE: (field: string) => `${field} must be a valid currency code`,
+  TIMEZONE: (field: string) => `${field} must be a valid timezone`,
+  IMAGE_URL: (field: string) => `${field} must be a valid image URL`,
+  POSTAL_CODE: (field: string) => `${field} must be a valid postal code`,
+  PRICE: (field: string) => `${field} must be a valid price`,
+  DURATION_MINUTES: (field: string) => `${field} must be a valid duration in minutes`
 } as const;
