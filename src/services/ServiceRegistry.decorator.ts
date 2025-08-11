@@ -13,6 +13,10 @@ import { ServiceUtils, ServiceScope } from '../decorators/service';
 import { AuthService } from './auth/AuthService.decorator';
 import { UserService } from './user/UserService.decorator';
 import { ProviderService } from './provider/ProviderService.decorator';
+import { ServiceRequestService } from './request/ServiceRequestService.decorator';
+import { ReviewService } from './review/ReviewService.decorator';
+import { AdminService } from './admin/AdminService.decorator';
+import { ChatService } from './chat/ChatService.decorator';
 
 export interface ServiceDefinition {
   name: string;
@@ -67,6 +71,34 @@ export class ServiceRegistry {
         scope: ServiceScope.SINGLETON,
         dependencies: ['AuthService', 'UserService'],
         priority: 3
+      },
+      {
+        name: 'ServiceRequestService',
+        class: ServiceRequestService,
+        scope: ServiceScope.SINGLETON,
+        dependencies: ['AuthService', 'UserService', 'ProviderService'],
+        priority: 4
+      },
+      {
+        name: 'ReviewService',
+        class: ReviewService,
+        scope: ServiceScope.SINGLETON,
+        dependencies: ['AuthService', 'UserService', 'ProviderService', 'ServiceRequestService'],
+        priority: 5
+      },
+      {
+        name: 'AdminService',
+        class: AdminService,
+        scope: ServiceScope.SINGLETON,
+        dependencies: ['AuthService', 'UserService', 'ProviderService', 'ServiceRequestService', 'ReviewService'],
+        priority: 6
+      },
+      {
+        name: 'ChatService',
+        class: ChatService,
+        scope: ServiceScope.SINGLETON,
+        dependencies: ['AuthService', 'UserService', 'ServiceRequestService'],
+        priority: 7
       }
     ];
 
@@ -340,4 +372,3 @@ export const serviceRegistry = new ServiceRegistry();
 
 // Export for convenience
 export default serviceRegistry;
-

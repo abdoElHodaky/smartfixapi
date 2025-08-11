@@ -407,9 +407,58 @@ npm run dev:server
 npm run test:services
 ```
 
+## 🏗️ Modular Architecture
+
+The project now features a complete **modular architecture** using Module decorators for ultimate organization and scalability:
+
+### Module Features
+- **Module Decorators**: Organize code into cohesive modules with `@Module()`
+- **Dependency Injection**: Automatic service resolution between modules
+- **Lifecycle Management**: Module initialization and cleanup hooks
+- **Service Discovery**: Cross-module service access and management
+- **Health Monitoring**: Module health checking and status monitoring
+
+### Available Modules
+- **AuthModule** - Authentication and authorization
+- **UserModule** - User management and profiles
+- **ProviderModule** - Service provider management
+- **ServiceRequestModule** - Service request handling
+- **ReviewModule** - Review and rating system
+- **AdminModule** - Administrative functions
+- **ChatModule** - Chat and messaging
+- **AppModule** - Main application orchestration
+
+### Modular Server
+```bash
+# Run modular server with full module system
+npm run dev:modular
+
+# Test modular architecture
+npm run test:modular
+
+# Build modular server
+npm run build:modular
+```
+
+### Module Example
+```typescript
+@Module({
+  imports: [AuthModule, UserModule],
+  providers: [ProviderService],
+  controllers: [ProviderController],
+  exports: [ProviderService]
+})
+export class ProviderModule {
+  async onModuleInit(): Promise<void> {
+    console.log('🔧 ProviderModule initialized');
+  }
+}
+```
+
 ## 📚 Documentation
 
 - [Decorator Refactoring Guide](docs/DECORATOR_REFACTORING.md)
+- [Modular Architecture Guide](docs/MODULAR_ARCHITECTURE.md)
 - [Decorator Services Guide](docs/DECORATOR_SERVICES.md)
 - [API Documentation](docs/API.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
