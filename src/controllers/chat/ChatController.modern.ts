@@ -8,10 +8,15 @@
  * - Decorator-based routing
  */
 
+// External imports
 import { Request, Response } from 'express';
+
+// Internal imports
 import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IChatService } from '../../interfaces/services';
+
+// DTO imports
 import { 
   ChatDto,
   MessageDto,
@@ -20,6 +25,8 @@ import {
   ChatListDto,
   MessageListDto
 } from '../../dtos';
+
+// Decorator imports
 import { 
   Controller, 
   Get, 
@@ -28,7 +35,7 @@ import {
   Delete,
   RequireAuth, 
   Validate 
-} from '../../decorators/controller';
+} from '../../decorators';
 
 @Controller({ path: '/chats' })
 export class ChatController extends BaseController {
