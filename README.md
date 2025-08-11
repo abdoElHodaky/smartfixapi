@@ -1,6 +1,6 @@
-# SmartFix Service Providers Platform - Modular Architecture
+# SmartFix Service Providers Platform
 
-A modern, enterprise-grade service providers platform built with **ExpressJS**, **MongoDB**, and **TypeScript**, featuring a **modular architecture** with decorator-based services, dependency injection, real-time chat, and comprehensive admin management.
+A modern service providers platform built with **ExpressJS**, **MongoDB**, and **TypeScript**, featuring user management, service requests, reviews, real-time chat, and admin functionality.
 
 ## 🚀 Features
 
@@ -13,58 +13,47 @@ A modern, enterprise-grade service providers platform built with **ExpressJS**, 
 - **Admin Dashboard**: Comprehensive admin panel with analytics
 
 ### Technical Features
-- **🏗️ Modular Architecture**: Module-based organization with dependency injection
-- **🎯 Decorator-based Services**: Advanced decorators for caching, retry logic, and logging
-- **📦 Module System**: Clean separation of concerns with `@Module()` decorators
-- **🔄 Service Discovery**: Automatic service resolution across modules
-- **💉 Dependency Injection**: Enterprise-grade DI container with lifecycle management
 - **🛡️ TypeScript**: Full type safety and modern JavaScript features
 - **🗄️ MongoDB**: Document-based database with Mongoose ODM
 - **🔐 JWT Authentication**: Secure token-based authentication
 - **👥 Role-based Authorization**: User, Provider, and Admin roles
-- **⚡ Advanced Caching**: Service-level caching with TTL and invalidation
-- **🔄 Retry Logic**: Automatic retry with exponential backoff
-- **📊 Health Monitoring**: Real-time system health and module status
-- **🚨 Error Handling**: Centralized error handling with graceful recovery
+- **🚨 Error Handling**: Centralized error handling middleware
 - **✅ Input Validation**: Request validation and sanitization
-- **📚 API Documentation**: RESTful API with comprehensive documentation
+- **📚 API Documentation**: RESTful API with comprehensive endpoints
+- **🧪 Testing**: Jest testing framework with basic test coverage
+- **🔧 Development Tools**: Hot reload, linting, and formatting
 
 ## 📁 Project Structure
 
 ```
 src/
-├── 🏗️ modules/           # Modular architecture
-│   ├── auth/            # Authentication module
-│   ├── user/            # User management module
-│   ├── provider/        # Service provider module
-│   ├── request/         # Service request module
-│   ├── review/          # Review system module
-│   ├── admin/           # Admin management module
-│   ├── chat/            # Chat messaging module
-│   └── AppModule.ts     # Main application module
-├── 🎯 services/          # Decorator-based services
-│   ├── auth/            # Authentication services
-│   ├── user/            # User services
-│   ├── provider/        # Provider services
-│   ├── request/         # Request services
-│   ├── review/          # Review services
-│   ├── admin/           # Admin services
-│   ├── chat/            # Chat services
-│   └── ServiceRegistry.decorator.ts
-├── 🎨 decorators/        # Service decorators
-├── ⚙️ config/            # Configuration files
-├── 📦 container/         # Legacy DI container (compatibility)
-├── 🎮 controllers/       # Legacy controllers (compatibility)
+├── 🎮 controllers/       # API route controllers
+│   ├── admin/           # Admin management controllers
+│   ├── auth/            # Authentication controllers
+│   ├── chat/            # Chat messaging controllers
+│   ├── provider/        # Service provider controllers
+│   ├── request/         # Service request controllers
+│   ├── review/          # Review system controllers
+│   ├── user/            # User management controllers
+│   └── BaseController.ts # Base controller with common functionality
 ├── 📋 dtos/             # Data transfer objects
-├── 🔌 interfaces/       # Service interfaces
+│   ├── admin/           # Admin DTOs
+│   ├── auth/            # Authentication DTOs
+│   ├── chat/            # Chat DTOs
+│   ├── provider/        # Provider DTOs
+│   ├── request/         # Request DTOs
+│   ├── review/          # Review DTOs
+│   └── user/            # User DTOs
+├── 🗄️ models/           # Mongoose database models
 ├── 🛡️ middleware/        # Express middleware
-├── 🗄️ models/           # Mongoose models
-├── 🛤️ routes/            # Legacy routes (compatibility)
+├── 🛤️ routes/            # API routes
+├── 🎯 services/          # Business logic services
+├── ⚙️ config/            # Configuration files
+├── 🔌 interfaces/       # TypeScript interfaces
 ├── 📝 types/            # TypeScript type definitions
-├── app.ts              # Main application entry (NEW MODULAR)
-├── app.modular.ts      # Modular server implementation
-├── app.legacy.ts       # Legacy implementation backup
-└── server.ts           # Legacy server entry point
+├── 🧪 __tests__/        # Test files
+├── app.ts              # Main application entry point
+└── server.ts           # Server configuration
 ```
 
 ## 🛠️ Installation
@@ -105,20 +94,22 @@ src/
 
 5. **Run the application**
    ```bash
-   # 🚀 NEW MODULAR ARCHITECTURE (Default)
-   npm run dev              # Development with modular architecture
-   npm run build            # Build modular application
-   npm start                # Start modular application
+   # Development
+   npm run dev              # Start development server with hot reload
    
-   # 🔄 Alternative Development Modes
-   npm run dev:modular      # Explicit modular development
-   npm run dev:legacy       # Legacy implementation (backup)
-   npm run dev:decorators   # Decorator-based services only
-   npm run dev:server       # Enhanced server with decorators
+   # Production
+   npm run build            # Build TypeScript to JavaScript
+   npm start                # Start production server
    
-   # 📊 Testing and Monitoring
-   npm run test:modular     # Test modular architecture
-   npm run test:services    # Test decorator-based services
+   # Testing
+   npm test                 # Run all tests
+   npm run test:watch       # Run tests in watch mode
+   npm run test:coverage    # Run tests with coverage report
+   
+   # Code Quality
+   npm run lint             # Run ESLint
+   npm run format           # Format code with Prettier
+   npm run type-check       # TypeScript type checking
    ```
 
 ## 🌐 Application Endpoints
@@ -127,46 +118,37 @@ Once running, access these endpoints:
 
 - **🏠 Main Application**: `http://localhost:3000`
 - **💚 Health Check**: `http://localhost:3000/health`
-- **📦 Module Status**: `http://localhost:3000/modules`
-- **🔍 Service Discovery**: `http://localhost:3000/services`
-- **📚 API Documentation**: `http://localhost:3000/api`
+- **📚 API Base**: `http://localhost:3000/api`
 
-## 🏗️ Modular Architecture Overview
+## 🏗️ Architecture Overview
 
-The SmartFix platform now uses a **modern modular architecture** that provides:
+The SmartFix platform uses a **traditional Express.js architecture** with TypeScript:
 
 ### 🎯 **Key Benefits**
 
-- **🔧 Maintainability**: Clean separation of concerns with module boundaries
-- **🚀 Scalability**: Easy to add new features as independent modules
-- **🧪 Testability**: Isolated modules with dependency injection for easy testing
-- **🔄 Reusability**: Services can be shared across modules through dependency injection
-- **📊 Monitoring**: Built-in health checking and service discovery
-- **⚡ Performance**: Advanced caching and retry logic at the service level
+- **🔧 Maintainability**: Clean separation of concerns with MVC pattern
+- **🚀 Scalability**: Well-structured codebase for easy feature additions
+- **🧪 Testability**: Jest testing framework with comprehensive test coverage
+- **🔄 Reusability**: Shared DTOs and interfaces across the application
+- **📊 Monitoring**: Health check endpoints and error logging
+- **⚡ Performance**: Efficient MongoDB queries and response caching
 
-### 📦 **Module Structure**
+### 📦 **Application Structure**
 
-Each module is self-contained with:
-- **Services**: Business logic with decorator-based enhancements
-- **Controllers**: API endpoints (when needed)
-- **Models**: Data models and schemas
-- **Dependencies**: Clear dependency declarations
+The application follows a layered architecture:
+- **Controllers**: Handle HTTP requests and responses
+- **Services**: Business logic and data processing
+- **Models**: Database schemas and data validation
+- **DTOs**: Data transfer objects for type safety
+- **Middleware**: Authentication, validation, and error handling
 
-### 🎨 **Decorator-Based Services**
+### 🔍 **API Design**
 
-Services use advanced decorators for:
-- **@Cache()**: Automatic caching with TTL and invalidation
-- **@Retry()**: Automatic retry with exponential backoff
-- **@Log()**: Comprehensive logging and monitoring
-- **@Validate()**: Input validation and sanitization
-- **@PostConstruct/@PreDestroy**: Lifecycle management
-
-### 🔍 **Service Discovery**
-
-The platform provides real-time monitoring:
-- **Module Health**: `/modules` - Status of all modules
-- **Service Registry**: `/services` - All available services
-- **System Health**: `/health` - Overall system status
+The platform provides RESTful APIs:
+- **Health Check**: `/health` - Application health status
+- **Authentication**: JWT-based secure authentication
+- **Role-based Access**: User, Provider, and Admin roles
+- **Input Validation**: Request validation and sanitization
 
 ## 📚 API Documentation
 
@@ -231,29 +213,30 @@ GET    /api/admin/reviews           # Moderate reviews
 GET    /api/admin/system/health     # System health
 ```
 
-## 🏗️ Architecture
+## 🏗️ Technical Architecture
 
-### Dependency Injection
-The application uses a custom DI container for clean architecture:
+### Controller Layer
+Controllers handle HTTP requests and delegate to services:
 
 ```typescript
-// Service registration
-container.registerClass('UserService', UserService, {
-  singleton: true,
-  dependencies: []
-});
-
-// Service resolution
-const userService = container.resolve<IUserService>('UserService');
+export class UserController extends BaseController {
+  async createUser(req: Request, res: Response): Promise<void> {
+    const userData = req.body as CreateUserDto;
+    const result = await this.userService.createUser(userData);
+    this.sendSuccess(res, 'User created successfully', result);
+  }
+}
 ```
 
 ### Service Layer Pattern
 Business logic is encapsulated in service classes:
 
 ```typescript
-export class UserService implements IUserService {
-  async createUser(userData: CreateUserDto): Promise<ApiResponseDto> {
-    // Business logic here
+export class UserService {
+  async createUser(userData: CreateUserDto): Promise<User> {
+    // Validation and business logic
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    return await User.create({ ...userData, password: hashedPassword });
   }
 }
 ```
@@ -282,15 +265,31 @@ export interface CreateUserDto {
 
 ## 🧪 Testing
 
+The project uses Jest for testing with TypeScript support:
+
 ```bash
-# Run tests
+# Run all tests
 npm test
 
-# Run tests with coverage
+# Run tests with coverage report
 npm run test:coverage
 
-# Run tests in watch mode
+# Run tests in watch mode (development)
 npm run test:watch
+
+# Run specific test types
+npm run test:unit         # Unit tests only
+npm run test:integration  # Integration tests only
+npm run test:e2e         # End-to-end tests only
+```
+
+### Test Structure
+```
+src/__tests__/
+├── basic.test.ts        # Basic functionality tests
+├── unit/               # Unit tests for individual components
+├── integration/        # Integration tests for API endpoints
+└── e2e/               # End-to-end tests
 ```
 
 ## 📊 Monitoring & Logging
@@ -339,65 +338,30 @@ For support and questions:
 - Contact the development team
 - Check the documentation
 
-## 🔄 Migration & Backward Compatibility
+## 📈 Development Status
 
-### 🆕 **New Modular Architecture (Current)**
-The platform now uses a **modular architecture** as the default implementation:
-- **Entry Point**: `src/app.ts` (uses modular system)
-- **Services**: Decorator-based with advanced features
-- **Modules**: Self-contained with dependency injection
-- **Monitoring**: Built-in health checking and service discovery
+### ✅ **Current Features**
+- **Authentication**: JWT-based user authentication
+- **User Management**: User registration and profile management
+- **Service Providers**: Provider registration and management
+- **Service Requests**: Request creation and tracking
+- **Reviews**: Rating and review system
+- **Admin Panel**: Basic admin functionality
+- **Chat System**: Real-time messaging (in development)
 
-### 🔙 **Legacy Support**
-For backward compatibility, legacy implementations are preserved:
-- **Legacy Entry**: `src/app.legacy.ts` (original implementation)
-- **Legacy Routes**: Traditional Express routes still available
-- **Legacy Services**: Original service implementations maintained
-- **Legacy Container**: Original DI container accessible
-
-### 🚀 **Migration Path**
-To migrate from legacy to modular:
-
-1. **Current Users**: No action needed - modular is now default
-2. **Custom Implementations**: Use `npm run dev:legacy` for old behavior
-3. **Gradual Migration**: Mix legacy and modular components as needed
-4. **Full Migration**: Follow the [Modular Architecture Guide](docs/MODULAR_ARCHITECTURE.md)
-
-### 📋 **Script Mapping**
-```bash
-# NEW (Default)
-npm run dev              # Modular architecture
-npm start                # Modular production
-
-# LEGACY (Compatibility)
-npm run dev:legacy       # Original implementation
-npm run start:legacy     # Original production
-
-# HYBRID (Development)
-npm run dev:decorators   # Decorator services only
-npm run dev:server       # Enhanced server
-```
-
-## 🔄 Changelog
-
-### v2.0.0 - Modular Architecture
-- **🏗️ NEW**: Complete modular architecture with dependency injection
-- **🎯 NEW**: Decorator-based services with caching, retry, and logging
-- **📦 NEW**: Module system with lifecycle management
-- **🔍 NEW**: Service discovery and health monitoring
-- **⚡ NEW**: Advanced caching and retry logic
-- **🛡️ NEW**: Enhanced error handling and graceful recovery
-- **📊 NEW**: Real-time system monitoring endpoints
-- **🔄 MAINTAINED**: Full backward compatibility with legacy implementation
-
-### v1.0.0 - Initial Release
-- Initial release with core features
-- User and provider management
-- Service request system
-- Review and rating system
+### 🚧 **In Development**
+- Enhanced admin dashboard with analytics
 - Real-time chat functionality
-- Admin dashboard
-- Dependency injection architecture
+- Advanced search and filtering
+- Payment integration
+- Mobile API optimizations
+
+### 🔮 **Planned Features**
+- Push notifications
+- Advanced reporting
+- Multi-language support
+- API rate limiting
+- Advanced caching strategies
 
 ---
 
