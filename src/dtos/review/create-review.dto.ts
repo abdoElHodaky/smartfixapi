@@ -1,4 +1,7 @@
+// Validation imports
 import { IsString, IsOptional, IsArray, Length, ArrayMaxSize } from 'class-validator';
+
+// Custom validation imports
 import { IsObjectId, IsRating, IsUrl } from '../../utils/validation.utils';
 
 /**

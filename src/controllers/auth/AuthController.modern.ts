@@ -8,30 +8,39 @@
  * - Decorator-based routing
  */
 
+// External imports
 import { Request, Response } from 'express';
+
+// Internal imports
 import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IAuthService } from '../../interfaces/services';
+
+// DTO imports
 import { 
   UserRegistrationDto, 
   ServiceProviderRegistrationDto, 
   LoginDto,
   LoginResponseDto,
   UserRegistrationResponseDto,
-  ServiceProviderRegistrationResponseDto
+  ServiceProviderRegistrationResponseDto,
+  ProviderUserRegistrationDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyEmailDto
 } from '../../dtos';
-import { ProviderUserRegistrationDto } from '../../dtos/auth/provider-user-registration.dto';
-import { ForgotPasswordDto } from '../../dtos/auth/forgot-password.dto';
-import { ResetPasswordDto } from '../../dtos/auth/reset-password.dto';
-import { VerifyEmailDto } from '../../dtos/auth/verify-email.dto';
+
+// Decorator imports
 import { 
   Controller, 
   Post, 
   Get, 
   RequireAuth, 
   Validate 
-} from '../../decorators/controller';
-import { validateBody } from '../../middleware/validation.middleware';
+} from '../../decorators';
+
+// Middleware imports
+import { validateBody } from '../../middleware';
 
 @Controller({ path: '/auth' })
 export class AuthController extends BaseController {
