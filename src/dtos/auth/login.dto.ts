@@ -1,8 +1,14 @@
+import { IsString, IsEmail, Length } from 'class-validator';
+
 /**
  * Login credentials DTO
  */
-export interface LoginDto {
+export class LoginDto {
+  @IsEmail({}, { message: 'Email must be a valid email address' })
   email: string;
+
+  @IsString({ message: 'Password must be a string' })
+  @Length(1, 100, { message: 'Password is required' })
   password: string;
 }
 
@@ -36,4 +42,3 @@ export interface TokenVerificationDto {
   iat: number;
   exp: number;
 }
-

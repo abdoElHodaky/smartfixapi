@@ -80,45 +80,13 @@ export abstract class BaseController {
   }
 
   /**
-   * Validation helper
+   * Validation is now handled by middleware using class-validator
+   * This method is deprecated and will be removed
+   * @deprecated Use validation middleware instead
    */
   protected validateRequest(data: any, validationRules: any): { isValid: boolean; errors?: string[] } {
-    // Basic validation - can be extended with more sophisticated validation
-    const errors: string[] = [];
-    
-    for (const [field, rules] of Object.entries(validationRules)) {
-      const value = data[field];
-      const fieldRules = rules as any;
-
-      if (fieldRules.required && (!value || value === '')) {
-        errors.push(`${field} is required`);
-      }
-
-      if (fieldRules.email && value && !this.isValidEmail(value)) {
-        errors.push(`${field} must be a valid email`);
-      }
-
-      if (fieldRules.minLength && value && value.length < fieldRules.minLength) {
-        errors.push(`${field} must be at least ${fieldRules.minLength} characters`);
-      }
-
-      if (fieldRules.maxLength && value && value.length > fieldRules.maxLength) {
-        errors.push(`${field} must be no more than ${fieldRules.maxLength} characters`);
-      }
-    }
-
-    return {
-      isValid: errors.length === 0,
-      ...(errors.length > 0 && { errors })
-    };
-  }
-
-  /**
-   * Email validation helper
-   */
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    console.warn('validateRequest is deprecated. Use validation middleware with class-validator instead.');
+    return { isValid: true };
   }
 
   /**

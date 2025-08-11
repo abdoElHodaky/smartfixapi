@@ -20,6 +20,10 @@ import {
   UserRegistrationResponseDto,
   ServiceProviderRegistrationResponseDto
 } from '../../dtos';
+import { ProviderUserRegistrationDto } from '../../dtos/auth/provider-user-registration.dto';
+import { ForgotPasswordDto } from '../../dtos/auth/forgot-password.dto';
+import { ResetPasswordDto } from '../../dtos/auth/reset-password.dto';
+import { VerifyEmailDto } from '../../dtos/auth/verify-email.dto';
 import { 
   Controller, 
   Post, 
@@ -27,6 +31,7 @@ import {
   RequireAuth, 
   Validate 
 } from '../../decorators/controller';
+import { validateBody } from '../../middleware/validation.middleware';
 
 @Controller({ path: '/auth' })
 export class AuthController extends BaseController {
@@ -41,117 +46,60 @@ export class AuthController extends BaseController {
    * Register a new user
    */
   @Post('/register')
-  @Validate({
-    firstName: { required: true, minLength: 2, maxLength: 50 },
-    lastName: { required: true, minLength: 2, maxLength: 50 },
-    email: { required: true, email: true },
-    password: { required: true, minLength: 6 },
-    phone: { required: true }
-  })
-  register = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    this.logRequest(req, 'User Registration');
+  register = [
+    validateBody(UserRegistrationDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'User Registration');
 
-    // Validate request data
-    const validation = this.validateRequest(req.body, {
-      firstName: { required: true, minLength: 2, maxLength: 50 },
-      lastName: { required: true, minLength: 2, maxLength: 50 },
-      email: { required: true, email: true },
-      password: { required: true, minLength: 6 },
-      phone: { required: true }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    try {
-      const result = await this.authService.register(req.body as UserRegistrationDto);
-      this.sendSuccess<UserRegistrationResponseDto>(res, result, 'User registered successfully', 201);
-    } catch (error: any) {
-      this.sendError(res, error.message || 'Registration failed', 400);
-    }
-  });
+      try {
+        const result = await this.authService.register(req.body as UserRegistrationDto);
+        this.sendSuccess<UserRegistrationResponseDto>(res, result, 'User registered successfully', 201);
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Registration failed', 400);
+      }
+    })
+  ];
 
   /**
    * Register a new service provider
    */
   @Post('/register-provider')
-  @Validate({
-    userData: { required: true },
-    providerData: { required: true }
-  })
-  registerProvider = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    this.logRequest(req, 'Provider Registration');
+  registerProvider = [
+    validateBody(ProviderUserRegistrationDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Provider Registration');
 
-    const { userData, providerData } = req.body;
+      const { userData, providerData } = req.body;
 
-    // Validate user data
-    const userValidation = this.validateRequest(userData, {
-      firstName: { required: true, minLength: 2, maxLength: 50 },
-      lastName: { required: true, minLength: 2, maxLength: 50 },
-      email: { required: true, email: true },
-      password: { required: true, minLength: 6 },
-      phone: { required: true }
-    });
-
-    if (!userValidation.isValid) {
-      this.sendError(res, 'User data validation failed', 400, userValidation.errors);
-      return;
-    }
-
-    // Validate provider data
-    const providerValidation = this.validateRequest(providerData, {
-      businessName: { required: true, minLength: 2, maxLength: 100 },
-      serviceType: { required: true },
-      description: { required: true, minLength: 10 }
-    });
-
-    if (!providerValidation.isValid) {
-      this.sendError(res, 'Provider data validation failed', 400, providerValidation.errors);
-      return;
-    }
-
-    try {
-      const result = await this.authService.registerProvider(
-        userData as UserRegistrationDto, 
-        providerData as ServiceProviderRegistrationDto
-      );
-      this.sendSuccess<ServiceProviderRegistrationResponseDto>(res, result, 'Provider registered successfully', 201);
-    } catch (error: any) {
-      this.sendError(res, error.message || 'Provider registration failed', 400);
-    }
-  });
+      try {
+        const result = await this.authService.registerProvider(
+          userData as UserRegistrationDto, 
+          providerData as ServiceProviderRegistrationDto
+        );
+        this.sendSuccess<ServiceProviderRegistrationResponseDto>(res, result, 'Provider registered successfully', 201);
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Provider registration failed', 400);
+      }
+    })
+  ];
 
   /**
    * Login user
    */
   @Post('/login')
-  @Validate({
-    email: { required: true, email: true },
-    password: { required: true }
-  })
-  login = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    this.logRequest(req, 'User Login');
+  login = [
+    validateBody(LoginDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'User Login');
 
-    // Validate request data
-    const validation = this.validateRequest(req.body, {
-      email: { required: true, email: true },
-      password: { required: true }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    try {
-      const result = await this.authService.login(req.body as LoginDto);
-      this.sendSuccess<LoginResponseDto>(res, result, 'Login successful');
-    } catch (error: any) {
-      this.sendError(res, error.message || 'Login failed', 401);
-    }
-  });
+      try {
+        const result = await this.authService.login(req.body as LoginDto);
+        this.sendSuccess<LoginResponseDto>(res, result, 'Login successful');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Login failed', 401);
+      }
+    })
+  ];
 
   /**
    * Get current user profile
@@ -217,84 +165,55 @@ export class AuthController extends BaseController {
    * Request password reset
    */
   @Post('/forgot-password')
-  @Validate({
-    email: { required: true, email: true }
-  })
-  forgotPassword = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    this.logRequest(req, 'Forgot Password');
+  forgotPassword = [
+    validateBody(ForgotPasswordDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Forgot Password');
 
-    const validation = this.validateRequest(req.body, {
-      email: { required: true, email: true }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    try {
-      await this.authService.forgotPassword(req.body.email);
-      this.sendSuccess(res, null, 'Password reset email sent');
-    } catch (error: any) {
-      this.sendError(res, error.message || 'Failed to send reset email', 400);
-    }
-  });
+      try {
+        await this.authService.forgotPassword(req.body.email);
+        this.sendSuccess(res, null, 'Password reset email sent');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Failed to send reset email', 400);
+      }
+    })
+  ];
 
   /**
    * Reset password with token
    */
   @Post('/reset-password')
-  @Validate({
-    token: { required: true },
-    newPassword: { required: true, minLength: 6 }
-  })
-  resetPassword = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    this.logRequest(req, 'Reset Password');
+  resetPassword = [
+    validateBody(ResetPasswordDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Reset Password');
 
-    const validation = this.validateRequest(req.body, {
-      token: { required: true },
-      newPassword: { required: true, minLength: 6 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    try {
-      await this.authService.resetPassword(req.body.token, req.body.newPassword);
-      this.sendSuccess(res, null, 'Password reset successful');
-    } catch (error: any) {
-      this.sendError(res, error.message || 'Password reset failed', 400);
-    }
-  });
+      try {
+        await this.authService.resetPassword(req.body.token, req.body.newPassword);
+        this.sendSuccess(res, null, 'Password reset successful');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Password reset failed', 400);
+      }
+    })
+  ];
 
   /**
    * Verify email address
    */
   @Post('/verify-email')
-  @Validate({
-    token: { required: true }
-  })
-  verifyEmail = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    this.logRequest(req, 'Verify Email');
+  verifyEmail = [
+    validateBody(VerifyEmailDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Verify Email');
 
-    const validation = this.validateRequest(req.body, {
-      token: { required: true }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    try {
-      await this.authService.verifyEmail(req.body.token);
-      this.sendSuccess(res, null, 'Email verified successfully');
-    } catch (error: any) {
-      this.sendError(res, error.message || 'Email verification failed', 400);
-    }
-  });
+      try {
+        await this.authService.verifyEmail(req.body.token);
+        this.sendSuccess(res, null, 'Email verified successfully');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Email verification failed', 400);
+      }
+    })
+  ];
 
   /**
    * Resend email verification
@@ -316,4 +235,3 @@ export class AuthController extends BaseController {
     }
   });
 }
-
