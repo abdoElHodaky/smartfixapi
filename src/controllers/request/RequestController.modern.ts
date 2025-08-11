@@ -18,6 +18,12 @@ import {
   ServiceRequestResponseDto,
   ServiceRequestSearchDto
 } from '../../dtos';
+import { CreateRequestDto } from '../../dtos/request/create-request.dto';
+import { UpdateRequestDto } from '../../dtos/request/update-request.dto';
+import { RequestQueryDto, RequestLocationQueryDto, RequestMatchingQueryDto } from '../../dtos/request/request-query.dto';
+import { ObjectIdParamDto, RequestIdParamDto } from '../../dtos/common/params.dto';
+import { PaginationDto } from '../../dtos/common/pagination.dto';
+import { validateBody, validateQuery, validateParams } from '../../middleware/validation.middleware';
 import { 
   Controller, 
   Get, 
@@ -26,7 +32,7 @@ import {
   Delete,
   RequireAuth, 
   RequireRoles,
-  Validate 
+  UseMiddleware 
 } from '../../decorators/controller';
 
 @Controller({ path: '/requests' })
@@ -43,30 +49,11 @@ export class RequestController extends BaseController {
    */
   @Post('/')
   @RequireAuth()
-  @Validate({
-    serviceType: { required: true },
-    title: { required: true, minLength: 5, maxLength: 100 },
-    description: { required: true, minLength: 20, maxLength: 1000 },
-    location: { required: true },
-    urgency: { required: true }
-  })
+  @UseMiddleware(validateBody(CreateRequestDto))
   createServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Create Service Request');
 
     if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      serviceType: { required: true },
-      title: { required: true, minLength: 5, maxLength: 100 },
-      description: { required: true, minLength: 20, maxLength: 1000 },
-      location: { required: true },
-      urgency: { required: true }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
       return;
     }
 
@@ -88,6 +75,7 @@ export class RequestController extends BaseController {
    */
   @Get('/my-requests')
   @RequireAuth()
+  @UseMiddleware(validateQuery(RequestQueryDto))
   getMyRequests = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get My Service Requests');
 
@@ -95,18 +83,11 @@ export class RequestController extends BaseController {
       return;
     }
 
-    const { page, limit, offset } = this.getPaginationParams(req);
-    const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt', 'status', 'urgency']);
-    const filters = this.getFilterParams(req, ['status', 'serviceType', 'urgency']);
-
     try {
+      const queryParams = req.query as any;
       const result = await this.serviceRequestService.getUserRequests(req.user!.id, {
-        page,
-        limit,
-        offset,
-        sortBy,
-        sortOrder,
-        ...filters
+        ...queryParams,
+        userId: req.user!.id
       });
       this.sendSuccess(res, result, 'Service requests retrieved successfully');
     } catch (error: any) {
@@ -119,6 +100,7 @@ export class RequestController extends BaseController {
    */
   @Get('/:requestId')
   @RequireAuth()
+  @UseMiddleware(validateParams(RequestIdParamDto))
   getServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Service Request');
 
@@ -127,11 +109,6 @@ export class RequestController extends BaseController {
     }
 
     const { requestId } = req.params;
-
-    if (!requestId) {
-      this.sendError(res, 'Request ID is required', 400);
-      return;
-    }
 
     try {
       const result = await this.serviceRequestService.getServiceRequestById(requestId, req.user!.id);
@@ -146,10 +123,8 @@ export class RequestController extends BaseController {
    */
   @Put('/:requestId')
   @RequireAuth()
-  @Validate({
-    title: { minLength: 5, maxLength: 100 },
-    description: { minLength: 20, maxLength: 1000 }
-  })
+  @UseMiddleware(validateParams(RequestIdParamDto))
+  @UseMiddleware(validateBody(UpdateRequestDto))
   updateServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Update Service Request');
 
@@ -158,21 +133,6 @@ export class RequestController extends BaseController {
     }
 
     const { requestId } = req.params;
-
-    if (!requestId) {
-      this.sendError(res, 'Request ID is required', 400);
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      title: { minLength: 5, maxLength: 100 },
-      description: { minLength: 20, maxLength: 1000 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
 
     try {
       const result = await this.serviceRequestService.updateServiceRequest(
@@ -191,9 +151,7 @@ export class RequestController extends BaseController {
    */
   @Delete('/:requestId')
   @RequireAuth()
-  @Validate({
-    reason: { minLength: 10 }
-  })
+  @UseMiddleware(validateParams(RequestIdParamDto))
   cancelServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Cancel Service Request');
 
@@ -202,11 +160,6 @@ export class RequestController extends BaseController {
     }
 
     const { requestId } = req.params;
-
-    if (!requestId) {
-      this.sendError(res, 'Request ID is required', 400);
-      return;
-    }
 
     try {
       await this.serviceRequestService.cancelServiceRequest(requestId, req.user!.id, req.body.reason);
@@ -248,9 +201,6 @@ export class RequestController extends BaseController {
    */
   @Post('/:requestId/reject-provider/:providerId')
   @RequireAuth()
-  @Validate({
-    reason: { minLength: 10 }
-  })
   rejectProvider = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Reject Provider for Service Request');
 
@@ -262,15 +212,6 @@ export class RequestController extends BaseController {
 
     if (!requestId || !providerId) {
       this.sendError(res, 'Request ID and Provider ID are required', 400);
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      reason: { minLength: 10 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
       return;
     }
 
@@ -287,9 +228,7 @@ export class RequestController extends BaseController {
    */
   @Post('/:requestId/complete')
   @RequireAuth()
-  @Validate({
-    completionNotes: { minLength: 10 }
-  })
+  @UseMiddleware(validateParams(RequestIdParamDto))
   completeServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Complete Service Request');
 
@@ -298,11 +237,6 @@ export class RequestController extends BaseController {
     }
 
     const { requestId } = req.params;
-
-    if (!requestId) {
-      this.sendError(res, 'Request ID is required', 400);
-      return;
-    }
 
     try {
       const result = await this.serviceRequestService.completeServiceRequest(
@@ -321,6 +255,7 @@ export class RequestController extends BaseController {
    */
   @Get('/:requestId/quotes')
   @RequireAuth()
+  @UseMiddleware(validateParams(RequestIdParamDto))
   getServiceRequestQuotes = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Service Request Quotes');
 
@@ -329,11 +264,6 @@ export class RequestController extends BaseController {
     }
 
     const { requestId } = req.params;
-
-    if (!requestId) {
-      this.sendError(res, 'Request ID is required', 400);
-      return;
-    }
 
     try {
       const result = await this.serviceRequestService.getServiceRequestQuotes(requestId, req.user!.id);
@@ -375,9 +305,6 @@ export class RequestController extends BaseController {
    */
   @Post('/:requestId/quotes/:quoteId/reject')
   @RequireAuth()
-  @Validate({
-    reason: { minLength: 10 }
-  })
   rejectQuote = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Reject Quote');
 
@@ -389,15 +316,6 @@ export class RequestController extends BaseController {
 
     if (!requestId || !quoteId) {
       this.sendError(res, 'Request ID and Quote ID are required', 400);
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      reason: { minLength: 10 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
       return;
     }
 
@@ -417,6 +335,7 @@ export class RequestController extends BaseController {
   @Get('/available')
   @RequireAuth()
   @RequireRoles('provider')
+  @UseMiddleware(validateQuery(RequestMatchingQueryDto))
   getAvailableRequests = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Available Service Requests');
 
@@ -424,18 +343,11 @@ export class RequestController extends BaseController {
       return;
     }
 
-    const { page, limit, offset } = this.getPaginationParams(req);
-    const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt', 'urgency', 'distance']);
-    const filters = this.getFilterParams(req, ['serviceType', 'urgency', 'location', 'maxBudget']);
-
     try {
+      const queryParams = req.query as any;
       const result = await this.serviceRequestService.getAvailableRequests(req.user!.id, {
-        page,
-        limit,
-        offset,
-        sortBy,
-        sortOrder,
-        ...filters
+        ...queryParams,
+        providerId: req.user!.id
       } as ServiceRequestSearchDto);
       this.sendSuccess(res, result, 'Available service requests retrieved successfully');
     } catch (error: any) {
@@ -449,11 +361,7 @@ export class RequestController extends BaseController {
   @Post('/:requestId/quote')
   @RequireAuth()
   @RequireRoles('provider')
-  @Validate({
-    price: { required: true },
-    estimatedDuration: { required: true },
-    description: { required: true, minLength: 20 }
-  })
+  @UseMiddleware(validateParams(RequestIdParamDto))
   submitQuote = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Submit Quote');
 
@@ -462,22 +370,6 @@ export class RequestController extends BaseController {
     }
 
     const { requestId } = req.params;
-
-    if (!requestId) {
-      this.sendError(res, 'Request ID is required', 400);
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      price: { required: true },
-      estimatedDuration: { required: true },
-      description: { required: true, minLength: 20 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
 
     try {
       const result = await this.serviceRequestService.submitQuote(requestId, req.user!.id, req.body);
@@ -495,6 +387,7 @@ export class RequestController extends BaseController {
   @Get('/admin/all')
   @RequireAuth()
   @RequireRoles('admin')
+  @UseMiddleware(validateQuery(RequestQueryDto))
   getAllServiceRequests = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get All Service Requests (Admin)');
 
@@ -502,19 +395,9 @@ export class RequestController extends BaseController {
       return;
     }
 
-    const { page, limit, offset } = this.getPaginationParams(req);
-    const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt', 'status', 'urgency']);
-    const filters = this.getFilterParams(req, ['status', 'serviceType', 'urgency', 'userId', 'providerId']);
-
     try {
-      const result = await this.serviceRequestService.getAllServiceRequests({
-        page,
-        limit,
-        offset,
-        sortBy,
-        sortOrder,
-        ...filters
-      });
+      const queryParams = req.query as any;
+      const result = await this.serviceRequestService.getAllServiceRequests(queryParams);
       this.sendSuccess(res, result, 'All service requests retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get all service requests', 400);
@@ -527,10 +410,7 @@ export class RequestController extends BaseController {
   @Put('/admin/:requestId/status')
   @RequireAuth()
   @RequireRoles('admin')
-  @Validate({
-    status: { required: true },
-    reason: { minLength: 10 }
-  })
+  @UseMiddleware(validateParams(RequestIdParamDto))
   updateServiceRequestStatus = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Update Service Request Status (Admin)');
 
@@ -539,14 +419,6 @@ export class RequestController extends BaseController {
     }
 
     const { requestId } = req.params;
-    const validation = this.validateRequest(req.body, {
-      status: { required: true }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
 
     try {
       const result = await this.serviceRequestService.updateServiceRequestStatus(
@@ -560,4 +432,3 @@ export class RequestController extends BaseController {
     }
   });
 }
-
