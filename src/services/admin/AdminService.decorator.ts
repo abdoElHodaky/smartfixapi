@@ -338,57 +338,54 @@ export class AdminService implements IAdminService {
     await this.verifyAdminPermissions(adminId);
 
     try {
-      let result;
-      
-      switch (action) {
-        case 'activate':
-          result = await User.findByIdAndUpdate(
-            userId,
-            { status: 'active', updatedAt: new Date() },
-            { new: true }
-          ).select('-password');
-          break;
-          
-        case 'deactivate':
-          result = await User.findByIdAndUpdate(
-            userId,
-            { status: 'inactive', updatedAt: new Date() },
-            { new: true }
-          ).select('-password');
-          break;
-          
-        case 'suspend':
-          result = await User.findByIdAndUpdate(
-            userId,
-            { 
-              status: 'suspended', 
-              suspendedAt: new Date(),
-              suspensionReason: data?.reason || 'Administrative action',
-              updatedAt: new Date()
-            },
-            { new: true }
-          ).select('-password');
-          break;
-          
-        case 'delete':
+      // Optimized action handlers using strategy pattern
+      const userActionHandlers = {
+        activate: async () => await User.findByIdAndUpdate(
+          userId,
+          { status: 'active', updatedAt: new Date() },
+          { new: true }
+        ).select('-password'),
+        
+        deactivate: async () => await User.findByIdAndUpdate(
+          userId,
+          { status: 'inactive', updatedAt: new Date() },
+          { new: true }
+        ).select('-password'),
+        
+        suspend: async () => await User.findByIdAndUpdate(
+          userId,
+          { 
+            status: 'suspended', 
+            suspendedAt: new Date(),
+            suspensionReason: data?.reason || 'Administrative action',
+            updatedAt: new Date()
+          },
+          { new: true }
+        ).select('-password'),
+        
+        delete: async () => {
           await User.findByIdAndDelete(userId);
-          result = { deleted: true };
-          break;
-          
-        case 'update_role':
+          return { deleted: true };
+        },
+        
+        update_role: async () => {
           if (!data?.role) {
             throw new ValidationError('Role is required');
           }
-          result = await User.findByIdAndUpdate(
+          return await User.findByIdAndUpdate(
             userId,
             { role: data.role, updatedAt: new Date() },
             { new: true }
           ).select('-password');
-          break;
-          
-        default:
-          throw new ValidationError('Invalid action');
+        }
+      };
+
+      const handler = userActionHandlers[action as keyof typeof userActionHandlers];
+      if (!handler) {
+        throw new ValidationError('Invalid action');
       }
+
+      const result = await handler();
 
       return {
         success: true,
@@ -415,53 +412,50 @@ export class AdminService implements IAdminService {
     await this.verifyAdminPermissions(adminId);
 
     try {
-      let result;
-      
-      switch (action) {
-        case 'approve':
-          result = await ServiceProvider.findByIdAndUpdate(
-            providerId,
-            { 
-              status: 'active',
-              approvedAt: new Date(),
-              approvedBy: adminId,
-              updatedAt: new Date()
-            },
-            { new: true }
-          ).populate('userId', 'firstName lastName email');
-          break;
-          
-        case 'reject':
-          result = await ServiceProvider.findByIdAndUpdate(
-            providerId,
-            { 
-              status: 'rejected',
-              rejectedAt: new Date(),
-              rejectedBy: adminId,
-              rejectionReason: data?.reason || 'Administrative decision',
-              updatedAt: new Date()
-            },
-            { new: true }
-          ).populate('userId', 'firstName lastName email');
-          break;
-          
-        case 'suspend':
-          result = await ServiceProvider.findByIdAndUpdate(
-            providerId,
-            { 
-              status: 'suspended',
-              suspendedAt: new Date(),
-              suspendedBy: adminId,
-              suspensionReason: data?.reason || 'Administrative action',
-              updatedAt: new Date()
-            },
-            { new: true }
-          ).populate('userId', 'firstName lastName email');
-          break;
-          
-        default:
-          throw new ValidationError('Invalid action');
+      // Optimized provider action handlers using strategy pattern
+      const providerActionHandlers = {
+        approve: async () => await ServiceProvider.findByIdAndUpdate(
+          providerId,
+          { 
+            status: 'active',
+            approvedAt: new Date(),
+            approvedBy: adminId,
+            updatedAt: new Date()
+          },
+          { new: true }
+        ).populate('userId', 'firstName lastName email'),
+        
+        reject: async () => await ServiceProvider.findByIdAndUpdate(
+          providerId,
+          { 
+            status: 'rejected',
+            rejectedAt: new Date(),
+            rejectedBy: adminId,
+            rejectionReason: data?.reason || 'Administrative decision',
+            updatedAt: new Date()
+          },
+          { new: true }
+        ).populate('userId', 'firstName lastName email'),
+        
+        suspend: async () => await ServiceProvider.findByIdAndUpdate(
+          providerId,
+          { 
+            status: 'suspended',
+            suspendedAt: new Date(),
+            suspendedBy: adminId,
+            suspensionReason: data?.reason || 'Administrative action',
+            updatedAt: new Date()
+          },
+          { new: true }
+        ).populate('userId', 'firstName lastName email')
+      };
+
+      const handler = providerActionHandlers[action as keyof typeof providerActionHandlers];
+      if (!handler) {
+        throw new ValidationError('Invalid action');
       }
+
+      const result = await handler();
 
       return {
         success: true,
@@ -647,24 +641,20 @@ export class AdminService implements IAdminService {
     await this.verifyAdminPermissions(adminId);
 
     try {
-      let reportData;
-      
-      switch (reportType) {
-        case 'user_activity':
-          reportData = await this.generateUserActivityReport(dateRange);
-          break;
-        case 'provider_performance':
-          reportData = await this.generateProviderPerformanceReport(dateRange);
-          break;
-        case 'service_requests':
-          reportData = await this.generateServiceRequestReport(dateRange);
-          break;
-        case 'revenue':
-          reportData = await this.generateRevenueReport(dateRange);
-          break;
-        default:
-          throw new ValidationError('Invalid report type');
+      // Optimized report generators using strategy pattern
+      const reportGenerators = {
+        user_activity: () => this.generateUserActivityReport(dateRange),
+        provider_performance: () => this.generateProviderPerformanceReport(dateRange),
+        service_requests: () => this.generateServiceRequestReport(dateRange),
+        revenue: () => this.generateRevenueReport(dateRange)
+      };
+
+      const generator = reportGenerators[reportType as keyof typeof reportGenerators];
+      if (!generator) {
+        throw new ValidationError('Invalid report type');
       }
+
+      const reportData = await generator();
 
       return {
         success: true,
@@ -759,4 +749,3 @@ export class AdminService implements IAdminService {
     };
   }
 }
-

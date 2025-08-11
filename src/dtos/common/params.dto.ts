@@ -95,6 +95,15 @@ export class UserRequestParamsDto {
 }
 
 /**
+ * Service Request ID parameter DTO
+ */
+export class ServiceRequestIdParamDto {
+  @IsString({ message: 'Service Request ID must be a string' })
+  @IsObjectId({ message: 'Service Request ID must be a valid MongoDB ObjectId' })
+  serviceRequestId: string;
+}
+
+/**
  * Combined provider and service ID parameters DTO
  */
 export class ProviderServiceParamsDto {
@@ -106,4 +115,3 @@ export class ProviderServiceParamsDto {
   @IsObjectId({ message: 'Service ID must be a valid MongoDB ObjectId' })
   serviceId: string;
 }
-

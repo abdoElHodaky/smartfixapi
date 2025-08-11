@@ -18,8 +18,22 @@ import {
   ReviewUpdateDto,
   ReviewListDto,
   ReviewStatsDto,
-  ReviewResponseDto
+  ReviewResponseDto,
+  CreateReviewDto,
+  UpdateReviewDto as UpdateReviewValidationDto,
+  ReviewQueryDto,
+  ReviewSearchQueryDto,
+  RecentReviewsQueryDto,
+  TopProvidersQueryDto,
+  ReviewReplyDto,
+  FlagReviewDto
 } from '../../dtos';
+import { 
+  ReviewIdParamDto,
+  UserIdParamDto,
+  ProviderIdParamDto,
+  ServiceRequestIdParamDto
+} from '../../dtos/common';
 import { 
   Controller, 
   Get, 
@@ -28,8 +42,9 @@ import {
   Delete,
   RequireAuth, 
   RequireRoles,
-  Validate 
+  UseMiddleware
 } from '../../decorators/controller';
+import { validateBody, validateQuery, validateParams } from '../../middleware/validation';
 
 @Controller({ path: '/reviews' })
 export class ReviewController extends BaseController {
@@ -45,33 +60,11 @@ export class ReviewController extends BaseController {
    */
   @Post('/')
   @RequireAuth()
-  @Validate({
-    serviceRequestId: { required: true },
-    rating: { required: true },
-    comment: { required: false, maxLength: 1000 }
-  })
+  @UseMiddleware(validateBody(CreateReviewDto))
   createReview = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Create Review');
 
     if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      serviceRequestId: { required: true },
-      rating: { required: true },
-      comment: { maxLength: 1000 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    // Additional validation for rating range
-    const { rating } = req.body;
-    if (rating < 1 || rating > 5) {
-      this.sendError(res, 'Rating must be between 1 and 5', 400);
       return;
     }
 
@@ -87,6 +80,7 @@ export class ReviewController extends BaseController {
    * Get review by ID
    */
   @Get('/:reviewId')
+  @UseMiddleware(validateParams(ReviewIdParamDto))
   getReviewById = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Review By ID');
 
@@ -105,30 +99,12 @@ export class ReviewController extends BaseController {
    */
   @Put('/:reviewId')
   @RequireAuth()
-  @Validate({
-    rating: { required: false },
-    comment: { required: false, maxLength: 1000 }
-  })
+  @UseMiddleware(validateParams(ReviewIdParamDto))
+  @UseMiddleware(validateBody(UpdateReviewValidationDto))
   updateReview = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Update Review');
 
     if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      comment: { maxLength: 1000 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    // Additional validation for rating range if provided
-    const { rating } = req.body;
-    if (rating !== undefined && (rating < 1 || rating > 5)) {
-      this.sendError(res, 'Rating must be between 1 and 5', 400);
       return;
     }
 
@@ -147,6 +123,7 @@ export class ReviewController extends BaseController {
    */
   @Delete('/:reviewId')
   @RequireAuth()
+  @UseMiddleware(validateParams(ReviewIdParamDto))
   deleteReview = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Delete Review');
 
@@ -168,6 +145,8 @@ export class ReviewController extends BaseController {
    * Get reviews for a service provider
    */
   @Get('/provider/:providerId')
+  @UseMiddleware(validateParams(ProviderIdParamDto))
+  @UseMiddleware(validateQuery(ReviewQueryDto))
   getProviderReviews = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Provider Reviews');
 
@@ -195,6 +174,8 @@ export class ReviewController extends BaseController {
    * Get reviews by a specific user
    */
   @Get('/user/:userId')
+  @UseMiddleware(validateParams(UserIdParamDto))
+  @UseMiddleware(validateQuery(ReviewQueryDto))
   getUserReviews = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get User Reviews');
 
@@ -221,6 +202,7 @@ export class ReviewController extends BaseController {
    */
   @Get('/my-reviews')
   @RequireAuth()
+  @UseMiddleware(validateQuery(ReviewQueryDto))
   getMyReviews = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get My Reviews');
 
@@ -249,6 +231,7 @@ export class ReviewController extends BaseController {
    * Get reviews for a service request
    */
   @Get('/service-request/:serviceRequestId')
+  @UseMiddleware(validateParams(ServiceRequestIdParamDto))
   getServiceRequestReviews = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Service Request Reviews');
 
@@ -266,6 +249,7 @@ export class ReviewController extends BaseController {
    * Get provider review statistics
    */
   @Get('/provider/:providerId/stats')
+  @UseMiddleware(validateParams(ProviderIdParamDto))
   getProviderReviewStats = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Provider Review Stats');
 
@@ -285,22 +269,12 @@ export class ReviewController extends BaseController {
   @Post('/:reviewId/reply')
   @RequireAuth()
   @RequireRoles('provider')
-  @Validate({
-    reply: { required: true, minLength: 1, maxLength: 500 }
-  })
+  @UseMiddleware(validateParams(ReviewIdParamDto))
+  @UseMiddleware(validateBody(ReviewReplyDto))
   replyToReview = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Reply To Review');
 
     if (!this.requireRole(req, res, ['provider'])) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      reply: { required: true, minLength: 1, maxLength: 500 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
       return;
     }
 
@@ -321,22 +295,12 @@ export class ReviewController extends BaseController {
   @Put('/:reviewId/reply')
   @RequireAuth()
   @RequireRoles('provider')
-  @Validate({
-    reply: { required: true, minLength: 1, maxLength: 500 }
-  })
+  @UseMiddleware(validateParams(ReviewIdParamDto))
+  @UseMiddleware(validateBody(ReviewReplyDto))
   updateReviewReply = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Update Review Reply');
 
     if (!this.requireRole(req, res, ['provider'])) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      reply: { required: true, minLength: 1, maxLength: 500 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
       return;
     }
 
@@ -357,6 +321,7 @@ export class ReviewController extends BaseController {
   @Delete('/:reviewId/reply')
   @RequireAuth()
   @RequireRoles('provider')
+  @UseMiddleware(validateParams(ReviewIdParamDto))
   deleteReviewReply = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Delete Review Reply');
 
@@ -379,22 +344,12 @@ export class ReviewController extends BaseController {
    */
   @Post('/:reviewId/flag')
   @RequireAuth()
-  @Validate({
-    reason: { required: true, maxLength: 200 }
-  })
+  @UseMiddleware(validateParams(ReviewIdParamDto))
+  @UseMiddleware(validateBody(FlagReviewDto))
   flagReview = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Flag Review');
 
     if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      reason: { required: true, maxLength: 200 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
       return;
     }
 
@@ -414,6 +369,7 @@ export class ReviewController extends BaseController {
    */
   @Post('/:reviewId/like')
   @RequireAuth()
+  @UseMiddleware(validateParams(ReviewIdParamDto))
   likeReview = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Like Review');
 
@@ -435,6 +391,7 @@ export class ReviewController extends BaseController {
    * Get recent reviews (public endpoint)
    */
   @Get('/recent')
+  @UseMiddleware(validateQuery(RecentReviewsQueryDto))
   getRecentReviews = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Recent Reviews');
 
@@ -453,6 +410,7 @@ export class ReviewController extends BaseController {
    * Get top-rated providers based on reviews
    */
   @Get('/top-providers')
+  @UseMiddleware(validateQuery(TopProvidersQueryDto))
   getTopRatedProviders = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Top Rated Providers');
 
@@ -474,17 +432,13 @@ export class ReviewController extends BaseController {
    * Search reviews
    */
   @Get('/search')
+  @UseMiddleware(validateQuery(ReviewSearchQueryDto))
   searchReviews = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Search Reviews');
 
     const { query, providerId, rating, hasComment } = req.query;
     const { page, limit, offset } = this.getPaginationParams(req);
     const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt', 'rating', 'relevance']);
-
-    if (!query || (query as string).trim().length < 2) {
-      this.sendError(res, 'Search query must be at least 2 characters long', 400);
-      return;
-    }
 
     try {
       const result = await this.reviewService.searchReviews({

@@ -397,17 +397,16 @@ export class ServiceRequestService implements IServiceRequestService {
       updateData.notes = notes;
     }
 
-    // Add status-specific timestamps
-    switch (status) {
-      case 'in_progress':
-        updateData.startedAt = new Date();
-        break;
-      case 'completed':
-        updateData.completedAt = new Date();
-        break;
-      case 'cancelled':
-        updateData.cancelledAt = new Date();
-        break;
+    // Add status-specific timestamps using strategy pattern
+    const statusTimestampHandlers = {
+      in_progress: () => { updateData.startedAt = new Date(); },
+      completed: () => { updateData.completedAt = new Date(); },
+      cancelled: () => { updateData.cancelledAt = new Date(); }
+    };
+
+    const timestampHandler = statusTimestampHandlers[status as keyof typeof statusTimestampHandlers];
+    if (timestampHandler) {
+      timestampHandler();
     }
 
     const serviceRequest = await ServiceRequest.findByIdAndUpdate(
@@ -526,4 +525,3 @@ export class ServiceRequestService implements IServiceRequestService {
     }
   }
 }
-
