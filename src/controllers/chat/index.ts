@@ -1,2 +1,1 @@
-export { ChatController } from './ChatController';
-
+export { ChatController } from './ChatController.modern';

@@ -1,2 +1,1 @@
-export { ReviewController } from './ReviewController';
-
+export { ReviewController } from './ReviewController.modern';

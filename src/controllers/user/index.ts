@@ -1,2 +1,1 @@
-export { UserController } from './UserController';
-
+export { UserController } from './UserController.modern';

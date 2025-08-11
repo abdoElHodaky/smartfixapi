@@ -3,11 +3,11 @@
 // This provides compatibility for any remaining legacy code
 
 import { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
-import { moduleManager, ModuleManager } from '../decorators/module';
+import { moduleManager } from '../decorators/module';
 
 // NEW MODULAR SYSTEM
 export { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
-export { moduleManager, ModuleManager } from '../decorators/module';
+export { moduleManager } from '../decorators/module';
 
 // Legacy compatibility - create minimal service container interface
 class LegacyServiceContainer {

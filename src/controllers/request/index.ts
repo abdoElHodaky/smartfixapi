@@ -1,2 +1,1 @@
-export { RequestController } from './RequestController';
-
+export { RequestController } from './RequestController.modern';

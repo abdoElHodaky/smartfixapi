@@ -11,7 +11,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
-import { ValidationError, AuthenticationError } from '../middleware/errorHandler';
+// Removed unused imports
 import { ApiResponseDto } from '../dtos/common/response.dto';
 import { serviceRegistry } from '../container';
 
@@ -30,8 +30,7 @@ export abstract class BaseController {
     const response: ApiResponseDto<T> = {
       success: true,
       message,
-      data,
-      timestamp: new Date().toISOString()
+      data
     };
     res.status(statusCode).json(response);
   }
@@ -43,14 +42,13 @@ export abstract class BaseController {
     res: Response, 
     message: string, 
     statusCode: number = 400, 
-    errors?: any[]
+    error?: string
   ): void {
     const response: ApiResponseDto<null> = {
       success: false,
       message,
       data: null,
-      errors,
-      timestamp: new Date().toISOString()
+      ...(error && { error })
     };
     res.status(statusCode).json(response);
   }
@@ -111,7 +109,7 @@ export abstract class BaseController {
 
     return {
       isValid: errors.length === 0,
-      errors: errors.length > 0 ? errors : undefined
+      ...(errors.length > 0 && { errors })
     };
   }
 
@@ -157,8 +155,9 @@ export abstract class BaseController {
     const sortBy = req.query.sortBy as string;
     const sortOrder = (req.query.sortOrder as string)?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
+    const validSortBy = allowedFields.includes(sortBy) ? sortBy : undefined;
     return {
-      sortBy: allowedFields.includes(sortBy) ? sortBy : undefined,
+      ...(validSortBy && { sortBy: validSortBy }),
       sortOrder
     };
   }
@@ -178,4 +177,3 @@ export abstract class BaseController {
     return filters;
   }
 }
-

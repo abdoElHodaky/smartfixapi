@@ -68,7 +68,7 @@ export class AdminModule {
       description: 'Administrative management module',
       dependencies: ['AuthModule', 'UserModule', 'ProviderModule', 'ServiceRequestModule', 'ReviewModule'],
       services: ['AdminService'],
-      controllers: ['AdminController']
+      controllers: ['AdminController'],
       features: [
         'Admin dashboard and analytics',
         'User management and moderation',

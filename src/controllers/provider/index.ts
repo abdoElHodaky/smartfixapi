@@ -1,2 +1,1 @@
-export { ProviderController } from './ProviderController';
-
+export { ProviderController } from './ProviderController.modern';
