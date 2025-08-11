@@ -155,6 +155,12 @@ Three types of validation middleware are available:
 #### Review System
 - **CreateReviewDto**: Review creation with rating and content validation
 - **UpdateReviewDto**: Review updates with moderation support
+- **ReviewQueryDto**: Query parameters with pagination, filtering by provider, rating, and sorting
+- **ReviewSearchQueryDto**: Search functionality with query validation (2-100 characters)
+- **ReviewReplyDto**: Provider replies to reviews with content length validation (1-500 characters)
+- **FlagReviewDto**: Review flagging with reason validation (1-200 characters)
+- **RecentReviewsQueryDto**: Recent reviews endpoint with limit validation
+- **TopProvidersQueryDto**: Top-rated providers with limit and service type filtering
 
 #### Chat System
 - **SendMessageDto**: Message validation with content and attachment support
@@ -375,6 +381,50 @@ Authorization: Bearer <token>
 }
 ```
 
+#### Get Provider Reviews with Filtering
+```http
+GET /api/reviews/provider/64f8a1b2c3d4e5f6a7b8c9d1?page=1&limit=10&rating=5&sortBy=createdAt&sortOrder=desc
+Authorization: Bearer <token>
+```
+
+#### Search Reviews
+```http
+GET /api/reviews/search?query=excellent service&providerId=64f8a1b2c3d4e5f6a7b8c9d1&rating=5&page=1&limit=10
+Authorization: Bearer <token>
+```
+
+#### Reply to Review (Provider)
+```http
+POST /api/reviews/64f8a1b2c3d4e5f6a7b8c9d2/reply
+Content-Type: application/json
+Authorization: Bearer <provider-token>
+
+{
+  "reply": "Thank you for your positive feedback! We're glad you were satisfied with our service."
+}
+```
+
+#### Flag Review
+```http
+POST /api/reviews/64f8a1b2c3d4e5f6a7b8c9d2/flag
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "reason": "Inappropriate content or spam"
+}
+```
+
+#### Get Recent Reviews
+```http
+GET /api/reviews/recent?limit=20
+```
+
+#### Get Top Rated Providers
+```http
+GET /api/reviews/top-providers?limit=10&serviceType=PLUMBING
+```
+
 ### Chat System
 
 #### Send Message
@@ -557,9 +607,23 @@ describe('CreateRequestDto Validation', () => {
   - Legacy validation methods removed
   - Comprehensive parameter, query, and body validation
 
+- **Review Controller**: ✨ **NEWLY COMPLETED** ✨
+  - All 13 endpoints migrated to modern validation middleware
+  - Created comprehensive DTOs: ReviewQueryDto, ReviewSearchQueryDto, ReviewReplyDto, FlagReviewDto
+  - Added parameter validation for all route parameters (reviewId, providerId, userId, serviceRequestId)
+  - Removed all legacy validation code and manual validation logic
+  - Enhanced type safety with proper query parameter transformation
+
+- **Switch Block Optimizations**: ✨ **COMPLETED** ✨
+  - AdminService: Optimized 3 switch blocks using strategy pattern
+    - User action handlers (activate, deactivate, suspend, delete, update_role)
+    - Provider action handlers (approve, reject, suspend)
+    - Report generators (user_activity, provider_performance, service_requests, revenue)
+  - ServiceRequestService: Optimized status timestamp handlers (in_progress, completed, cancelled)
+  - Improved code maintainability and reduced cyclomatic complexity
+
 ### 🚧 In Progress
 
-- **Review Controller**: Migration in progress
 - **User Controller**: Migration in progress  
 - **Provider Controller**: Migration in progress
 - **Chat Controller**: Migration in progress
@@ -639,4 +703,3 @@ For support and questions:
 ---
 
 **SmartFixAPI** - Building the future of service request management with modern validation and type safety! 🚀
-
