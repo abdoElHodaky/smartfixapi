@@ -5,10 +5,12 @@
   "main": "dist/app.js",
   "scripts": {
     "start": "node dist/app.js",
+    "start:legacy": "node dist/app.legacy.js",
     "start:decorators": "node dist/app.decorator.js",
     "start:server": "node dist/app.server.js",
     "start:modular": "node dist/app.modular.js",
     "dev": "nodemon src/app.ts",
+    "dev:legacy": "nodemon src/app.legacy.ts",
     "dev:decorators": "nodemon src/app.decorator.ts",
     "dev:server": "nodemon src/app.server.ts",
     "dev:modular": "nodemon src/app.modular.ts",
