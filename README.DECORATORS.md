@@ -362,9 +362,104 @@ describe('Auth Routes', () => {
 - Follow TypeScript best practices
 - Document new decorator functionality
 
+## 🔧 Decorator-Based Services
+
+The project now includes comprehensive decorator-based services with advanced functionality:
+
+### Service Features
+- **Dependency Injection**: Automatic service resolution with `@Injectable()` and `@Inject()`
+- **Lifecycle Management**: `@PostConstruct()` and `@PreDestroy()` hooks
+- **Caching**: Method-level caching with `@Cached(ttl)`
+- **Retry Logic**: Automatic retry with `@Retryable(attempts)`
+- **Logging**: Comprehensive logging with `@Log(config)`
+- **Validation**: Input/output validation with `@Validate(schema)`
+
+### Service Examples
+```typescript
+@Injectable()
+@Singleton()
+@Service({ scope: ServiceScope.SINGLETON, priority: 1 })
+export class AuthService {
+  @PostConstruct()
+  async initialize(): Promise<void> {
+    console.log('🔐 AuthService initialized');
+  }
+
+  @Log('Generating JWT token')
+  @Cached(5 * 60 * 1000) // Cache for 5 minutes
+  generateToken(userId: string, email: string, role: string): string {
+    return jwt.sign({ id: userId, email, role }, this.jwtSecret);
+  }
+
+  @Retryable({ attempts: 3, delay: 2000 })
+  async register(userData: UserRegistrationDto): Promise<UserRegistrationResponseDto> {
+    // Implementation with automatic retry
+  }
+}
+```
+
+### Enhanced Server with @decorators/server
+```bash
+# Run enhanced server with service registry
+npm run dev:server
+
+# Test decorator-based services
+npm run test:services
+```
+
+## 🏗️ Modular Architecture
+
+The project now features a complete **modular architecture** using Module decorators for ultimate organization and scalability:
+
+### Module Features
+- **Module Decorators**: Organize code into cohesive modules with `@Module()`
+- **Dependency Injection**: Automatic service resolution between modules
+- **Lifecycle Management**: Module initialization and cleanup hooks
+- **Service Discovery**: Cross-module service access and management
+- **Health Monitoring**: Module health checking and status monitoring
+
+### Available Modules
+- **AuthModule** - Authentication and authorization
+- **UserModule** - User management and profiles
+- **ProviderModule** - Service provider management
+- **ServiceRequestModule** - Service request handling
+- **ReviewModule** - Review and rating system
+- **AdminModule** - Administrative functions
+- **ChatModule** - Chat and messaging
+- **AppModule** - Main application orchestration
+
+### Modular Server
+```bash
+# Run modular server with full module system
+npm run dev:modular
+
+# Test modular architecture
+npm run test:modular
+
+# Build modular server
+npm run build:modular
+```
+
+### Module Example
+```typescript
+@Module({
+  imports: [AuthModule, UserModule],
+  providers: [ProviderService],
+  controllers: [ProviderController],
+  exports: [ProviderService]
+})
+export class ProviderModule {
+  async onModuleInit(): Promise<void> {
+    console.log('🔧 ProviderModule initialized');
+  }
+}
+```
+
 ## 📚 Documentation
 
 - [Decorator Refactoring Guide](docs/DECORATOR_REFACTORING.md)
+- [Modular Architecture Guide](docs/MODULAR_ARCHITECTURE.md)
+- [Decorator Services Guide](docs/DECORATOR_SERVICES.md)
 - [API Documentation](docs/API.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [Testing Guide](docs/TESTING.md)
@@ -414,4 +509,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ using modern TypeScript patterns and decorator-based architecture**
-
