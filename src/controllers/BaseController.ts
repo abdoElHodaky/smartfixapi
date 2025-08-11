@@ -48,7 +48,7 @@ export abstract class BaseController {
       success: false,
       message,
       data: null,
-      error
+      ...(error && { error })
     };
     res.status(statusCode).json(response);
   }
@@ -109,7 +109,7 @@ export abstract class BaseController {
 
     return {
       isValid: errors.length === 0,
-      errors: errors.length > 0 ? errors : undefined
+      ...(errors.length > 0 && { errors })
     };
   }
 
@@ -155,8 +155,9 @@ export abstract class BaseController {
     const sortBy = req.query.sortBy as string;
     const sortOrder = (req.query.sortOrder as string)?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
+    const validSortBy = allowedFields.includes(sortBy) ? sortBy : undefined;
     return {
-      sortBy: allowedFields.includes(sortBy) ? sortBy : undefined,
+      ...(validSortBy && { sortBy: validSortBy }),
       sortOrder
     };
   }
