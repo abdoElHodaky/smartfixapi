@@ -11,7 +11,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
-import { ValidationError, AuthenticationError } from '../middleware/errorHandler';
+// Removed unused imports
 import { ApiResponseDto } from '../dtos/common/response.dto';
 import { serviceRegistry } from '../container';
 
@@ -30,8 +30,7 @@ export abstract class BaseController {
     const response: ApiResponseDto<T> = {
       success: true,
       message,
-      data,
-      timestamp: new Date().toISOString()
+      data
     };
     res.status(statusCode).json(response);
   }
@@ -43,14 +42,13 @@ export abstract class BaseController {
     res: Response, 
     message: string, 
     statusCode: number = 400, 
-    errors?: any[]
+    error?: string
   ): void {
     const response: ApiResponseDto<null> = {
       success: false,
       message,
       data: null,
-      errors,
-      timestamp: new Date().toISOString()
+      error
     };
     res.status(statusCode).json(response);
   }
@@ -178,4 +176,3 @@ export abstract class BaseController {
     return filters;
   }
 }
-

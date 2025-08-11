@@ -64,7 +64,7 @@ export class ChatModule {
       description: 'Chat and messaging module',
       dependencies: ['AuthModule', 'UserModule', 'ServiceRequestModule'],
       services: ['ChatService'],
-      controllers: ['ChatController']
+      controllers: ['ChatController'],
       features: [
         'Real-time chat functionality',
         'Message delivery and read receipts',

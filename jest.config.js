@@ -23,7 +23,7 @@ module.exports = {
     'lcov',
     'html'
   ],
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
   testTimeout: 30000,
   verbose: true,
   forceExit: true,
@@ -31,4 +31,3 @@ module.exports = {
   resetMocks: true,
   restoreMocks: true
 };
-

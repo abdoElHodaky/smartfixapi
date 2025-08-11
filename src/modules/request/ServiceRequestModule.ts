@@ -64,7 +64,7 @@ export class ServiceRequestModule {
       description: 'Service request management module',
       dependencies: ['AuthModule', 'UserModule', 'ProviderModule'],
       services: ['ServiceRequestService'],
-      controllers: ['RequestController']
+      controllers: ['RequestController'],
       features: [
         'Service request creation and management',
         'Request status tracking',

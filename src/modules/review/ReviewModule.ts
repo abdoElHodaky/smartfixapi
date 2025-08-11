@@ -66,7 +66,7 @@ export class ReviewModule {
       description: 'Review and rating management module',
       dependencies: ['AuthModule', 'UserModule', 'ProviderModule', 'ServiceRequestModule'],
       services: ['ReviewService'],
-      controllers: ['ReviewController']
+      controllers: ['ReviewController'],
       features: [
         'Review creation and management',
         'Rating system (1-5 stars)',
