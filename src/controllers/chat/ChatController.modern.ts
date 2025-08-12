@@ -157,30 +157,18 @@ export class ChatController extends BaseController {
    */
   @Post('/:chatId/messages')
   @RequireAuth()
-  @Validate({
-    content: { required: true, minLength: 1, maxLength: 1000 },
-    messageType: { required: false }
-  })
-  sendMessage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Send Message');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      content: { required: true, minLength: 1, maxLength: 1000 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    const { chatId } = req.params;
-    const { content, messageType, attachments } = req.body;
-
+  @UseMiddleware(validateBody(MessageCreationDto))
+  async sendMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Send Message');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { chatId } = req.params;
+      const { content, messageType, attachments } = req.body;
+
       const result = await this.chatService.sendMessage({
         chatId,
         senderId: req.user!.id,
@@ -192,26 +180,26 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to send message', 400);
     }
-  });
+  }
 
   /**
    * Get messages for a chat
    */
   @Get('/:chatId/messages')
   @RequireAuth()
-  getMessages = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get Messages');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { chatId } = req.params;
-    const { page, limit, offset } = this.getPaginationParams(req);
-    const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt']);
-    const { before, after } = req.query; // For cursor-based pagination
-
+  async getMessages(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get Messages');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { chatId } = req.params;
+      const { page, limit, offset } = this.getPaginationParams(req);
+      const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt']);
+      const { before, after } = req.query; // For cursor-based pagination
+
       const result = await this.chatService.getChatMessages(chatId, req.user!.id, {
         page,
         limit,
@@ -225,7 +213,7 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get messages', 400);
     }
-  });
+  }
 
   /**
    * Mark messages as read
