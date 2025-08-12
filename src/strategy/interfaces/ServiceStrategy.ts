@@ -173,3 +173,29 @@ export interface RoomOperationInput extends BaseStrategyInput {
   type?: 'direct' | 'group' | 'support';
   metadata?: any;
 }
+
+// Admin-specific strategy inputs
+export interface ProviderActionInput extends BaseStrategyInput {
+  providerId: string;
+  adminId: string;
+  reason?: string;
+}
+
+export interface ReportGenerationInput extends BaseStrategyInput {
+  type: string;
+  dateRange?: { from: Date; to: Date };
+  filters?: Record<string, any>;
+  adminId: string;
+}
+
+export interface DashboardDataInput extends BaseStrategyInput {
+  adminId: string;
+  dateRange?: { from: Date; to: Date };
+  includeDetails?: boolean;
+}
+
+export interface ProviderStatisticsInput extends StatisticsOperationInput {
+  providerId: string;
+  dateRange?: { from: Date; to: Date };
+  includeDetails?: boolean;
+}

@@ -32,6 +32,26 @@ import {
 import { ConditionalHelpers, RoleCheckOptions } from '../../utils/conditions/ConditionalHelpers';
 import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
 
+// Import strategy implementations
+import {
+  ApproveProviderStrategy,
+  RejectProviderStrategy,
+  SuspendProviderStrategy,
+  UserActivityReportStrategy,
+  ProviderPerformanceReportStrategy,
+  ServiceRequestReportStrategy,
+  RevenueReportStrategy,
+  OverviewDataStrategy,
+  StatisticsDataStrategy
+} from '../../strategy/admin/AdminStrategies';
+
+// Import strategy interfaces
+import {
+  ProviderActionInput,
+  ReportGenerationInput,
+  DashboardDataInput
+} from '../../strategy/interfaces/ServiceStrategy';
+
 // Import service decorators
 import {
   Singleton,
@@ -43,183 +63,6 @@ import {
   PostConstruct,
   PreDestroy
 } from '../../decorators/service';
-
-// Strategy interfaces
-interface ProviderActionInput {
-  providerId: string;
-  adminId: string;
-  reason?: string;
-  metadata?: Record<string, any>;
-}
-
-interface ReportGenerationInput {
-  type: string;
-  dateRange?: { from: Date; to: Date };
-  filters?: Record<string, any>;
-  adminId: string;
-}
-
-interface DashboardDataInput {
-  adminId: string;
-  dateRange?: { from: Date; to: Date };
-  includeDetails?: boolean;
-}
-
-// Provider action strategies
-class ApproveProviderStrategy implements AsyncStrategy<ProviderActionInput, CommandResult> {
-  constructor(private providerService: IProviderService) {}
-
-  async execute(input: ProviderActionInput): Promise<CommandResult> {
-    try {
-      const provider = await this.providerService.getProviderById(input.providerId);
-      if (!provider) {
-        return CommandResult.failure('Provider not found');
-      }
-
-      await this.providerService.updateProviderStatus(input.providerId, 'approved');
-      
-      return CommandResult.success(
-        { providerId: input.providerId, status: 'approved' },
-        'Provider approved successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to approve provider', [error.message]);
-    }
-  }
-}
-
-class RejectProviderStrategy implements AsyncStrategy<ProviderActionInput, CommandResult> {
-  constructor(private providerService: IProviderService) {}
-
-  async execute(input: ProviderActionInput): Promise<CommandResult> {
-    try {
-      const provider = await this.providerService.getProviderById(input.providerId);
-      if (!provider) {
-        return CommandResult.failure('Provider not found');
-      }
-
-      await this.providerService.updateProviderStatus(input.providerId, 'rejected');
-      
-      return CommandResult.success(
-        { providerId: input.providerId, status: 'rejected', reason: input.reason },
-        'Provider rejected successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to reject provider', [error.message]);
-    }
-  }
-}
-
-class SuspendProviderStrategy implements AsyncStrategy<ProviderActionInput, CommandResult> {
-  constructor(private providerService: IProviderService) {}
-
-  async execute(input: ProviderActionInput): Promise<CommandResult> {
-    try {
-      const provider = await this.providerService.getProviderById(input.providerId);
-      if (!provider) {
-        return CommandResult.failure('Provider not found');
-      }
-
-      await this.providerService.updateProviderStatus(input.providerId, 'suspended');
-      
-      return CommandResult.success(
-        { providerId: input.providerId, status: 'suspended', reason: input.reason },
-        'Provider suspended successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to suspend provider', [error.message]);
-    }
-  }
-}
-
-// Report generation strategies
-class UserActivityReportStrategy implements AsyncStrategy<ReportGenerationInput, any> {
-  async execute(input: ReportGenerationInput): Promise<any> {
-    const aggregation = AggregationBuilder.create()
-      .buildUserActivityReport(input.dateRange);
-    
-    return await aggregation.execute(User);
-  }
-}
-
-class ProviderPerformanceReportStrategy implements AsyncStrategy<ReportGenerationInput, any> {
-  async execute(input: ReportGenerationInput): Promise<any> {
-    const aggregation = AggregationBuilder.create()
-      .buildTopProviders(5, 4.0, 20);
-    
-    return await aggregation.execute(Review);
-  }
-}
-
-class ServiceRequestReportStrategy implements AsyncStrategy<ReportGenerationInput, any> {
-  async execute(input: ReportGenerationInput): Promise<any> {
-    const aggregation = AggregationBuilder.create()
-      .buildServiceRequestStatistics(input.dateRange);
-    
-    return await aggregation.execute(ServiceRequest);
-  }
-}
-
-class RevenueReportStrategy implements AsyncStrategy<ReportGenerationInput, any> {
-  async execute(input: ReportGenerationInput): Promise<any> {
-    const aggregation = AggregationBuilder.create()
-      .match({ status: 'completed' })
-      .buildStatistics({
-        dateField: 'completedAt',
-        groupBy: 'completedAt',
-        sumField: 'budget',
-        countField: 'totalRequests'
-      });
-    
-    return await aggregation.execute(ServiceRequest);
-  }
-}
-
-// Dashboard data strategies
-class OverviewDataStrategy implements AsyncStrategy<DashboardDataInput, any> {
-  async execute(input: DashboardDataInput): Promise<any> {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
-    const [
-      userStats,
-      providerStats,
-      requestStats,
-      reviewStats
-    ] = await Promise.all([
-      AggregationBuilder.create().buildUserStatistics(input.dateRange).execute(User),
-      AggregationBuilder.create().buildStatusStatistics('status').execute(ServiceProvider),
-      AggregationBuilder.create().buildServiceRequestStatistics(input.dateRange).execute(ServiceRequest),
-      AggregationBuilder.create().buildRatingDistribution().execute(Review)
-    ]);
-
-    return {
-      users: userStats,
-      providers: providerStats,
-      requests: requestStats,
-      reviews: reviewStats
-    };
-  }
-}
-
-class StatisticsDataStrategy implements AsyncStrategy<DashboardDataInput, any> {
-  async execute(input: DashboardDataInput): Promise<any> {
-    const [
-      topProviders,
-      categoryStats,
-      ratingDistribution
-    ] = await Promise.all([
-      AggregationBuilder.create().buildTopProviders(5, 4.0, 10).execute(Review),
-      AggregationBuilder.create().buildCategoryStatistics('category', 10).execute(ServiceRequest),
-      AggregationBuilder.create().buildRatingDistribution().execute(Review)
-    ]);
-
-    return {
-      topProviders,
-      categoryStats,
-      ratingDistribution
-    };
-  }
-}
 
 @Injectable()
 @Singleton()
