@@ -25,7 +25,7 @@ on:
       skip_tests:
         description: 'Skip pre-deployment tests'
         required: false
-        default: false
+        default: true
         type: boolean
       rollback_on_failure:
         description: 'Automatically rollback on deployment failure'
