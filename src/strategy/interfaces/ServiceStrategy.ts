@@ -30,6 +30,12 @@ export interface UserLocationInput extends BaseStrategyInput {
   radius?: number;
 }
 
+export interface UserStatisticsInput extends BaseStrategyInput {
+  userId: string;
+  dateRange?: { from: Date; to: Date };
+  includeDetails?: boolean;
+}
+
 // Auth-specific strategy inputs
 export interface AuthOperationInput extends BaseStrategyInput {
   userId?: string;

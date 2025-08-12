@@ -7,10 +7,7 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
 import { User } from '../../models/User';
-import { ServiceProvider } from '../../models/ServiceProvider';
 import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
 import { IAuthService } from '../../interfaces/services';
 import {
@@ -35,6 +32,27 @@ import {
 import { ConditionalHelpers, RoleCheckOptions } from '../../utils/conditions/ConditionalHelpers';
 import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
 
+// Import strategy implementations
+import {
+  HashPasswordStrategy,
+  ComparePasswordStrategy,
+  ChangePasswordStrategy,
+  GenerateTokenStrategy,
+  VerifyTokenStrategy,
+  RefreshTokenStrategy,
+  RegisterUserStrategy,
+  RegisterProviderStrategy,
+  LoginStrategy
+} from '../../strategy/auth/AuthStrategies';
+
+// Import strategy interfaces
+import {
+  AuthOperationInput,
+  TokenOperationInput,
+  PasswordOperationInput,
+  RegistrationInput
+} from '../../strategy/interfaces/ServiceStrategy';
+
 // Import service decorators
 import {
   Singleton,
@@ -47,371 +65,7 @@ import {
   PreDestroy
 } from '../../decorators/service';
 
-// Strategy interfaces
-interface AuthOperationInput {
-  userId?: string;
-  email?: string;
-  password?: string;
-  currentPassword?: string;
-  newPassword?: string;
-  token?: string;
-  userData?: any;
-  providerData?: any;
-  metadata?: Record<string, any>;
-}
 
-interface TokenOperationInput {
-  userId?: string;
-  email?: string;
-  role?: string;
-  token?: string;
-  expiresIn?: string;
-}
-
-interface PasswordOperationInput {
-  password: string;
-  hashedPassword?: string;
-  saltRounds?: number;
-}
-
-interface RegistrationInput {
-  userData: UserRegistrationDto;
-  providerData?: ServiceProviderRegistrationDto;
-  role: 'user' | 'provider';
-}
-
-// Password strategies
-class HashPasswordStrategy implements AsyncStrategy<PasswordOperationInput, CommandResult> {
-  async execute(input: PasswordOperationInput): Promise<CommandResult> {
-    try {
-      const saltRounds = input.saltRounds || 12;
-      const hashedPassword = await bcrypt.hash(input.password, saltRounds);
-      
-      return CommandResult.success(
-        { hashedPassword },
-        'Password hashed successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to hash password', [error.message]);
-    }
-  }
-}
-
-class ComparePasswordStrategy implements AsyncStrategy<PasswordOperationInput, CommandResult> {
-  async execute(input: PasswordOperationInput): Promise<CommandResult> {
-    try {
-      if (!input.hashedPassword) {
-        return CommandResult.failure('Hashed password is required for comparison');
-      }
-
-      const isMatch = await bcrypt.compare(input.password, input.hashedPassword);
-      
-      return CommandResult.success(
-        { isMatch },
-        isMatch ? 'Password matches' : 'Password does not match'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to compare password', [error.message]);
-    }
-  }
-}
-
-class ChangePasswordStrategy implements AsyncStrategy<AuthOperationInput, CommandResult> {
-  constructor(private hashPasswordStrategy: HashPasswordStrategy, private comparePasswordStrategy: ComparePasswordStrategy) {}
-
-  async execute(input: AuthOperationInput): Promise<CommandResult> {
-    try {
-      // Get user
-      const user = await User.findById(input.userId);
-      if (!user) {
-        return CommandResult.failure('User not found');
-      }
-
-      // Verify current password
-      const compareResult = await this.comparePasswordStrategy.execute({
-        password: input.currentPassword!,
-        hashedPassword: user.password
-      });
-
-      if (!compareResult.success || !compareResult.data.isMatch) {
-        return CommandResult.failure('Current password is incorrect');
-      }
-
-      // Hash new password
-      const hashResult = await this.hashPasswordStrategy.execute({
-        password: input.newPassword!
-      });
-
-      if (!hashResult.success) {
-        return CommandResult.failure('Failed to hash new password');
-      }
-
-      // Update user password
-      await User.findByIdAndUpdate(input.userId, {
-        password: hashResult.data.hashedPassword,
-        passwordChangedAt: new Date(),
-        updatedAt: new Date()
-      });
-
-      return CommandResult.success(
-        { userId: input.userId },
-        'Password changed successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to change password', [error.message]);
-    }
-  }
-}
-
-// Token strategies
-class GenerateTokenStrategy implements Strategy<TokenOperationInput, CommandResult> {
-  execute(input: TokenOperationInput): CommandResult {
-    try {
-      const payload = {
-        userId: input.userId,
-        email: input.email,
-        role: input.role,
-        iat: Math.floor(Date.now() / 1000)
-      };
-
-      const secret = process.env.JWT_SECRET || 'default-secret';
-      const expiresIn = input.expiresIn || '24h';
-
-      const token = jwt.sign(payload, secret, { expiresIn });
-
-      return CommandResult.success(
-        { token, expiresIn },
-        'Token generated successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to generate token', [error.message]);
-    }
-  }
-}
-
-class VerifyTokenStrategy implements Strategy<TokenOperationInput, CommandResult> {
-  execute(input: TokenOperationInput): CommandResult {
-    try {
-      if (!input.token) {
-        return CommandResult.failure('Token is required');
-      }
-
-      const secret = process.env.JWT_SECRET || 'default-secret';
-      const decoded = jwt.verify(input.token, secret) as any;
-
-      return CommandResult.success(
-        {
-          userId: decoded.userId,
-          email: decoded.email,
-          role: decoded.role,
-          iat: decoded.iat,
-          exp: decoded.exp,
-          isValid: true
-        },
-        'Token verified successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Invalid or expired token', [error.message]);
-    }
-  }
-}
-
-class RefreshTokenStrategy implements Strategy<TokenOperationInput, CommandResult> {
-  constructor(private verifyTokenStrategy: VerifyTokenStrategy, private generateTokenStrategy: GenerateTokenStrategy) {}
-
-  execute(input: TokenOperationInput): CommandResult {
-    try {
-      // Verify current token
-      const verifyResult = this.verifyTokenStrategy.execute({ token: input.token });
-      
-      if (!verifyResult.success) {
-        return CommandResult.failure('Invalid token for refresh');
-      }
-
-      // Generate new token
-      const generateResult = this.generateTokenStrategy.execute({
-        userId: verifyResult.data.userId,
-        email: verifyResult.data.email,
-        role: verifyResult.data.role,
-        expiresIn: input.expiresIn
-      });
-
-      return generateResult;
-    } catch (error) {
-      return CommandResult.failure('Failed to refresh token', [error.message]);
-    }
-  }
-}
-
-// Registration strategies
-class RegisterUserStrategy implements AsyncStrategy<RegistrationInput, CommandResult> {
-  constructor(private hashPasswordStrategy: HashPasswordStrategy) {}
-
-  async execute(input: RegistrationInput): Promise<CommandResult> {
-    try {
-      const { userData } = input;
-
-      // Check if user already exists
-      const existingUser = await User.findOne({ 
-        $or: [
-          { email: userData.email },
-          { phone: userData.phone }
-        ]
-      });
-
-      if (existingUser) {
-        return CommandResult.failure('User with this email or phone already exists');
-      }
-
-      // Hash password
-      const hashResult = await this.hashPasswordStrategy.execute({
-        password: userData.password
-      });
-
-      if (!hashResult.success) {
-        return CommandResult.failure('Failed to hash password');
-      }
-
-      // Create user
-      const user = new User({
-        ...userData,
-        password: hashResult.data.hashedPassword,
-        role: input.role,
-        isActive: true,
-        isEmailVerified: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-
-      await user.save();
-
-      // Remove password from response
-      const userResponse = user.toObject();
-      delete userResponse.password;
-
-      return CommandResult.success(
-        { user: userResponse },
-        'User registered successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to register user', [error.message]);
-    }
-  }
-}
-
-class RegisterProviderStrategy implements AsyncStrategy<RegistrationInput, CommandResult> {
-  constructor(private registerUserStrategy: RegisterUserStrategy) {}
-
-  async execute(input: RegistrationInput): Promise<CommandResult> {
-    try {
-      // First register as user
-      const userResult = await this.registerUserStrategy.execute({
-        ...input,
-        role: 'provider'
-      });
-
-      if (!userResult.success) {
-        return userResult;
-      }
-
-      const user = userResult.data.user;
-
-      // Create provider profile
-      const provider = new ServiceProvider({
-        userId: user._id,
-        ...input.providerData,
-        isVerified: false,
-        isActive: true,
-        rating: 0,
-        totalReviews: 0,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-
-      await provider.save();
-
-      return CommandResult.success(
-        { 
-          user,
-          provider: provider.toObject()
-        },
-        'Service provider registered successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to register service provider', [error.message]);
-    }
-  }
-}
-
-// Login strategy
-class LoginStrategy implements AsyncStrategy<AuthOperationInput, CommandResult> {
-  constructor(
-    private comparePasswordStrategy: ComparePasswordStrategy,
-    private generateTokenStrategy: GenerateTokenStrategy
-  ) {}
-
-  async execute(input: AuthOperationInput): Promise<CommandResult> {
-    try {
-      const { email, password } = input;
-
-      // Find user by email
-      const user = await User.findOne({ 
-        email,
-        isDeleted: { $ne: true }
-      });
-
-      if (!user) {
-        return CommandResult.failure('Invalid email or password');
-      }
-
-      // Check if user is active
-      if (!user.isActive) {
-        return CommandResult.failure('Account is deactivated');
-      }
-
-      // Compare password
-      const compareResult = await this.comparePasswordStrategy.execute({
-        password: password!,
-        hashedPassword: user.password
-      });
-
-      if (!compareResult.success || !compareResult.data.isMatch) {
-        return CommandResult.failure('Invalid email or password');
-      }
-
-      // Generate token
-      const tokenResult = this.generateTokenStrategy.execute({
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role
-      });
-
-      if (!tokenResult.success) {
-        return CommandResult.failure('Failed to generate authentication token');
-      }
-
-      // Update last login
-      await User.findByIdAndUpdate(user._id, {
-        lastLoginAt: new Date()
-      });
-
-      // Prepare user data (without password)
-      const userData = user.toObject();
-      delete userData.password;
-
-      return CommandResult.success(
-        {
-          user: userData,
-          token: tokenResult.data.token,
-          expiresIn: tokenResult.data.expiresIn
-        },
-        'Login successful'
-      );
-    } catch (error) {
-      return CommandResult.failure('Login failed', [error.message]);
-    }
-  }
-}
 
 @Injectable()
 @Singleton()
@@ -862,4 +516,3 @@ export class AuthServiceStrategy implements IAuthService {
     }
   }
 }
-
