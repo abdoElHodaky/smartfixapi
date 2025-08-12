@@ -131,12 +131,17 @@ export class DevMetricsCollector {
     metrics.timestamps.lastUpdated = new Date();
 
     // Add to call history (keep last 100 calls)
-    metrics.callHistory.push({
+    const callEntry: any = {
       timestamp: new Date(),
       responseTime,
-      success,
-      method
-    });
+      success
+    };
+    
+    if (method !== undefined) {
+      callEntry.method = method;
+    }
+    
+    metrics.callHistory.push(callEntry);
 
     if (metrics.callHistory.length > 100) {
       metrics.callHistory.shift();
@@ -339,4 +344,3 @@ ${summary.recommendations.map(rec => `- ${rec}`).join('\n')}
 
 // Export singleton instance
 export const devMetricsCollector = DevMetricsCollector.getInstance();
-

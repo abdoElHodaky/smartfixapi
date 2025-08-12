@@ -3,15 +3,13 @@ import { Response } from 'express';
 import { 
   Controller, 
   Get, 
-  Post, 
   Put, 
   Delete,
   Body, 
   Req, 
   Res,
   Params,
-  Query,
-  Status
+  Query
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
 import { User } from '../../models/User';

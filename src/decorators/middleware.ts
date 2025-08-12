@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { attachMiddleware } from '@decorators/express';
 import { authenticateToken } from '../middleware/auth';
 import { validateUserRegistration, validateUserLogin } from '../middleware/validation';
+import { authorizeAdmin } from '../middleware/authorization';
 
 /**
  * Authentication decorator
@@ -31,6 +32,16 @@ export function ValidateUserRegistration() {
 export function ValidateUserLogin() {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     attachMiddleware(target, propertyKey, validateUserLogin);
+  };
+}
+
+/**
+ * Admin authorization decorator
+ * Applies admin authorization to the decorated method
+ */
+export function AdminOnly() {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    attachMiddleware(target, propertyKey, authorizeAdmin);
   };
 }
 
@@ -150,4 +161,3 @@ export function Log(message?: string) {
     return descriptor;
   };
 }
-
