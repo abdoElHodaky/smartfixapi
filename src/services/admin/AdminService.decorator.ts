@@ -21,6 +21,9 @@ import {
   PaginatedResponseDto
 } from '../../dtos';
 
+// Import optimization utilities
+import { AggregationBuilder, ConditionalHelpers, ErrorHandlers } from '../../utils';
+
 // Import service decorators
 import {
   Singleton,
@@ -166,11 +169,13 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get user statistics
+   * Get user statistics - OPTIMIZED with AggregationBuilder
    */
   @Log('Getting user statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
   private async getUserStatistics(): Promise<any> {
+    const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    
     const [
       totalUsers,
       activeUsers,
@@ -180,27 +185,15 @@ export class AdminService implements IAdminService {
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ status: 'active' }),
-      User.countDocuments({ 
-        createdAt: { 
-          $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) 
-        } 
-      }),
-      User.aggregate([
-        { $group: { _id: '$role', count: { $sum: 1 } } }
-      ]),
-      User.aggregate([
-        {
-          $group: {
-            _id: {
-              year: { $year: '$createdAt' },
-              month: { $month: '$createdAt' }
-            },
-            count: { $sum: 1 }
-          }
-        },
-        { $sort: { '_id.year': 1, '_id.month': 1 } },
-        { $limit: 12 }
-      ])
+      User.countDocuments({ createdAt: { $gte: currentMonth } }),
+      // Optimized: Use AggregationBuilder for role statistics
+      AggregationBuilder.create().buildUserRoleStatistics().execute(User),
+      // Optimized: Use AggregationBuilder for user growth with date grouping
+      AggregationBuilder.create()
+        .buildDateGrouping('createdAt', { year: true, month: true })
+        .sort({ '_id.year': 1, '_id.month': 1 })
+        .limit(12)
+        .execute(User)
     ]);
 
     return {
@@ -213,7 +206,7 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get provider statistics
+   * Get provider statistics - OPTIMIZED with AggregationBuilder
    */
   @Log('Getting provider statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
@@ -227,12 +220,8 @@ export class AdminService implements IAdminService {
       ServiceProvider.countDocuments(),
       ServiceProvider.countDocuments({ status: 'active' }),
       ServiceProvider.find({ averageRating: { $gte: 4.5 } }).countDocuments(),
-      ServiceProvider.aggregate([
-        { $unwind: '$services' },
-        { $group: { _id: '$services', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 }
-      ])
+      // Optimized: Use AggregationBuilder for provider service statistics
+      AggregationBuilder.create().buildProviderServiceStatistics(10).execute(ServiceProvider)
     ]);
 
     return {
@@ -244,7 +233,7 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get service request statistics
+   * Get service request statistics - OPTIMIZED with AggregationBuilder
    */
   @Log('Getting service request statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
@@ -259,14 +248,10 @@ export class AdminService implements IAdminService {
       ServiceRequest.countDocuments(),
       ServiceRequest.countDocuments({ status: 'pending' }),
       ServiceRequest.countDocuments({ status: 'completed' }),
-      ServiceRequest.aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ]),
-      ServiceRequest.aggregate([
-        { $group: { _id: '$category', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 }
-      ])
+      // Optimized: Use AggregationBuilder for status statistics
+      AggregationBuilder.create().buildStatusStatistics('status').execute(ServiceRequest),
+      // Optimized: Use AggregationBuilder for category statistics
+      AggregationBuilder.create().buildCategoryStatistics('category', 10).execute(ServiceRequest)
     ]);
 
     return {
@@ -280,7 +265,7 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get review statistics
+   * Get review statistics - OPTIMIZED with AggregationBuilder
    */
   @Log('Getting review statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
@@ -292,13 +277,10 @@ export class AdminService implements IAdminService {
       flaggedReviews
     ] = await Promise.all([
       Review.countDocuments(),
-      Review.aggregate([
-        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
-      ]),
-      Review.aggregate([
-        { $group: { _id: '$rating', count: { $sum: 1 } } },
-        { $sort: { _id: 1 } }
-      ]),
+      // Optimized: Use AggregationBuilder for average rating
+      AggregationBuilder.create().buildAverageRating().execute(Review),
+      // Optimized: Use AggregationBuilder for rating distribution
+      AggregationBuilder.create().buildRatingDistribution().execute(Review),
       Review.countDocuments({ flagged: true })
     ]);
 
@@ -393,10 +375,8 @@ export class AdminService implements IAdminService {
         data: result
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new ValidationError(`Failed to ${action} user`);
+      // Optimized: Use ErrorHandlers for standardized error handling
+      return ErrorHandlers.handleServiceError(error, `Failed to ${action} user`);
     }
   }
 
@@ -463,10 +443,8 @@ export class AdminService implements IAdminService {
         data: result
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new ValidationError(`Failed to ${action} provider`);
+      // Optimized: Use ErrorHandlers for standardized error handling
+      return ErrorHandlers.handleServiceError(error, `Failed to ${action} provider`);
     }
   }
 
@@ -675,33 +653,13 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Generate user activity report
+   * Generate user activity report - OPTIMIZED with AggregationBuilder
    */
   private async generateUserActivityReport(dateRange?: { from: Date; to: Date }): Promise<any> {
-    const matchStage: any = {};
-    if (dateRange) {
-      matchStage.createdAt = { $gte: dateRange.from, $lte: dateRange.to };
-    }
-
-    return await User.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' },
-            day: { $dayOfMonth: '$createdAt' }
-          },
-          newUsers: { $sum: 1 },
-          activeUsers: {
-            $sum: {
-              $cond: [{ $eq: ['$status', 'active'] }, 1, 0]
-            }
-          }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
-    ]);
+    // Optimized: Use AggregationBuilder for user activity report
+    return await AggregationBuilder.create()
+      .buildUserActivityReport(dateRange)
+      .execute(User);
   }
 
   /**
@@ -717,24 +675,13 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Generate service request report
+   * Generate service request report - OPTIMIZED with AggregationBuilder
    */
   private async generateServiceRequestReport(dateRange?: { from: Date; to: Date }): Promise<any> {
-    const matchStage: any = {};
-    if (dateRange) {
-      matchStage.createdAt = { $gte: dateRange.from, $lte: dateRange.to };
-    }
-
-    return await ServiceRequest.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          averageBudget: { $avg: '$budget' }
-        }
-      }
-    ]);
+    // Optimized: Use AggregationBuilder for service request statistics
+    return await AggregationBuilder.create()
+      .buildServiceRequestStatistics(dateRange)
+      .execute(ServiceRequest);
   }
 
   /**
