@@ -34,8 +34,11 @@ import {
   Put, 
   Delete,
   RequireAuth, 
-  Validate 
+  UseMiddleware 
 } from '../../decorators';
+
+// Middleware imports
+import { validateBody, validateParams, validateQuery } from '../../middleware';
 
 @Controller({ path: '/chats' })
 export class ChatController extends BaseController {
@@ -51,51 +54,40 @@ export class ChatController extends BaseController {
    */
   @Get('/service-request/:serviceRequestId')
   @RequireAuth()
-  getChatByServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get Chat By Service Request');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { serviceRequestId } = req.params;
-
+  async getChatByServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get Chat By Service Request');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { serviceRequestId } = req.params;
+
       const result = await this.chatService.getChatByServiceRequest(serviceRequestId, req.user!.id);
       this.sendSuccess<ChatDto>(res, result, 'Chat retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get chat', 400);
     }
-  });
+  }
 
   /**
    * Create a new chat for a service request
    */
   @Post('/service-request/:serviceRequestId')
   @RequireAuth()
-  @Validate({
-    initialMessage: { required: false, maxLength: 1000 }
-  })
-  createChatForServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Create Chat For Service Request');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { serviceRequestId } = req.params;
-    const { initialMessage } = req.body;
-
-    const validation = this.validateRequest(req.body, {
-      initialMessage: { maxLength: 1000 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
+  @UseMiddleware(validateBody(ChatCreationDto))
+  async createChatForServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Create Chat For Service Request');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { serviceRequestId } = req.params;
+      const { initialMessage } = req.body;
+
       const result = await this.chatService.createChatForServiceRequest({
         serviceRequestId,
         userId: req.user!.id,
@@ -105,25 +97,25 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to create chat', 400);
     }
-  });
+  }
 
   /**
    * Get all chats for the authenticated user
    */
   @Get('/my-chats')
   @RequireAuth()
-  getMyChats = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get My Chats');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { page, limit, offset } = this.getPaginationParams(req);
-    const { sortBy, sortOrder } = this.getSortParams(req, ['lastMessageAt', 'createdAt']);
-    const filters = this.getFilterParams(req, ['status', 'hasUnreadMessages']);
-
+  async getMyChats(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get My Chats');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { page, limit, offset } = this.getPaginationParams(req);
+      const { sortBy, sortOrder } = this.getSortParams(req, ['lastMessageAt', 'createdAt']);
+      const filters = this.getFilterParams(req, ['status', 'hasUnreadMessages']);
+
       const result = await this.chatService.getUserChats(req.user!.id, {
         page,
         limit,
@@ -136,29 +128,29 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get chats', 400);
     }
-  });
+  }
 
   /**
    * Get chat by ID
    */
   @Get('/:chatId')
   @RequireAuth()
-  getChatById = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get Chat By ID');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { chatId } = req.params;
-
+  async getChatById(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get Chat By ID');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { chatId } = req.params;
+
       const result = await this.chatService.getChatById(chatId, req.user!.id);
       this.sendSuccess<ChatDto>(res, result, 'Chat retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get chat', 400);
     }
-  });
+  }
 
   /**
    * Send a message in a chat
