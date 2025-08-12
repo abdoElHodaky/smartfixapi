@@ -21,9 +21,6 @@ import {
   ReviewStatisticsDto
 } from '../../dtos';
 
-// Import optimization utilities
-import { AggregationBuilder, ConditionalHelpers, ErrorHandlers } from '../../utils';
-
 // Import service decorators
 import {
   Singleton,
@@ -122,8 +119,10 @@ export class ReviewService implements IReviewService {
         data: review
       };
     } catch (error) {
-      // Optimized: Use ErrorHandlers for standardized error handling
-      return ErrorHandlers.handleServiceError(error, 'Failed to create review');
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ValidationError('Failed to create review');
     }
   }
 
@@ -202,8 +201,10 @@ export class ReviewService implements IReviewService {
         data: updatedReview
       };
     } catch (error) {
-      // Optimized: Use ErrorHandlers for standardized error handling
-      return ErrorHandlers.handleServiceError(error, 'Failed to update review');
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ValidationError('Failed to update review');
     }
   }
 
@@ -375,7 +376,7 @@ export class ReviewService implements IReviewService {
   }
 
   /**
-   * Get review statistics with caching - OPTIMIZED with AggregationBuilder
+   * Get review statistics with caching
    */
   @Log('Getting review statistics')
   @Cached(10 * 60 * 1000) // Cache for 10 minutes
@@ -392,16 +393,15 @@ export class ReviewService implements IReviewService {
         ratingDistribution
       ] = await Promise.all([
         Review.countDocuments(query),
-        // Optimized: Use AggregationBuilder for average rating with match
-        AggregationBuilder.create()
-          .match(query)
-          .buildAverageRating()
-          .execute(Review),
-        // Optimized: Use AggregationBuilder for rating distribution with match
-        AggregationBuilder.create()
-          .match(query)
-          .buildRatingDistribution()
-          .execute(Review)
+        Review.aggregate([
+          { $match: query },
+          { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+        ]),
+        Review.aggregate([
+          { $match: query },
+          { $group: { _id: '$rating', count: { $sum: 1 } } },
+          { $sort: { _id: 1 } }
+        ])
       ]);
 
       const avgRating = averageRating.length > 0 ? averageRating[0].avgRating : 0;
@@ -473,20 +473,55 @@ export class ReviewService implements IReviewService {
   }
 
   /**
-   * Get top rated providers with caching - OPTIMIZED with AggregationBuilder
+   * Get top rated providers with caching
    */
   @Log('Getting top rated providers')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
   async getTopRatedProviders(limit: number = 10): Promise<ApiResponseDto> {
     try {
-      // Optimized: Use AggregationBuilder for top providers with lookups
-      const topProviders = await AggregationBuilder.create()
-        .buildTopProviders(limit, 4.0, 5)
-        .lookup({ from: 'serviceproviders', localField: '_id', foreignField: '_id', as: 'provider' })
-        .unwind('$provider')
-        .lookup({ from: 'users', localField: 'provider.userId', foreignField: '_id', as: 'user' })
-        .unwind('$user')
-        .execute(Review);
+      const topProviders = await Review.aggregate([
+        {
+          $group: {
+            _id: '$providerId',
+            averageRating: { $avg: '$rating' },
+            totalReviews: { $sum: 1 }
+          }
+        },
+        {
+          $match: {
+            totalReviews: { $gte: 5 }, // At least 5 reviews
+            averageRating: { $gte: 4.0 } // At least 4.0 rating
+          }
+        },
+        {
+          $sort: { averageRating: -1, totalReviews: -1 }
+        },
+        {
+          $limit: limit
+        },
+        {
+          $lookup: {
+            from: 'serviceproviders',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'provider'
+          }
+        },
+        {
+          $unwind: '$provider'
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'provider.userId',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $unwind: '$user'
+        }
+      ]);
 
       return {
         success: true,
@@ -494,8 +529,7 @@ export class ReviewService implements IReviewService {
         data: topProviders
       };
     } catch (error) {
-      // Optimized: Use ErrorHandlers for standardized error handling
-      return ErrorHandlers.handleServiceError(error, 'Failed to get top rated providers');
+      throw new ValidationError('Failed to get top rated providers');
     }
   }
 
@@ -542,3 +576,4 @@ export class ReviewService implements IReviewService {
     }
   }
 }
+

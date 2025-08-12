@@ -1,1 +1,2 @@
-export { AdminController } from './AdminController.modern';
+export { AdminController } from './AdminController';
+

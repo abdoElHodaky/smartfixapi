@@ -10,5 +10,3 @@ export * from './pagination.dto';
 // Response DTOs
 export * from './response.dto';
 
-// Parameter validation DTOs
-export * from './params.dto';

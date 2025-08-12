@@ -1,1 +1,2 @@
-export { AuthController } from './AuthController.modern';
+export { AuthController } from './AuthController';
+

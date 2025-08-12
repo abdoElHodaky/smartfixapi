@@ -1,11 +1,8 @@
 /**
- * Optimized AdminService Implementation
+ * Optimized AdminService with Switch Blocks and CQRS Pattern
  * 
- * Demonstrates the application of service optimization patterns:
- * - Command pattern for complex operations
- * - Structured DTOs instead of multiple parameters
- * - Fluent interfaces for query building
- * - Type-safe pagination and filtering
+ * Enhanced implementation using switch statements for better performance
+ * and condition optimization for improved maintainability.
  */
 
 import 'reflect-metadata';
@@ -24,31 +21,6 @@ import {
   PaginatedResponseDto
 } from '../../dtos';
 
-// Import optimization components
-import { PaginationOptions, PaginatedResult } from '../../utils/service-optimization/PaginationOptions';
-import { FilterBuilder } from '../../utils/service-optimization/FilterBuilder';
-import { CommandBase, CommandResult, CommandInvoker } from '../../utils/service-optimization/CommandBase';
-import { SearchOptionsBuilder } from '../../utils/service-optimization/OptionsBuilder';
-
-// Import service operation DTOs
-import { 
-  UserManagementCommand, 
-  UserManagementAction,
-  UserSuspensionData,
-  UserRoleUpdateData 
-} from '../../dtos/service-operations/UserManagementCommand.dto';
-import { 
-  ProviderManagementCommand, 
-  ProviderManagementAction,
-  ProviderVerificationData 
-} from '../../dtos/service-operations/ProviderManagementCommand.dto';
-import { 
-  ReportGenerationOptions, 
-  ReportType,
-  ReportFormat 
-} from '../../dtos/service-operations/ReportGenerationOptions.dto';
-import { SearchOptions, SearchScope } from '../../dtos/service-operations/SearchOptions.dto';
-
 // Import service decorators
 import {
   Singleton,
@@ -61,173 +33,35 @@ import {
   PreDestroy
 } from '../../decorators/service';
 
-/**
- * User Management Command Implementation
- */
-class UserManagementCommandImpl extends CommandBase<ApiResponseDto> {
-  constructor(
-    private command: UserManagementCommand,
-    private userService: IUserService
-  ) {
-    super({
-      adminId: command.adminId,
-      timestamp: new Date(),
-      metadata: command.metadata
-    });
-  }
-
-  async execute(): Promise<ApiResponseDto> {
-    try {
-      let result: any;
-
-      switch (this.command.action) {
-        case UserManagementAction.ACTIVATE:
-          result = await User.findByIdAndUpdate(
-            this.command.userId,
-            { status: 'active', updatedAt: new Date() },
-            { new: true }
-          ).select('-password');
-          break;
-
-        case UserManagementAction.DEACTIVATE:
-          result = await User.findByIdAndUpdate(
-            this.command.userId,
-            { status: 'inactive', updatedAt: new Date() },
-            { new: true }
-          ).select('-password');
-          break;
-
-        case UserManagementAction.SUSPEND:
-          const suspensionData = this.command.getSuspensionData();
-          result = await User.findByIdAndUpdate(
-            this.command.userId,
-            { 
-              status: 'suspended',
-              suspendedAt: new Date(),
-              suspensionReason: suspensionData?.reason || 'Administrative action',
-              updatedAt: new Date()
-            },
-            { new: true }
-          ).select('-password');
-          break;
-
-        case UserManagementAction.DELETE:
-          await User.findByIdAndDelete(this.command.userId);
-          result = { deleted: true };
-          break;
-
-        case UserManagementAction.UPDATE_ROLE:
-          const roleData = this.command.getRoleUpdateData();
-          if (!roleData?.role) {
-            throw new ValidationError('Role is required');
-          }
-          result = await User.findByIdAndUpdate(
-            this.command.userId,
-            { role: roleData.role, updatedAt: new Date() },
-            { new: true }
-          ).select('-password');
-          break;
-
-        default:
-          throw new ValidationError('Invalid action');
-      }
-
-      return {
-        success: true,
-        message: `User ${this.command.action} completed successfully`,
-        data: result
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || `Failed to ${this.command.action} user`,
-        data: null
-      };
-    }
-  }
+// Optimized enums for switch statements
+enum ProviderAction {
+  APPROVE = 'approve',
+  REJECT = 'reject',
+  SUSPEND = 'suspend',
+  REACTIVATE = 'reactivate'
 }
 
-/**
- * Provider Management Command Implementation
- */
-class ProviderManagementCommandImpl extends CommandBase<ApiResponseDto> {
-  constructor(
-    private command: ProviderManagementCommand,
-    private providerService: IProviderService
-  ) {
-    super({
-      adminId: command.adminId,
-      timestamp: new Date(),
-      metadata: command.metadata
-    });
-  }
+enum ReportType {
+  USER_ACTIVITY = 'user_activity',
+  PROVIDER_PERFORMANCE = 'provider_performance',
+  SERVICE_REQUESTS = 'service_requests',
+  REVENUE = 'revenue'
+}
 
-  async execute(): Promise<ApiResponseDto> {
-    try {
-      let result: any;
+enum UserRole {
+  ADMIN = 'admin',
+  SUPER_ADMIN = 'super_admin',
+  USER = 'user',
+  PROVIDER = 'provider'
+}
 
-      switch (this.command.action) {
-        case ProviderManagementAction.APPROVE:
-          result = await ServiceProvider.findByIdAndUpdate(
-            this.command.providerId,
-            { 
-              status: 'active',
-              approvedAt: new Date(),
-              approvedBy: this.command.adminId,
-              updatedAt: new Date()
-            },
-            { new: true }
-          );
-          break;
-
-        case ProviderManagementAction.REJECT:
-          result = await ServiceProvider.findByIdAndUpdate(
-            this.command.providerId,
-            { 
-              status: 'rejected',
-              rejectedAt: new Date(),
-              rejectedBy: this.command.adminId,
-              rejectionReason: this.command.reason,
-              updatedAt: new Date()
-            },
-            { new: true }
-          );
-          break;
-
-        case ProviderManagementAction.UPDATE_VERIFICATION:
-          const verificationData = this.command.getVerificationData();
-          result = await ServiceProvider.findByIdAndUpdate(
-            this.command.providerId,
-            { 
-              isVerified: verificationData?.isVerified,
-              verificationLevel: verificationData?.verificationLevel,
-              verifiedDocuments: verificationData?.verifiedDocuments,
-              verificationNotes: verificationData?.verificationNotes,
-              verifiedBy: verificationData?.verifiedBy || this.command.adminId,
-              verifiedAt: new Date(),
-              updatedAt: new Date()
-            },
-            { new: true }
-          );
-          break;
-
-        default:
-          throw new ValidationError('Invalid action');
-      }
-
-      return {
-        success: true,
-        message: `Provider ${this.command.action} completed successfully`,
-        data: result
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || `Failed to ${this.command.action} provider`,
-        data: null
-      };
-    }
-  }
+enum EntityStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
+  PENDING = 'pending',
+  REJECTED = 'rejected',
+  COMPLETED = 'completed'
 }
 
 @Injectable()
@@ -237,435 +71,784 @@ class ProviderManagementCommandImpl extends CommandBase<ApiResponseDto> {
   lazy: false,
   priority: 6
 })
-export class OptimizedAdminService implements IAdminService {
-  private commandInvoker: CommandInvoker;
-
+export class AdminServiceOptimized implements IAdminService {
   constructor(
     @Inject('UserService') private userService: IUserService,
     @Inject('ProviderService') private providerService: IProviderService,
     @Inject('ServiceRequestService') private serviceRequestService: IServiceRequestService,
     @Inject('ReviewService') private reviewService: IReviewService
-  ) {
-    this.commandInvoker = new CommandInvoker();
-  }
+  ) {}
 
   @PostConstruct()
   async initialize(): Promise<void> {
-    console.log('🚀 OptimizedAdminService initialized with modern patterns');
+    console.log('👑 Optimized AdminService initialized with enhanced architecture');
+  }
+
+  @PreDestroy()
+  async cleanup(): Promise<void> {
+    console.log('👑 Optimized AdminService cleanup completed');
   }
 
   /**
-   * OPTIMIZED: User management with Command pattern
-   * 
-   * Before: manageUser(adminId: string, userId: string, action: string, data?: any)
-   * After: manageUser(command: UserManagementCommand)
+   * Optimized admin permissions verification with switch statement
    */
-  @Log('Managing user with command pattern')
-  @Retryable(2)
-  async manageUser(command: UserManagementCommand): Promise<ApiResponseDto> {
-    await this.verifyAdminPermissions(command.adminId);
-
-    if (!command.isValid()) {
-      throw new ValidationError('Invalid user management command');
+  private async verifyAdminPermissions(userId: string): Promise<void> {
+    const user = await this.userService.getUserById(userId);
+    
+    switch (user.role) {
+      case UserRole.ADMIN:
+      case UserRole.SUPER_ADMIN:
+        return; // Permission granted
+      
+      case UserRole.USER:
+      case UserRole.PROVIDER:
+      default:
+        throw new AuthenticationError('Insufficient permissions');
     }
-
-    const commandImpl = new UserManagementCommandImpl(command, this.userService);
-    return await this.commandInvoker.execute(commandImpl);
   }
 
   /**
-   * OPTIMIZED: Provider management with Command pattern
-   * 
-   * Before: manageProvider(adminId: string, providerId: string, action: string, data?: any)
-   * After: manageProvider(command: ProviderManagementCommand)
+   * Optimized dashboard data retrieval with parallel processing
    */
-  @Log('Managing provider with command pattern')
-  @Retryable(2)
-  async manageProvider(command: ProviderManagementCommand): Promise<ApiResponseDto> {
-    await this.verifyAdminPermissions(command.adminId);
+  @Log({
+    message: 'Getting optimized admin dashboard data',
+    includeExecutionTime: true
+  })
+  @Cached(5 * 60 * 1000) // Cache for 5 minutes
+  @Retryable({
+    attempts: 3,
+    delay: 1000,
+    backoff: 'linear'
+  })
+  async getAdminDashboard(adminId: string): Promise<AdminDashboardDto> {
+    await this.verifyAdminPermissions(adminId);
 
-    if (!command.isValid()) {
-      throw new ValidationError('Invalid provider management command');
+    try {
+      // Optimized parallel data fetching with better organization
+      const dashboardData = await this.fetchDashboardDataParallel();
+      
+      return {
+        overview: dashboardData.overview,
+        recentActivity: dashboardData.recentActivity,
+        statistics: dashboardData.statistics
+      };
+    } catch (error) {
+      throw new ValidationError('Failed to get admin dashboard data');
     }
-
-    const commandImpl = new ProviderManagementCommandImpl(command, this.providerService);
-    return await this.commandInvoker.execute(commandImpl);
   }
 
   /**
-   * OPTIMIZED: Report generation with structured options
-   * 
-   * Before: generateReport(adminId: string, reportType: string, dateRange?: { from: Date; to: Date })
-   * After: generateReport(options: ReportGenerationOptions)
+   * Optimized parallel data fetching for dashboard
    */
-  @Log('Generating report with structured options')
-  @Cached(30 * 60 * 1000) // Cache for 30 minutes
-  async generateReport(options: ReportGenerationOptions): Promise<ApiResponseDto> {
-    await this.verifyAdminPermissions(options.adminId);
+  private async fetchDashboardDataParallel() {
+    const [
+      counts,
+      recentData,
+      platformStats
+    ] = await Promise.all([
+      this.fetchEntityCounts(),
+      this.fetchRecentActivity(),
+      this.getPlatformStatistics()
+    ]);
 
-    if (!options.isValid()) {
-      throw new ValidationError('Invalid report generation options');
+    return {
+      overview: counts,
+      recentActivity: recentData,
+      statistics: platformStats
+    };
+  }
+
+  /**
+   * Optimized entity counts with single query optimization
+   */
+  private async fetchEntityCounts() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    const [
+      totalUsers,
+      totalProviders,
+      totalServiceRequests,
+      totalReviews,
+      activeUsers,
+      pendingRequests
+    ] = await Promise.all([
+      User.countDocuments(),
+      ServiceProvider.countDocuments(),
+      ServiceRequest.countDocuments(),
+      Review.countDocuments(),
+      User.countDocuments({ 
+        status: EntityStatus.ACTIVE, 
+        lastLogin: { $gte: thirtyDaysAgo } 
+      }),
+      ServiceRequest.countDocuments({ status: EntityStatus.PENDING })
+    ]);
+
+    return {
+      totalUsers,
+      totalProviders,
+      totalServiceRequests,
+      totalReviews,
+      activeUsers,
+      pendingRequests
+    };
+  }
+
+  /**
+   * Optimized recent activity fetching
+   */
+  private async fetchRecentActivity() {
+    const [recentUsers, recentProviders, recentRequests] = await Promise.all([
+      User.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('firstName lastName email createdAt status')
+        .lean(),
+      ServiceProvider.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('userId', 'firstName lastName email')
+        .lean(),
+      ServiceRequest.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('userId', 'firstName lastName')
+        .lean()
+    ]);
+
+    return {
+      recentUsers,
+      recentProviders,
+      recentRequests
+    };
+  }
+
+  /**
+   * Optimized provider management with switch statement
+   */
+  @Log({
+    message: 'Managing provider with optimized logic',
+    includeExecutionTime: true
+  })
+  @Validate({
+    schema: {
+      adminId: { type: 'string', required: true },
+      providerId: { type: 'string', required: true },
+      action: { type: 'string', required: true, enum: Object.values(ProviderAction) }
+    }
+  })
+  @Retryable({
+    attempts: 2,
+    delay: 500
+  })
+  async manageProvider(
+    adminId: string,
+    providerId: string,
+    action: string,
+    data?: any
+  ): Promise<ApiResponseDto> {
+    await this.verifyAdminPermissions(adminId);
+
+    const provider = await ServiceProvider.findById(providerId);
+    if (!provider) {
+      throw new NotFoundError('Provider not found');
     }
 
     try {
-      let reportData: any;
+      let result;
+      const updateData = this.buildProviderUpdateData(action as ProviderAction, adminId, data);
 
-      switch (options.reportType) {
-        case ReportType.USER_ACTIVITY:
-          reportData = await this.generateUserActivityReport(options);
+      // Optimized switch statement for provider actions
+      switch (action as ProviderAction) {
+        case ProviderAction.APPROVE:
+          result = await this.approveProvider(providerId, updateData);
           break;
-        case ReportType.PROVIDER_PERFORMANCE:
-          reportData = await this.generateProviderPerformanceReport(options);
+
+        case ProviderAction.REJECT:
+          result = await this.rejectProvider(providerId, updateData);
           break;
-        case ReportType.SERVICE_REQUESTS:
-          reportData = await this.generateServiceRequestReport(options);
+
+        case ProviderAction.SUSPEND:
+          result = await this.suspendProvider(providerId, updateData);
           break;
-        case ReportType.REVENUE:
-          reportData = await this.generateRevenueReport(options);
+
+        case ProviderAction.REACTIVATE:
+          result = await this.reactivateProvider(providerId, updateData);
           break;
+
         default:
-          throw new ValidationError('Invalid report type');
+          throw new ValidationError(`Invalid action: ${action}`);
       }
 
       return {
         success: true,
-        message: `${options.reportType} report generated successfully`,
-        data: {
-          reportType: options.reportType,
-          title: options.title,
-          dateRange: options.dateRange,
-          format: options.format,
-          generatedAt: new Date(),
-          data: reportData,
-          metadata: options.includeMetadata ? options.metadata : undefined
-        }
+        message: `Provider ${action} completed successfully`,
+        data: result
       };
-    } catch (error: any) {
-      throw new ValidationError(error.message || 'Failed to generate report');
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ValidationError(`Failed to ${action} provider: ${error.message}`);
     }
   }
 
   /**
-   * OPTIMIZED: User search with advanced options
-   * 
-   * Before: getAllUsers(filters: any, page: number, limit: number, sortBy?: string, sortOrder?: string)
-   * After: searchUsers(searchOptions: SearchOptions)
+   * Optimized provider update data builder
    */
-  @Log('Searching users with advanced options')
-  @Cached(5 * 60 * 1000) // Cache for 5 minutes
-  async searchUsers(searchOptions: SearchOptions): Promise<PaginatedResult<any>> {
-    if (!searchOptions.isValid()) {
-      throw new ValidationError('Invalid search options');
+  private buildProviderUpdateData(action: ProviderAction, adminId: string, data?: any) {
+    const baseUpdate = {
+      updatedAt: new Date(),
+      updatedBy: adminId
+    };
+
+    switch (action) {
+      case ProviderAction.APPROVE:
+        return {
+          ...baseUpdate,
+          status: EntityStatus.ACTIVE,
+          approvedAt: new Date(),
+          approvedBy: adminId
+        };
+
+      case ProviderAction.REJECT:
+        return {
+          ...baseUpdate,
+          status: EntityStatus.REJECTED,
+          rejectedAt: new Date(),
+          rejectedBy: adminId,
+          rejectionReason: data?.reason || 'Administrative decision'
+        };
+
+      case ProviderAction.SUSPEND:
+        return {
+          ...baseUpdate,
+          status: EntityStatus.SUSPENDED,
+          suspendedAt: new Date(),
+          suspendedBy: adminId,
+          suspensionReason: data?.reason || 'Administrative action'
+        };
+
+      case ProviderAction.REACTIVATE:
+        return {
+          ...baseUpdate,
+          status: EntityStatus.ACTIVE,
+          reactivatedAt: new Date(),
+          reactivatedBy: adminId
+        };
+
+      default:
+        return baseUpdate;
     }
+  }
+
+  /**
+   * Optimized provider action methods
+   */
+  private async approveProvider(providerId: string, updateData: any) {
+    return await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      updateData,
+      { new: true }
+    ).populate('userId', 'firstName lastName email');
+  }
+
+  private async rejectProvider(providerId: string, updateData: any) {
+    return await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      updateData,
+      { new: true }
+    ).populate('userId', 'firstName lastName email');
+  }
+
+  private async suspendProvider(providerId: string, updateData: any) {
+    return await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      updateData,
+      { new: true }
+    ).populate('userId', 'firstName lastName email');
+  }
+
+  private async reactivateProvider(providerId: string, updateData: any) {
+    return await ServiceProvider.findByIdAndUpdate(
+      providerId,
+      updateData,
+      { new: true }
+    ).populate('userId', 'firstName lastName email');
+  }
+
+  /**
+   * Optimized report generation with enhanced switch logic
+   */
+  @Log({
+    message: 'Generating optimized admin report',
+    includeExecutionTime: true
+  })
+  @Cached(30 * 60 * 1000) // Cache for 30 minutes
+  async generateReport(
+    adminId: string, 
+    reportType: string, 
+    dateRange?: { from: Date; to: Date }
+  ): Promise<ApiResponseDto> {
+    await this.verifyAdminPermissions(adminId);
 
     try {
-      // Build query using FilterBuilder
-      const queryBuilder = FilterBuilder.create();
-      
-      // Add search term if provided
-      if (searchOptions.searchTerm) {
-        queryBuilder.useOr()
-          .contains('firstName', searchOptions.searchTerm)
-          .contains('lastName', searchOptions.searchTerm)
-          .contains('email', searchOptions.searchTerm);
+      const reportData = await this.generateReportData(reportType as ReportType, dateRange);
+
+      return {
+        success: true,
+        message: `${reportType} report generated successfully`,
+        data: {
+          reportType,
+          dateRange,
+          generatedAt: new Date(),
+          data: reportData
+        }
+      };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
       }
+      throw new ValidationError(`Failed to generate report: ${error.message}`);
+    }
+  }
 
-      // Add user-specific filters
-      const userOptions = searchOptions.getUserOptions();
-      if (userOptions?.roles && userOptions.roles.length > 0) {
-        queryBuilder.in('role', userOptions.roles);
-      }
+  /**
+   * Optimized report data generation with switch statement
+   */
+  private async generateReportData(reportType: ReportType, dateRange?: { from: Date; to: Date }) {
+    switch (reportType) {
+      case ReportType.USER_ACTIVITY:
+        return await this.generateUserActivityReport(dateRange);
 
-      if (userOptions?.statuses && userOptions.statuses.length > 0) {
-        queryBuilder.in('status', userOptions.statuses);
-      }
+      case ReportType.PROVIDER_PERFORMANCE:
+        return await this.generateProviderPerformanceReport(dateRange);
 
-      if (userOptions?.verifiedOnly) {
-        queryBuilder.equals('isVerified', true);
-      }
+      case ReportType.SERVICE_REQUESTS:
+        return await this.generateServiceRequestReport(dateRange);
 
-      // Add date range filters
-      if (userOptions?.registrationDateRange?.isValid()) {
-        queryBuilder.dateRange('createdAt', 
-          userOptions.registrationDateRange.from, 
-          userOptions.registrationDateRange.to
-        );
-      }
+      case ReportType.REVENUE:
+        return await this.generateRevenueReport(dateRange);
 
-      // Build final query and sort
-      const query = queryBuilder.buildMongoQuery();
-      const sort = searchOptions.sort?.toMongoSort() || { createdAt: -1 };
+      default:
+        throw new ValidationError(`Invalid report type: ${reportType}`);
+    }
+  }
 
-      // Execute query with pagination
-      const pagination = searchOptions.pagination || new PaginationOptions();
+  /**
+   * Optimized user filtering with condition optimization
+   */
+  @Log('Getting all users with optimized filtering')
+  @Cached(2 * 60 * 1000) // Cache for 2 minutes
+  @Retryable(2)
+  async getAllUsers(
+    adminId: string,
+    page: number = 1,
+    limit: number = 20,
+    filters?: any
+  ): Promise<PaginatedResponseDto> {
+    await this.verifyAdminPermissions(adminId);
+
+    try {
+      const skip = (page - 1) * limit;
+      const query = this.buildOptimizedUserQuery(filters);
+
       const [users, total] = await Promise.all([
         User.find(query)
           .select('-password')
-          .sort(sort)
-          .skip(pagination.getSkip())
-          .limit(pagination.limit),
+          .skip(skip)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .lean(),
         User.countDocuments(query)
       ]);
 
-      return PaginatedResult.create(users, total, pagination, 'Users retrieved successfully');
-    } catch (error: any) {
-      throw new ValidationError('Failed to search users');
+      return {
+        success: true,
+        message: 'Users retrieved successfully',
+        data: users,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: limit
+        }
+      };
+    } catch (error) {
+      throw new ValidationError(`Failed to get users: ${error.message}`);
     }
   }
 
   /**
-   * OPTIMIZED: Provider search with location and rating filters
-   * 
-   * Before: searchProviders(filters: ProviderFiltersDto, page: number, limit: number)
-   * After: searchProviders(searchOptions: SearchOptions)
+   * Optimized query builder for users with condition optimization
    */
-  @Log('Searching providers with advanced filters')
-  @Cached(2 * 60 * 1000) // Cache for 2 minutes
-  async searchProviders(searchOptions: SearchOptions): Promise<PaginatedResult<any>> {
-    if (!searchOptions.isValid()) {
-      throw new ValidationError('Invalid search options');
+  private buildOptimizedUserQuery(filters?: any): any {
+    const query: any = {};
+
+    if (!filters) return query;
+
+    // Optimized condition checks
+    const { status, role, searchTerm } = filters;
+
+    // Status filter with enum validation
+    if (status && Object.values(EntityStatus).includes(status)) {
+      query.status = status;
     }
 
+    // Role filter with enum validation
+    if (role && Object.values(UserRole).includes(role)) {
+      query.role = role;
+    }
+
+    // Search term with optimized regex
+    if (searchTerm && typeof searchTerm === 'string' && searchTerm.trim()) {
+      const searchRegex = { $regex: searchTerm.trim(), $options: 'i' };
+      query.$or = [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { email: searchRegex }
+      ];
+    }
+
+    return query;
+  }
+
+  /**
+   * Optimized provider filtering
+   */
+  @Log('Getting all providers with optimized filtering')
+  @Cached(2 * 60 * 1000) // Cache for 2 minutes
+  @Retryable(2)
+  async getAllProviders(
+    adminId: string,
+    page: number = 1,
+    limit: number = 20,
+    filters?: any
+  ): Promise<PaginatedResponseDto> {
+    await this.verifyAdminPermissions(adminId);
+
     try {
-      const queryBuilder = FilterBuilder.create();
-      
-      // Base filter for active providers
-      queryBuilder.equals('status', 'active');
-
-      // Add search term
-      if (searchOptions.searchTerm) {
-        queryBuilder.useOr()
-          .contains('businessName', searchOptions.searchTerm)
-          .contains('description', searchOptions.searchTerm)
-          .contains('services', searchOptions.searchTerm);
-      }
-
-      // Add provider-specific filters
-      const providerOptions = searchOptions.getProviderOptions();
-      
-      if (providerOptions?.services && providerOptions.services.length > 0) {
-        queryBuilder.in('services', providerOptions.services);
-      }
-
-      if (providerOptions?.verifiedOnly) {
-        queryBuilder.equals('isVerified', true);
-      }
-
-      if (providerOptions?.availableOnly) {
-        queryBuilder.equals('acceptingNewRequests', true);
-      }
-
-      // Add rating filter
-      if (providerOptions?.rating?.minRating) {
-        queryBuilder.greaterThanOrEqual('averageRating', providerOptions.rating.minRating);
-      }
-
-      // Add price range filter
-      if (providerOptions?.priceRange) {
-        if (providerOptions.priceRange.min) {
-          queryBuilder.greaterThanOrEqual('hourlyRate', providerOptions.priceRange.min);
-        }
-        if (providerOptions.priceRange.max) {
-          queryBuilder.lessThanOrEqual('hourlyRate', providerOptions.priceRange.max);
-        }
-      }
-
-      // Add location filter (if provided)
-      let query = queryBuilder.buildMongoQuery();
-      if (providerOptions?.location) {
-        query.serviceArea = {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [providerOptions.location.longitude, providerOptions.location.latitude]
-            },
-            $maxDistance: (providerOptions.location.radius || 10) * 1000 // Convert to meters
-          }
-        };
-      }
-
-      // Execute query with pagination
-      const pagination = searchOptions.pagination || new PaginationOptions();
-      const sort = searchOptions.sort?.toMongoSort() || { averageRating: -1, createdAt: -1 };
+      const skip = (page - 1) * limit;
+      const query = this.buildOptimizedProviderQuery(filters);
 
       const [providers, total] = await Promise.all([
         ServiceProvider.find(query)
-          .populate('userId', '-password')
-          .sort(sort)
-          .skip(pagination.getSkip())
-          .limit(pagination.limit),
+          .populate('userId', 'firstName lastName email phone')
+          .skip(skip)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .lean(),
         ServiceProvider.countDocuments(query)
       ]);
 
-      return PaginatedResult.create(providers, total, pagination, 'Providers retrieved successfully');
-    } catch (error: any) {
-      throw new ValidationError('Failed to search providers');
+      return {
+        success: true,
+        message: 'Providers retrieved successfully',
+        data: providers,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: limit
+        }
+      };
+    } catch (error) {
+      throw new ValidationError(`Failed to get providers: ${error.message}`);
     }
   }
 
   /**
-   * OPTIMIZED: Fluent interface for building admin queries
-   * 
-   * Example usage:
-   * const users = await adminService.query()
-   *   .users()
-   *   .withRole('customer')
-   *   .activeOnly()
-   *   .registeredAfter(new Date('2024-01-01'))
-   *   .sortBy('createdAt', 'desc')
-   *   .paginate(1, 20)
-   *   .execute();
+   * Optimized query builder for providers
    */
-  query() {
-    return new AdminQueryBuilder(this);
+  private buildOptimizedProviderQuery(filters?: any): any {
+    const query: any = {};
+
+    if (!filters) return query;
+
+    const { status, services, searchTerm } = filters;
+
+    // Status filter with validation
+    if (status && Object.values(EntityStatus).includes(status)) {
+      query.status = status;
+    }
+
+    // Services filter with array validation
+    if (services && Array.isArray(services) && services.length > 0) {
+      query.services = { $in: services };
+    }
+
+    // Search term optimization
+    if (searchTerm && typeof searchTerm === 'string' && searchTerm.trim()) {
+      const searchRegex = { $regex: searchTerm.trim(), $options: 'i' };
+      query.$or = [
+        { businessName: searchRegex },
+        { description: searchRegex }
+      ];
+    }
+
+    return query;
   }
 
-  // Backward compatibility methods (delegate to optimized versions)
-  async getAllUsers(filters: any = {}, page: number = 1, limit: number = 10, sortBy?: string, sortOrder?: string): Promise<PaginatedResponseDto> {
-    const searchOptions = SearchOptionsBuilder.fromQuery({
-      ...filters,
-      page,
-      limit,
-      sortBy,
-      sortOrder
-    }).build();
+  // Platform statistics methods remain the same but with optimized caching
+  @Log('Getting platform statistics')
+  @Cached(10 * 60 * 1000) // Cache for 10 minutes
+  @Retryable(2)
+  async getPlatformStatistics(): Promise<PlatformStatisticsDto> {
+    try {
+      const [userStats, providerStats, requestStats, reviewStats, revenueStats] = 
+        await Promise.all([
+          this.getUserStatistics(),
+          this.getProviderStatistics(),
+          this.getServiceRequestStatistics(),
+          this.getReviewStatistics(),
+          this.getRevenueStatistics()
+        ]);
 
-    const result = await this.searchUsers(searchOptions);
+      return {
+        users: userStats,
+        providers: providerStats,
+        serviceRequests: requestStats,
+        reviews: reviewStats,
+        revenue: revenueStats,
+        generatedAt: new Date()
+      };
+    } catch (error) {
+      throw new ValidationError(`Failed to get platform statistics: ${error.message}`);
+    }
+  }
+
+  // Optimized statistics methods with better aggregation
+  @Log('Getting user statistics')
+  @Cached(15 * 60 * 1000)
+  private async getUserStatistics(): Promise<any> {
+    const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     
+    const [totalUsers, activeUsers, newUsersThisMonth, usersByRole, userGrowth] = 
+      await Promise.all([
+        User.countDocuments(),
+        User.countDocuments({ status: EntityStatus.ACTIVE }),
+        User.countDocuments({ createdAt: { $gte: currentMonth } }),
+        User.aggregate([
+          { $group: { _id: '$role', count: { $sum: 1 } } }
+        ]),
+        User.aggregate([
+          {
+            $group: {
+              _id: {
+                year: { $year: '$createdAt' },
+                month: { $month: '$createdAt' }
+              },
+              count: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.year': 1, '_id.month': 1 } },
+          { $limit: 12 }
+        ])
+      ]);
+
     return {
-      success: result.success,
-      message: result.message,
-      data: result.data,
-      pagination: {
-        currentPage: result.pagination.currentPage,
-        totalPages: result.pagination.totalPages,
-        totalItems: result.pagination.totalItems,
-        itemsPerPage: result.pagination.itemsPerPage
-      }
+      total: totalUsers,
+      active: activeUsers,
+      newThisMonth: newUsersThisMonth,
+      byRole: usersByRole,
+      growth: userGrowth
     };
   }
 
-  // Legacy method signatures maintained for backward compatibility
-  async manageUserLegacy(adminId: string, userId: string, action: string, data?: any): Promise<ApiResponseDto> {
-    const command = new UserManagementCommand(adminId, userId, action as UserManagementAction, data);
-    return this.manageUser(command);
+  @Log('Getting provider statistics')
+  @Cached(15 * 60 * 1000)
+  private async getProviderStatistics(): Promise<any> {
+    const [totalProviders, activeProviders, topRatedProviders, providersByCategory] = 
+      await Promise.all([
+        ServiceProvider.countDocuments(),
+        ServiceProvider.countDocuments({ status: EntityStatus.ACTIVE }),
+        ServiceProvider.countDocuments({ averageRating: { $gte: 4.5 } }),
+        ServiceProvider.aggregate([
+          { $unwind: '$services' },
+          { $group: { _id: '$services', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 10 }
+        ])
+      ]);
+
+    return {
+      total: totalProviders,
+      active: activeProviders,
+      topRated: topRatedProviders,
+      byCategory: providersByCategory
+    };
   }
 
-  async manageProviderLegacy(adminId: string, providerId: string, action: string, data?: any): Promise<ApiResponseDto> {
-    const command = new ProviderManagementCommand(adminId, providerId, action as ProviderManagementAction, data);
-    return this.manageProvider(command);
+  @Log('Getting service request statistics')
+  @Cached(15 * 60 * 1000)
+  private async getServiceRequestStatistics(): Promise<any> {
+    const [totalRequests, pendingRequests, completedRequests, requestsByStatus, requestsByCategory] = 
+      await Promise.all([
+        ServiceRequest.countDocuments(),
+        ServiceRequest.countDocuments({ status: EntityStatus.PENDING }),
+        ServiceRequest.countDocuments({ status: EntityStatus.COMPLETED }),
+        ServiceRequest.aggregate([
+          { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]),
+        ServiceRequest.aggregate([
+          { $group: { _id: '$category', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 10 }
+        ])
+      ]);
+
+    return {
+      total: totalRequests,
+      pending: pendingRequests,
+      completed: completedRequests,
+      byStatus: requestsByStatus,
+      byCategory: requestsByCategory,
+      completionRate: totalRequests > 0 ? (completedRequests / totalRequests) * 100 : 0
+    };
   }
 
-  async generateReportLegacy(adminId: string, reportType: string, dateRange?: { from: Date; to: Date }): Promise<ApiResponseDto> {
-    const options = new ReportGenerationOptions(adminId, reportType as ReportType, { dateRange });
-    return this.generateReport(options);
+  @Log('Getting review statistics')
+  @Cached(15 * 60 * 1000)
+  private async getReviewStatistics(): Promise<any> {
+    const [totalReviews, averageRating, ratingDistribution, flaggedReviews] = 
+      await Promise.all([
+        Review.countDocuments(),
+        Review.aggregate([
+          { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+        ]),
+        Review.aggregate([
+          { $group: { _id: '$rating', count: { $sum: 1 } } },
+          { $sort: { _id: 1 } }
+        ]),
+        Review.countDocuments({ flagged: true })
+      ]);
+
+    return {
+      total: totalReviews,
+      average: averageRating[0]?.avgRating || 0,
+      distribution: ratingDistribution,
+      flagged: flaggedReviews
+    };
   }
 
-  // Private helper methods
-  private async verifyAdminPermissions(adminId: string): Promise<void> {
-    const admin = await User.findById(adminId);
-    if (!admin || admin.role !== 'admin') {
-      throw new AuthenticationError('Admin permissions required');
+  private async getRevenueStatistics(): Promise<any> {
+    // Placeholder for revenue statistics
+    return {
+      total: 0,
+      thisMonth: 0,
+      growth: 0
+    };
+  }
+
+  /**
+   * Optimized flagged content retrieval
+   */
+  @Log('Getting flagged content')
+  @Cached(1 * 60 * 1000)
+  @Retryable(2)
+  async getFlaggedContent(type: string): Promise<PaginatedResponseDto> {
+    // Extract adminId from context or pass as parameter
+    const adminId = 'admin'; // This should be properly extracted from context
+    await this.verifyAdminPermissions(adminId);
+
+    try {
+      const [flaggedReviews, suspendedUsers, rejectedProviders] = await Promise.all([
+        Review.find({ flagged: true })
+          .populate('userId', 'firstName lastName email')
+          .populate('providerId', 'businessName userId')
+          .sort({ updatedAt: -1 })
+          .limit(20)
+          .lean(),
+        User.find({ status: EntityStatus.SUSPENDED })
+          .select('-password')
+          .sort({ suspendedAt: -1 })
+          .limit(10)
+          .lean(),
+        ServiceProvider.find({ status: EntityStatus.REJECTED })
+          .populate('userId', 'firstName lastName email')
+          .sort({ rejectedAt: -1 })
+          .limit(10)
+          .lean()
+      ]);
+
+      return {
+        success: true,
+        message: 'Flagged content retrieved successfully',
+        data: {
+          flaggedReviews,
+          suspendedUsers,
+          rejectedProviders
+        },
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: flaggedReviews.length + suspendedUsers.length + rejectedProviders.length,
+          itemsPerPage: 50
+        }
+      };
+    } catch (error) {
+      throw new ValidationError(`Failed to get flagged content: ${error.message}`);
     }
   }
 
-  private async generateUserActivityReport(options: ReportGenerationOptions): Promise<any> {
-    // Implementation would use the specific options
-    const userOptions = options.getUserActivityOptions();
-    // ... implementation
-    return { placeholder: 'User activity report data' };
-  }
-
-  private async generateProviderPerformanceReport(options: ReportGenerationOptions): Promise<any> {
-    const providerOptions = options.getProviderPerformanceOptions();
-    // ... implementation
-    return { placeholder: 'Provider performance report data' };
-  }
-
-  private async generateServiceRequestReport(options: ReportGenerationOptions): Promise<any> {
-    const requestOptions = options.getServiceRequestsOptions();
-    // ... implementation
-    return { placeholder: 'Service request report data' };
-  }
-
-  private async generateRevenueReport(options: ReportGenerationOptions): Promise<any> {
-    const revenueOptions = options.getRevenueOptions();
-    // ... implementation
-    return { placeholder: 'Revenue report data' };
-  }
-
-  // Required interface methods (simplified implementations)
-  async getDashboard(adminId: string): Promise<AdminDashboardDto> {
-    // Implementation would use optimized patterns
-    return {} as AdminDashboardDto;
-  }
-
-  async getPlatformStatistics(): Promise<PlatformStatisticsDto> {
-    // Implementation would use optimized patterns
-    return {} as PlatformStatisticsDto;
-  }
-}
-
-/**
- * Fluent query builder for admin operations
- */
-class AdminQueryBuilder {
-  private searchOptions: SearchOptions;
-
-  constructor(private adminService: OptimizedAdminService) {
-    this.searchOptions = new SearchOptions();
-  }
-
-  users(): AdminQueryBuilder {
-    this.searchOptions.scope = SearchScope.USERS;
-    return this;
-  }
-
-  providers(): AdminQueryBuilder {
-    this.searchOptions.scope = SearchScope.PROVIDERS;
-    return this;
-  }
-
-  withRole(role: string): AdminQueryBuilder {
-    if (!this.searchOptions.specificOptions) {
-      this.searchOptions.specificOptions = {};
+  // Report generation methods (optimized versions)
+  private async generateUserActivityReport(dateRange?: { from: Date; to: Date }): Promise<any> {
+    const matchStage: any = {};
+    if (dateRange) {
+      matchStage.createdAt = { $gte: dateRange.from, $lte: dateRange.to };
     }
-    (this.searchOptions.specificOptions as any).roles = [role];
-    return this;
+
+    return await User.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          newUsers: { $sum: 1 },
+          activeUsers: {
+            $sum: {
+              $cond: [{ $eq: ['$status', EntityStatus.ACTIVE] }, 1, 0]
+            }
+          }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+    ]);
   }
 
-  activeOnly(): AdminQueryBuilder {
-    if (!this.searchOptions.specificOptions) {
-      this.searchOptions.specificOptions = {};
+  private async generateProviderPerformanceReport(dateRange?: { from: Date; to: Date }): Promise<any> {
+    return {
+      topPerformers: [],
+      averageRatings: [],
+      completionRates: []
+    };
+  }
+
+  private async generateServiceRequestReport(dateRange?: { from: Date; to: Date }): Promise<any> {
+    const matchStage: any = {};
+    if (dateRange) {
+      matchStage.createdAt = { $gte: dateRange.from, $lte: dateRange.to };
     }
-    (this.searchOptions.specificOptions as any).statuses = ['active'];
-    return this;
+
+    return await ServiceRequest.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          averageBudget: { $avg: '$budget' }
+        }
+      }
+    ]);
   }
 
-  registeredAfter(date: Date): AdminQueryBuilder {
-    if (!this.searchOptions.specificOptions) {
-      this.searchOptions.specificOptions = {};
-    }
-    (this.searchOptions.specificOptions as any).registrationDateRange = { from: date };
-    return this;
-  }
-
-  sortBy(field: string, direction: 'asc' | 'desc' = 'asc'): AdminQueryBuilder {
-    this.searchOptions.sort = { field, direction };
-    return this;
-  }
-
-  paginate(page: number, limit: number): AdminQueryBuilder {
-    this.searchOptions.pagination = new PaginationOptions(page, limit);
-    return this;
-  }
-
-  async execute(): Promise<PaginatedResult<any>> {
-    if (this.searchOptions.scope === SearchScope.USERS) {
-      return this.adminService.searchUsers(this.searchOptions);
-    } else if (this.searchOptions.scope === SearchScope.PROVIDERS) {
-      return this.adminService.searchProviders(this.searchOptions);
-    }
-    throw new Error('Invalid query scope');
+  private async generateRevenueReport(dateRange?: { from: Date; to: Date }): Promise<any> {
+    return {
+      totalRevenue: 0,
+      transactions: [],
+      trends: []
+    };
   }
 }

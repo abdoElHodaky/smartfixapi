@@ -11,7 +11,6 @@ import { ServiceRequest } from '../../models/ServiceRequest';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { User } from '../../models/User';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { IServiceRequestService, IProviderService, IUserService, IReviewService } from '../../interfaces/services';
 import {
   CreateRequestDto,
@@ -171,12 +170,8 @@ export class ServiceRequestService implements IServiceRequestService {
       throw new NotFoundError('Service request not found');
     }
 
-    // Optimized: Use ConditionalHelpers for status validation
-    const statusError = ConditionalHelpers.guardServiceRequestStatus(
-      serviceRequest.status, 
-      ['pending', 'cancelled', 'completed']
-    );
-    if (statusError) {
+    // Check if request can be deleted (not in progress)
+    if (serviceRequest.status === 'in_progress') {
       throw new ValidationError('Cannot delete service request that is in progress');
     }
 
@@ -402,16 +397,17 @@ export class ServiceRequestService implements IServiceRequestService {
       updateData.notes = notes;
     }
 
-    // Add status-specific timestamps using strategy pattern
-    const statusTimestampHandlers = {
-      in_progress: () => { updateData.startedAt = new Date(); },
-      completed: () => { updateData.completedAt = new Date(); },
-      cancelled: () => { updateData.cancelledAt = new Date(); }
-    };
-
-    const timestampHandler = statusTimestampHandlers[status as keyof typeof statusTimestampHandlers];
-    if (timestampHandler) {
-      timestampHandler();
+    // Add status-specific timestamps
+    switch (status) {
+      case 'in_progress':
+        updateData.startedAt = new Date();
+        break;
+      case 'completed':
+        updateData.completedAt = new Date();
+        break;
+      case 'cancelled':
+        updateData.cancelledAt = new Date();
+        break;
     }
 
     const serviceRequest = await ServiceRequest.findByIdAndUpdate(
@@ -530,3 +526,4 @@ export class ServiceRequestService implements IServiceRequestService {
     }
   }
 }
+

@@ -16,8 +16,8 @@ import { ProviderModule } from '../provider/ProviderModule';
 // Import services
 import { ServiceRequestService } from '../../services/request/ServiceRequestService.decorator';
 
-// Import controllers
-import { RequestController } from '../../controllers/request/RequestController.modern';
+// Import controllers (to be created)
+// import { ServiceRequestController } from '../../controllers/request/ServiceRequestController.decorator';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { RequestController } from '../../controllers/request/RequestController.m
     ServiceRequestService
   ],
   controllers: [
-    RequestController
+    // ServiceRequestController // To be added when controller is created
   ],
   exports: [
     ServiceRequestService
@@ -64,7 +64,7 @@ export class ServiceRequestModule {
       description: 'Service request management module',
       dependencies: ['AuthModule', 'UserModule', 'ProviderModule'],
       services: ['ServiceRequestService'],
-      controllers: ['RequestController'],
+      controllers: [], // To be updated when controller is added
       features: [
         'Service request creation and management',
         'Request status tracking',
@@ -79,3 +79,4 @@ export class ServiceRequestModule {
     };
   }
 }
+

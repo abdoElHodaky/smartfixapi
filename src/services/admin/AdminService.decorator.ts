@@ -21,9 +21,6 @@ import {
   PaginatedResponseDto
 } from '../../dtos';
 
-// Import optimization utilities
-import { AggregationBuilder, ConditionalHelpers, ErrorHandlers } from '../../utils';
-
 // Import service decorators
 import {
   Singleton,
@@ -169,13 +166,11 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get user statistics - OPTIMIZED with AggregationBuilder
+   * Get user statistics
    */
   @Log('Getting user statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
   private async getUserStatistics(): Promise<any> {
-    const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    
     const [
       totalUsers,
       activeUsers,
@@ -185,15 +180,27 @@ export class AdminService implements IAdminService {
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ status: 'active' }),
-      User.countDocuments({ createdAt: { $gte: currentMonth } }),
-      // Optimized: Use AggregationBuilder for role statistics
-      AggregationBuilder.create().buildUserRoleStatistics().execute(User),
-      // Optimized: Use AggregationBuilder for user growth with date grouping
-      AggregationBuilder.create()
-        .buildDateGrouping('createdAt', { year: true, month: true })
-        .sort({ '_id.year': 1, '_id.month': 1 })
-        .limit(12)
-        .execute(User)
+      User.countDocuments({ 
+        createdAt: { 
+          $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) 
+        } 
+      }),
+      User.aggregate([
+        { $group: { _id: '$role', count: { $sum: 1 } } }
+      ]),
+      User.aggregate([
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } },
+        { $limit: 12 }
+      ])
     ]);
 
     return {
@@ -206,7 +213,7 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get provider statistics - OPTIMIZED with AggregationBuilder
+   * Get provider statistics
    */
   @Log('Getting provider statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
@@ -220,8 +227,12 @@ export class AdminService implements IAdminService {
       ServiceProvider.countDocuments(),
       ServiceProvider.countDocuments({ status: 'active' }),
       ServiceProvider.find({ averageRating: { $gte: 4.5 } }).countDocuments(),
-      // Optimized: Use AggregationBuilder for provider service statistics
-      AggregationBuilder.create().buildProviderServiceStatistics(10).execute(ServiceProvider)
+      ServiceProvider.aggregate([
+        { $unwind: '$services' },
+        { $group: { _id: '$services', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ])
     ]);
 
     return {
@@ -233,7 +244,7 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get service request statistics - OPTIMIZED with AggregationBuilder
+   * Get service request statistics
    */
   @Log('Getting service request statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
@@ -248,10 +259,14 @@ export class AdminService implements IAdminService {
       ServiceRequest.countDocuments(),
       ServiceRequest.countDocuments({ status: 'pending' }),
       ServiceRequest.countDocuments({ status: 'completed' }),
-      // Optimized: Use AggregationBuilder for status statistics
-      AggregationBuilder.create().buildStatusStatistics('status').execute(ServiceRequest),
-      // Optimized: Use AggregationBuilder for category statistics
-      AggregationBuilder.create().buildCategoryStatistics('category', 10).execute(ServiceRequest)
+      ServiceRequest.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      ServiceRequest.aggregate([
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ])
     ]);
 
     return {
@@ -265,7 +280,7 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Get review statistics - OPTIMIZED with AggregationBuilder
+   * Get review statistics
    */
   @Log('Getting review statistics')
   @Cached(15 * 60 * 1000) // Cache for 15 minutes
@@ -277,10 +292,13 @@ export class AdminService implements IAdminService {
       flaggedReviews
     ] = await Promise.all([
       Review.countDocuments(),
-      // Optimized: Use AggregationBuilder for average rating
-      AggregationBuilder.create().buildAverageRating().execute(Review),
-      // Optimized: Use AggregationBuilder for rating distribution
-      AggregationBuilder.create().buildRatingDistribution().execute(Review),
+      Review.aggregate([
+        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+      ]),
+      Review.aggregate([
+        { $group: { _id: '$rating', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
       Review.countDocuments({ flagged: true })
     ]);
 
@@ -320,54 +338,57 @@ export class AdminService implements IAdminService {
     await this.verifyAdminPermissions(adminId);
 
     try {
-      // Optimized action handlers using strategy pattern
-      const userActionHandlers = {
-        activate: async () => await User.findByIdAndUpdate(
-          userId,
-          { status: 'active', updatedAt: new Date() },
-          { new: true }
-        ).select('-password'),
-        
-        deactivate: async () => await User.findByIdAndUpdate(
-          userId,
-          { status: 'inactive', updatedAt: new Date() },
-          { new: true }
-        ).select('-password'),
-        
-        suspend: async () => await User.findByIdAndUpdate(
-          userId,
-          { 
-            status: 'suspended', 
-            suspendedAt: new Date(),
-            suspensionReason: data?.reason || 'Administrative action',
-            updatedAt: new Date()
-          },
-          { new: true }
-        ).select('-password'),
-        
-        delete: async () => {
+      let result;
+      
+      switch (action) {
+        case 'activate':
+          result = await User.findByIdAndUpdate(
+            userId,
+            { status: 'active', updatedAt: new Date() },
+            { new: true }
+          ).select('-password');
+          break;
+          
+        case 'deactivate':
+          result = await User.findByIdAndUpdate(
+            userId,
+            { status: 'inactive', updatedAt: new Date() },
+            { new: true }
+          ).select('-password');
+          break;
+          
+        case 'suspend':
+          result = await User.findByIdAndUpdate(
+            userId,
+            { 
+              status: 'suspended', 
+              suspendedAt: new Date(),
+              suspensionReason: data?.reason || 'Administrative action',
+              updatedAt: new Date()
+            },
+            { new: true }
+          ).select('-password');
+          break;
+          
+        case 'delete':
           await User.findByIdAndDelete(userId);
-          return { deleted: true };
-        },
-        
-        update_role: async () => {
+          result = { deleted: true };
+          break;
+          
+        case 'update_role':
           if (!data?.role) {
             throw new ValidationError('Role is required');
           }
-          return await User.findByIdAndUpdate(
+          result = await User.findByIdAndUpdate(
             userId,
             { role: data.role, updatedAt: new Date() },
             { new: true }
           ).select('-password');
-        }
-      };
-
-      const handler = userActionHandlers[action as keyof typeof userActionHandlers];
-      if (!handler) {
-        throw new ValidationError('Invalid action');
+          break;
+          
+        default:
+          throw new ValidationError('Invalid action');
       }
-
-      const result = await handler();
 
       return {
         success: true,
@@ -375,8 +396,10 @@ export class AdminService implements IAdminService {
         data: result
       };
     } catch (error) {
-      // Optimized: Use ErrorHandlers for standardized error handling
-      return ErrorHandlers.handleServiceError(error, `Failed to ${action} user`);
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ValidationError(`Failed to ${action} user`);
     }
   }
 
@@ -392,50 +415,53 @@ export class AdminService implements IAdminService {
     await this.verifyAdminPermissions(adminId);
 
     try {
-      // Optimized provider action handlers using strategy pattern
-      const providerActionHandlers = {
-        approve: async () => await ServiceProvider.findByIdAndUpdate(
-          providerId,
-          { 
-            status: 'active',
-            approvedAt: new Date(),
-            approvedBy: adminId,
-            updatedAt: new Date()
-          },
-          { new: true }
-        ).populate('userId', 'firstName lastName email'),
-        
-        reject: async () => await ServiceProvider.findByIdAndUpdate(
-          providerId,
-          { 
-            status: 'rejected',
-            rejectedAt: new Date(),
-            rejectedBy: adminId,
-            rejectionReason: data?.reason || 'Administrative decision',
-            updatedAt: new Date()
-          },
-          { new: true }
-        ).populate('userId', 'firstName lastName email'),
-        
-        suspend: async () => await ServiceProvider.findByIdAndUpdate(
-          providerId,
-          { 
-            status: 'suspended',
-            suspendedAt: new Date(),
-            suspendedBy: adminId,
-            suspensionReason: data?.reason || 'Administrative action',
-            updatedAt: new Date()
-          },
-          { new: true }
-        ).populate('userId', 'firstName lastName email')
-      };
-
-      const handler = providerActionHandlers[action as keyof typeof providerActionHandlers];
-      if (!handler) {
-        throw new ValidationError('Invalid action');
+      let result;
+      
+      switch (action) {
+        case 'approve':
+          result = await ServiceProvider.findByIdAndUpdate(
+            providerId,
+            { 
+              status: 'active',
+              approvedAt: new Date(),
+              approvedBy: adminId,
+              updatedAt: new Date()
+            },
+            { new: true }
+          ).populate('userId', 'firstName lastName email');
+          break;
+          
+        case 'reject':
+          result = await ServiceProvider.findByIdAndUpdate(
+            providerId,
+            { 
+              status: 'rejected',
+              rejectedAt: new Date(),
+              rejectedBy: adminId,
+              rejectionReason: data?.reason || 'Administrative decision',
+              updatedAt: new Date()
+            },
+            { new: true }
+          ).populate('userId', 'firstName lastName email');
+          break;
+          
+        case 'suspend':
+          result = await ServiceProvider.findByIdAndUpdate(
+            providerId,
+            { 
+              status: 'suspended',
+              suspendedAt: new Date(),
+              suspendedBy: adminId,
+              suspensionReason: data?.reason || 'Administrative action',
+              updatedAt: new Date()
+            },
+            { new: true }
+          ).populate('userId', 'firstName lastName email');
+          break;
+          
+        default:
+          throw new ValidationError('Invalid action');
       }
-
-      const result = await handler();
 
       return {
         success: true,
@@ -443,8 +469,10 @@ export class AdminService implements IAdminService {
         data: result
       };
     } catch (error) {
-      // Optimized: Use ErrorHandlers for standardized error handling
-      return ErrorHandlers.handleServiceError(error, `Failed to ${action} provider`);
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ValidationError(`Failed to ${action} provider`);
     }
   }
 
@@ -619,20 +647,24 @@ export class AdminService implements IAdminService {
     await this.verifyAdminPermissions(adminId);
 
     try {
-      // Optimized report generators using strategy pattern
-      const reportGenerators = {
-        user_activity: () => this.generateUserActivityReport(dateRange),
-        provider_performance: () => this.generateProviderPerformanceReport(dateRange),
-        service_requests: () => this.generateServiceRequestReport(dateRange),
-        revenue: () => this.generateRevenueReport(dateRange)
-      };
-
-      const generator = reportGenerators[reportType as keyof typeof reportGenerators];
-      if (!generator) {
-        throw new ValidationError('Invalid report type');
+      let reportData;
+      
+      switch (reportType) {
+        case 'user_activity':
+          reportData = await this.generateUserActivityReport(dateRange);
+          break;
+        case 'provider_performance':
+          reportData = await this.generateProviderPerformanceReport(dateRange);
+          break;
+        case 'service_requests':
+          reportData = await this.generateServiceRequestReport(dateRange);
+          break;
+        case 'revenue':
+          reportData = await this.generateRevenueReport(dateRange);
+          break;
+        default:
+          throw new ValidationError('Invalid report type');
       }
-
-      const reportData = await generator();
 
       return {
         success: true,
@@ -653,13 +685,33 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Generate user activity report - OPTIMIZED with AggregationBuilder
+   * Generate user activity report
    */
   private async generateUserActivityReport(dateRange?: { from: Date; to: Date }): Promise<any> {
-    // Optimized: Use AggregationBuilder for user activity report
-    return await AggregationBuilder.create()
-      .buildUserActivityReport(dateRange)
-      .execute(User);
+    const matchStage: any = {};
+    if (dateRange) {
+      matchStage.createdAt = { $gte: dateRange.from, $lte: dateRange.to };
+    }
+
+    return await User.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          newUsers: { $sum: 1 },
+          activeUsers: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'active'] }, 1, 0]
+            }
+          }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+    ]);
   }
 
   /**
@@ -675,13 +727,24 @@ export class AdminService implements IAdminService {
   }
 
   /**
-   * Generate service request report - OPTIMIZED with AggregationBuilder
+   * Generate service request report
    */
   private async generateServiceRequestReport(dateRange?: { from: Date; to: Date }): Promise<any> {
-    // Optimized: Use AggregationBuilder for service request statistics
-    return await AggregationBuilder.create()
-      .buildServiceRequestStatistics(dateRange)
-      .execute(ServiceRequest);
+    const matchStage: any = {};
+    if (dateRange) {
+      matchStage.createdAt = { $gte: dateRange.from, $lte: dateRange.to };
+    }
+
+    return await ServiceRequest.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          averageBudget: { $avg: '$budget' }
+        }
+      }
+    ]);
   }
 
   /**
@@ -696,3 +759,4 @@ export class AdminService implements IAdminService {
     };
   }
 }
+

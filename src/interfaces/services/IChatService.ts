@@ -19,6 +19,7 @@ export interface IChatService {
   markMessageAsRead(messageId: string, userId: string): Promise<ApiResponseDto>;
   markConversationAsRead(conversationId: string, userId: string): Promise<ApiResponseDto>;
   deleteMessage(messageId: string, userId: string): Promise<ApiResponseDto>;
+  editMessage(conversationId: string, messageId: string, content: string, userId: string): Promise<ApiResponseDto>;
   
   // Message Search and Filtering
   searchMessages(filters: ChatFiltersDto): Promise<PaginatedResponseDto<any>>;
@@ -43,4 +44,3 @@ export interface IChatService {
   unblockUser(userId: string, blockedUserId: string): Promise<ApiResponseDto>;
   getBlockedUsers(userId: string): Promise<string[]>;
 }
-
