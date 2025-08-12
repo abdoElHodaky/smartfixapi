@@ -16,7 +16,7 @@ import {
   IServiceRequestService, 
   IReviewService, 
   IAdminService, 
-  IChatService 
+  IChatService, 
 } from '../interfaces/services';
 
 // Configuration options
@@ -41,7 +41,7 @@ export class OptimizedContainer {
       enablePerformanceTracking: true,
       enableServiceMetrics: true,
       optimizationLevel: 'advanced',
-      ...config
+      ...config,
     };
 
     this.container = new Container();
@@ -67,7 +67,7 @@ export class OptimizedContainer {
     }
 
     console.log('🚀 Initializing Optimized Container...');
-    console.log(`📊 Configuration:`, this.config);
+    console.log('📊 Configuration:', this.config);
 
     try {
       await this.optimizedRegistry.initialize();
@@ -108,32 +108,32 @@ export class OptimizedContainer {
     this.container.provide([
       {
         provide: 'AuthService',
-        useFactory: () => this.getAuthService()
+        useFactory: () => this.getAuthService(),
       },
       {
         provide: 'UserService',
-        useFactory: () => this.getUserService()
+        useFactory: () => this.getUserService(),
       },
       {
         provide: 'ProviderService',
-        useFactory: () => this.getProviderService()
+        useFactory: () => this.getProviderService(),
       },
       {
         provide: 'ServiceRequestService',
-        useFactory: () => this.getServiceRequestService()
+        useFactory: () => this.getServiceRequestService(),
       },
       {
         provide: 'ReviewService',
-        useFactory: () => this.getReviewService()
+        useFactory: () => this.getReviewService(),
       },
       {
         provide: 'AdminService',
-        useFactory: () => this.getAdminService()
+        useFactory: () => this.getAdminService(),
       },
       {
         provide: 'ChatService',
-        useFactory: () => this.getChatService()
-      }
+        useFactory: () => this.getChatService(),
+      },
     ]);
   }
 
@@ -299,9 +299,9 @@ export class OptimizedContainer {
     return {
       container: {
         initialized: this.initialized,
-        config: this.config
+        config: this.config,
       },
-      services: optimizedHealth
+      services: optimizedHealth,
     };
   }
 
@@ -361,14 +361,14 @@ export class OptimizedContainer {
         total: optimizedServices + basicServices,
         optimized: optimizedServices,
         basic: basicServices,
-        enterprise: this.getServicesByOptimizationLevel('enterprise').length
+        enterprise: this.getServicesByOptimizationLevel('enterprise').length,
       },
       features: {
         strategyPatterns: this.getServicesByOptimizationLevel('advanced').length + 
                          this.getServicesByOptimizationLevel('enterprise').length,
         commandPatterns: this.getServicesByOptimizationLevel('enterprise').length,
-        aggregationBuilders: optimizedServices
-      }
+        aggregationBuilders: optimizedServices,
+      },
     };
   }
 

@@ -3,7 +3,8 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: [
-    '**/__tests__/**/*.ts',
+    '**/__tests__/**/*.test.ts',
+    '**/__tests__/**/*.spec.ts',
     '**/?(*.)+(spec|test).ts'
   ],
   transform: {
@@ -31,4 +32,3 @@ module.exports = {
   resetMocks: true,
   restoreMocks: true
 };
-

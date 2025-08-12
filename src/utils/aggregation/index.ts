@@ -1,13 +1,7 @@
 /**
- * Aggregation Utilities Export
- * 
- * Centralized exports for MongoDB aggregation utilities
+ * Aggregation utilities export
  */
 
-export { 
-  AggregationBuilder, 
-  AggregationUtils,
-  DateGrouping,
-  StatisticsOptions,
-  LookupOptions
-} from './AggregationBuilder';
+export { AggregationBuilder, type AggregationOptions, type MatchConditions, type GroupStage, type ProjectStage, type SortStage, type LookupStage, type FacetStage } from './AggregationBuilder';
+export default AggregationBuilder;
+

@@ -35,13 +35,13 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: [true, 'First name is required'],
     trim: true,
-    maxlength: [50, 'First name cannot exceed 50 characters']
+    maxlength: [50, 'First name cannot exceed 50 characters'],
   },
   lastName: {
     type: String,
     required: [true, 'Last name is required'],
     trim: true,
-    maxlength: [50, 'Last name cannot exceed 50 characters']
+    maxlength: [50, 'Last name cannot exceed 50 characters'],
   },
   email: {
     type: String,
@@ -49,67 +49,67 @@ const userSchema = new Schema<IUser>({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
   },
   password: {
     type: String,
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters'],
-    select: false
+    select: false,
   },
   phone: {
     type: String,
     required: [true, 'Phone number is required'],
     trim: true,
-    match: [/^\+?[\d\s-()]+$/, 'Please enter a valid phone number']
+    match: [/^\+?[\d\s-()]+$/, 'Please enter a valid phone number'],
   },
   role: {
     type: String,
     enum: ['user', 'provider', 'admin'],
-    default: 'user'
+    default: 'user',
   },
   isEmailVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isPhoneVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   profileImage: {
     type: String,
-    default: null
+    default: null,
   },
   address: {
     street: { type: String, trim: true },
     city: { type: String, trim: true },
     state: { type: String, trim: true },
     zipCode: { type: String, trim: true },
-    country: { type: String, trim: true, default: 'USA' }
+    country: { type: String, trim: true, default: 'USA' },
   },
   location: {
     type: {
       type: String,
       enum: ['Point'],
-      default: 'Point'
+      default: 'Point',
     },
     coordinates: {
       type: [Number],
-      default: [0, 0]
-    }
+      default: [0, 0],
+    },
   },
   isActive: {
     type: Boolean,
-    default: true
+    default: true,
   },
   lastLogin: {
     type: Date,
-    default: null
-  }
+    default: null,
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
 });
 
 // Indexes

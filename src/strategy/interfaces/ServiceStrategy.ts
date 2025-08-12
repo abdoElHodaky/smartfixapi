@@ -199,3 +199,55 @@ export interface ProviderStatisticsInput extends StatisticsOperationInput {
   dateRange?: { from: Date; to: Date };
   includeDetails?: boolean;
 }
+
+// Additional strategy inputs for missing services
+export interface ServiceRequestMatchingInput extends BaseStrategyInput {
+  serviceRequestId: string;
+  criteria?: {
+    maxDistance?: number;
+    minRating?: number;
+    maxProviders?: number;
+  };
+}
+
+export interface ServiceRequestStatisticsInput extends StatisticsOperationInput {
+  requestId?: string;
+  userId?: string;
+  providerId?: string;
+  dateRange?: { from: Date; to: Date };
+}
+
+export interface ReviewStatisticsInput extends StatisticsOperationInput {
+  reviewId?: string;
+  userId?: string;
+  providerId?: string;
+  dateRange?: { from: Date; to: Date };
+}
+
+export interface ConversationSearchInput extends SearchOperationInput {
+  filters: {
+    userId?: string;
+    status?: string;
+    type?: string;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export interface MessageSearchInput extends SearchOperationInput {
+  filters: {
+    conversationId?: string;
+    senderId?: string;
+    query?: string;
+    messageType?: string;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export interface ChatModerationInput extends BaseStrategyInput {
+  messageId?: string;
+  conversationId?: string;
+  action: 'flag' | 'unflag' | 'delete' | 'block';
+  reason?: string;
+}

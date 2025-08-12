@@ -56,161 +56,161 @@ const serviceProviderSchema = new Schema<IServiceProvider>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: [true, 'User ID is required'],
-    unique: true
+    unique: true,
   },
   businessName: {
     type: String,
     required: [true, 'Business name is required'],
     trim: true,
-    maxlength: [100, 'Business name cannot exceed 100 characters']
+    maxlength: [100, 'Business name cannot exceed 100 characters'],
   },
   description: {
     type: String,
     required: [true, 'Description is required'],
     trim: true,
-    maxlength: [1000, 'Description cannot exceed 1000 characters']
+    maxlength: [1000, 'Description cannot exceed 1000 characters'],
   },
   services: [{
     type: String,
     required: true,
-    trim: true
+    trim: true,
   }],
   serviceArea: {
     type: {
       type: String,
       enum: ['Point'],
-      default: 'Point'
+      default: 'Point',
     },
     coordinates: {
       type: [Number],
-      required: [true, 'Service area coordinates are required']
+      required: [true, 'Service area coordinates are required'],
     },
     radius: {
       type: Number,
       required: [true, 'Service radius is required'],
       min: [1, 'Service radius must be at least 1 km'],
-      max: [100, 'Service radius cannot exceed 100 km']
-    }
+      max: [100, 'Service radius cannot exceed 100 km'],
+    },
   },
   pricing: {
     hourlyRate: {
       type: Number,
-      min: [0, 'Hourly rate cannot be negative']
+      min: [0, 'Hourly rate cannot be negative'],
     },
     fixedPrices: [{
       service: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
       },
       price: {
         type: Number,
         required: true,
-        min: [0, 'Price cannot be negative']
+        min: [0, 'Price cannot be negative'],
       },
       description: {
         type: String,
-        trim: true
-      }
-    }]
+        trim: true,
+      },
+    }],
   },
   availability: {
     monday: {
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
-      available: { type: Boolean, default: true }
+      available: { type: Boolean, default: true },
     },
     tuesday: {
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
-      available: { type: Boolean, default: true }
+      available: { type: Boolean, default: true },
     },
     wednesday: {
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
-      available: { type: Boolean, default: true }
+      available: { type: Boolean, default: true },
     },
     thursday: {
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
-      available: { type: Boolean, default: true }
+      available: { type: Boolean, default: true },
     },
     friday: {
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
-      available: { type: Boolean, default: true }
+      available: { type: Boolean, default: true },
     },
     saturday: {
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
-      available: { type: Boolean, default: false }
+      available: { type: Boolean, default: false },
     },
     sunday: {
       start: { type: String, default: '09:00' },
       end: { type: String, default: '17:00' },
-      available: { type: Boolean, default: false }
-    }
+      available: { type: Boolean, default: false },
+    },
   },
   documents: {
     businessLicense: { type: String },
     insurance: { type: String },
-    certifications: [{ type: String }]
+    certifications: [{ type: String }],
   },
   portfolio: [{
     title: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     description: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     images: [{ type: String }],
     completedDate: {
       type: Date,
-      required: true
-    }
+      required: true,
+    },
   }],
   rating: {
     average: {
       type: Number,
       default: 0,
       min: 0,
-      max: 5
+      max: 5,
     },
     count: {
       type: Number,
       default: 0,
-      min: 0
-    }
+      min: 0,
+    },
   },
   isVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isAvailable: {
     type: Boolean,
-    default: true
+    default: true,
   },
   completedJobs: {
     type: Number,
     default: 0,
-    min: 0
+    min: 0,
   },
   joinedDate: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   lastActiveDate: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
 });
 
 // Indexes
@@ -227,7 +227,7 @@ serviceProviderSchema.virtual('user', {
   ref: 'User',
   localField: 'userId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Method to update rating

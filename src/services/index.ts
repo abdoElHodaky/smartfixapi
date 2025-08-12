@@ -29,36 +29,36 @@ export { OptimizedServiceRegistry } from './ServiceRegistry.optimized';
 export type {
   UserRegistrationData,
   ServiceProviderRegistrationData,
-  LoginCredentials
+  LoginCredentials,
 } from './auth/AuthService.decorator';
 
 export type {
   UserUpdateData,
-  UserSearchFilters
+  UserSearchFilters,
 } from './user/UserService.decorator';
 
 export type {
   ProviderUpdateData,
   ProviderSearchFilters,
-  PortfolioItem
+  PortfolioItem,
 } from './provider/ProviderService.decorator';
 
 export type {
-  ServiceMatchCriteria
+  ServiceMatchCriteria,
 } from './request/ServiceRequestService.decorator';
 
 export type {
   MessageData,
-  ChatFilters
+  ChatFilters,
 } from './chat/ChatService.decorator';
 
 export type {
   ReviewData,
   ReviewFilters,
-  ReviewUpdateData
+  ReviewUpdateData,
 } from './review/ReviewService.decorator';
 
 export type {
   AdminDashboardData,
-  PlatformStatistics
+  PlatformStatistics,
 } from './admin/AdminService.decorator';

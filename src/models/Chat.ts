@@ -32,18 +32,18 @@ const messageSchema = new Schema<IMessage>({
   senderId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Sender ID is required']
+    required: [true, 'Sender ID is required'],
   },
   content: {
     type: String,
     required: [true, 'Message content is required'],
     trim: true,
-    maxlength: [2000, 'Message cannot exceed 2000 characters']
+    maxlength: [2000, 'Message cannot exceed 2000 characters'],
   },
   messageType: {
     type: String,
     enum: ['text', 'image', 'file', 'location'],
-    default: 'text'
+    default: 'text',
   },
   attachments: [{
     type: String,
@@ -51,32 +51,32 @@ const messageSchema = new Schema<IMessage>({
       validator: function(url: string) {
         return /^https?:\/\/.+/.test(url);
       },
-      message: 'Please provide a valid URL'
-    }
+      message: 'Please provide a valid URL',
+    },
   }],
   readBy: [{
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
     },
     readAt: {
       type: Date,
-      default: Date.now
-    }
+      default: Date.now,
+    },
   }],
   isEdited: {
     type: Boolean,
-    default: false
+    default: false,
   },
   editedAt: {
     type: Date,
-    default: null
+    default: null,
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 }, { _id: true });
 
 const chatSchema = new Schema<IChat>({
@@ -84,35 +84,35 @@ const chatSchema = new Schema<IChat>({
     type: Schema.Types.ObjectId,
     ref: 'ServiceRequest',
     required: [true, 'Service request ID is required'],
-    unique: true
+    unique: true,
   },
   participants: [{
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   }],
   messages: [messageSchema],
   lastMessage: {
     content: {
       type: String,
-      trim: true
+      trim: true,
     },
     senderId: {
       type: Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
     },
     timestamp: {
-      type: Date
-    }
+      type: Date,
+    },
   },
   isActive: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
 });
 
 // Indexes
@@ -127,14 +127,14 @@ chatSchema.virtual('serviceRequest', {
   ref: 'ServiceRequest',
   localField: 'serviceRequestId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Virtual to populate participant details
 chatSchema.virtual('participantDetails', {
   ref: 'User',
   localField: 'participants',
-  foreignField: '_id'
+  foreignField: '_id',
 });
 
 // Method to add a message
@@ -146,10 +146,10 @@ chatSchema.methods.addMessage = function(senderId: string, content: string, mess
     attachments,
     readBy: [{
       userId: new mongoose.Types.ObjectId(senderId),
-      readAt: new Date()
+      readAt: new Date(),
     }],
     isEdited: false,
-    timestamp: new Date()
+    timestamp: new Date(),
   };
 
   this.messages.push(message);
@@ -158,7 +158,7 @@ chatSchema.methods.addMessage = function(senderId: string, content: string, mess
   this.lastMessage = {
     content,
     senderId: new mongoose.Types.ObjectId(senderId),
-    timestamp: new Date()
+    timestamp: new Date(),
   };
 
   return this.save();
@@ -178,13 +178,13 @@ chatSchema.methods.markAsRead = function(userId: string, messageIds?: string[]) 
     
     // Check if user has already read this message
     const hasRead = message.readBy.some((read: any) => 
-      read.userId.toString() === userObjectId.toString()
+      read.userId.toString() === userObjectId.toString(),
     );
     
     if (!hasRead) {
       message.readBy.push({
         userId: userObjectId,
-        readAt: new Date()
+        readAt: new Date(),
       });
     }
   });
@@ -204,7 +204,7 @@ chatSchema.methods.getUnreadCount = function(userId: string) {
     
     // Check if user has read this message
     return !message.readBy.some((read: any) => 
-      read.userId.toString() === userObjectId.toString()
+      read.userId.toString() === userObjectId.toString(),
     );
   }).length;
 };
@@ -243,7 +243,7 @@ chatSchema.methods.getMessages = function(page: number = 1, limit: number = 50) 
     currentPage: page,
     totalPages: Math.ceil(this.messages.length / limit),
     hasNext: endIndex < this.messages.length,
-    hasPrev: page > 1
+    hasPrev: page > 1,
   };
 };
 
@@ -253,13 +253,13 @@ chatSchema.statics.findUserChats = function(userId: string, page: number = 1, li
   
   return this.find({ 
     participants: new mongoose.Types.ObjectId(userId),
-    isActive: true 
+    isActive: true, 
   })
-  .populate('serviceRequest', 'title status')
-  .populate('participants', 'firstName lastName profileImage')
-  .sort({ 'lastMessage.timestamp': -1 })
-  .skip(skip)
-  .limit(limit);
+    .populate('serviceRequest', 'title status')
+    .populate('participants', 'firstName lastName profileImage')
+    .sort({ 'lastMessage.timestamp': -1 })
+    .skip(skip)
+    .limit(limit);
 };
 
 // Static method to create a new chat
@@ -274,7 +274,7 @@ chatSchema.statics.createChat = async function(serviceRequestId: string, partici
     serviceRequestId: new mongoose.Types.ObjectId(serviceRequestId),
     participants: participants.map(id => new mongoose.Types.ObjectId(id)),
     messages: [],
-    isActive: true
+    isActive: true,
   });
   
   return chat.save();

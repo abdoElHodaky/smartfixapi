@@ -38,7 +38,7 @@ export class PerformanceMiddleware {
       slowRequestThreshold: 1000, // 1 second
       logSlowRequests: true,
       excludePaths: ['/health', '/metrics', '/favicon.ico'],
-      ...config
+      ...config,
     };
   }
 
@@ -84,13 +84,13 @@ export class PerformanceMiddleware {
             query: req.query,
             headers: req.performanceMiddleware?.config.trackHeaders ? req.headers : undefined,
             statusCode: res.statusCode,
-            userAgent: req.get('User-Agent')
+            userAgent: req.get('User-Agent'),
           },
           {
             statusCode: res.statusCode,
-            responseTime: duration
+            responseTime: duration,
           },
-          res.statusCode >= 400 ? new Error(`HTTP ${res.statusCode}`) : undefined
+          res.statusCode >= 400 ? new Error(`HTTP ${res.statusCode}`) : undefined,
         );
 
         // Log slow requests
@@ -139,7 +139,7 @@ export class PerformanceMiddleware {
             duration,
             args,
             result,
-            error
+            error,
           );
         }
       };
@@ -264,11 +264,11 @@ export function createPerformanceDashboardMiddleware() {
         <div class="metric-card">
             <h2>🔧 Configuration</h2>
             <pre>${JSON.stringify({
-              environment: process.env.NODE_ENV || 'development',
-              uptime: `${(summary.uptime / 1000).toFixed(2)}s`,
-              nodeVersion: process.version,
-              platform: process.platform
-            }, null, 2)}</pre>
+    environment: process.env.NODE_ENV || 'development',
+    uptime: `${(summary.uptime / 1000).toFixed(2)}s`,
+    nodeVersion: process.version,
+    platform: process.platform,
+  }, null, 2)}</pre>
         </div>
     </div>
 </body>
@@ -290,7 +290,7 @@ devMetricsCollector.initializeServiceMetrics('http_requests', {
   averageExecutionTime: 0,
   errorCount: 0,
   lastUsed: new Date(),
-  optimizationLevel: 'basic'
+  optimizationLevel: 'basic',
 });
 
 export default PerformanceMiddleware;

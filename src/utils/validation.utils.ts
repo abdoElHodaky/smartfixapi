@@ -23,8 +23,8 @@ export function IsObjectId(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid MongoDB ObjectId`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -47,8 +47,8 @@ export function IsPhoneNumber(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid phone number`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -73,8 +73,8 @@ export function IsStrongPassword(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -94,7 +94,7 @@ export function IsServiceType(validationOptions?: ValidationOptions) {
     'hvac',
     'roofing',
     'flooring',
-    'other'
+    'other',
   ];
 
   return function (object: Object, propertyName: string) {
@@ -109,8 +109,8 @@ export function IsServiceType(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be one of: ${validServiceTypes.join(', ')}`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -133,8 +133,8 @@ export function IsUserRole(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be one of: ${validRoles.join(', ')}`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -155,8 +155,8 @@ export function IsRating(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be an integer between 1 and 5`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -183,8 +183,8 @@ export function IsCoordinate(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid coordinate (latitude: -90 to 90, longitude: -180 to 180)`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -212,8 +212,8 @@ export function IsUrl(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid URL`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -237,8 +237,8 @@ export function IsTimeFormat(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be in HH:MM format (24-hour)`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -266,8 +266,8 @@ export function IsDateFormat(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be in YYYY-MM-DD format`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -290,8 +290,8 @@ export function IsCurrencyCode(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid currency code (${validCurrencies.join(', ')})`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -320,8 +320,8 @@ export function IsTimezone(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid timezone`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -351,8 +351,8 @@ export function IsImageUrl(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid image URL (jpg, jpeg, png, gif, webp, svg, bmp)`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -377,8 +377,8 @@ export function IsPostalCode(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid postal code`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -402,8 +402,8 @@ export function IsPrice(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a positive number with at most 2 decimal places`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -427,8 +427,8 @@ export function IsDurationMinutes(validationOptions?: ValidationOptions) {
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be an integer between 15 and 1440 minutes`;
-        }
-      }
+        },
+      },
     });
   };
 }
@@ -456,5 +456,5 @@ export const ValidationMessages = {
   IMAGE_URL: (field: string) => `${field} must be a valid image URL`,
   POSTAL_CODE: (field: string) => `${field} must be a valid postal code`,
   PRICE: (field: string) => `${field} must be a valid price`,
-  DURATION_MINUTES: (field: string) => `${field} must be a valid duration in minutes`
+  DURATION_MINUTES: (field: string) => `${field} must be a valid duration in minutes`,
 } as const;

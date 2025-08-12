@@ -79,9 +79,9 @@ jobs:
         env:
           NODE_ENV: production
           PORT: 3000
-          MONGODB_URI: mongodb://testuser:testpass@localhost:27017/smartfix_perf?authSource=admin
+          MONGODB_URI: ${{ secrets.TEST_MONGODB_URI || 'mongodb://testuser:testpass@localhost:27017/smartfix_perf?authSource=admin' }}
           REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret-for-performance
+          JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-for-performance' }}
 
       - name: ⏳ Wait for application
         run: |
@@ -173,9 +173,9 @@ jobs:
         env:
           NODE_ENV: production
           PORT: 3000
-          MONGODB_URI: mongodb://testuser:testpass@localhost:27017/smartfix_stress?authSource=admin
+          MONGODB_URI: ${{ secrets.TEST_MONGODB_URI || 'mongodb://testuser:testpass@localhost:27017/smartfix_stress?authSource=admin' }}
           REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret-for-stress
+          JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-for-stress' }}
 
       - name: ⏳ Wait for application
         run: |
@@ -264,9 +264,9 @@ jobs:
         env:
           NODE_ENV: production
           PORT: 3000
-          MONGODB_URI: mongodb://testuser:testpass@localhost:27017/smartfix_spike?authSource=admin
+          MONGODB_URI: ${{ secrets.TEST_MONGODB_URI || 'mongodb://testuser:testpass@localhost:27017/smartfix_spike?authSource=admin' }}
           REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret-for-spike
+          JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-for-spike' }}
 
       - name: ⏳ Wait for application
         run: |
@@ -356,9 +356,9 @@ jobs:
         env:
           NODE_ENV: production
           PORT: 3000
-          MONGODB_URI: mongodb://testuser:testpass@localhost:27017/smartfix_endurance?authSource=admin
+          MONGODB_URI: ${{ secrets.TEST_MONGODB_URI || 'mongodb://testuser:testpass@localhost:27017/smartfix_endurance?authSource=admin' }}
           REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret-for-endurance
+          JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-for-endurance' }}
 
       - name: ⏳ Wait for application
         run: |
@@ -555,4 +555,3 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.PERFORMANCE_SLACK_WEBHOOK_URL }}
-

@@ -102,7 +102,7 @@ export class OptimizedServiceRegistry {
         useStrategy: false,
         useCommands: false,
         useAggregation: false,
-        optimizationLevel: 'basic'
+        optimizationLevel: 'basic',
       },
       {
         name: 'UserService',
@@ -113,7 +113,7 @@ export class OptimizedServiceRegistry {
         useStrategy: true,
         useCommands: true,
         useAggregation: true,
-        optimizationLevel: 'advanced'
+        optimizationLevel: 'advanced',
       },
       {
         name: 'ProviderService',
@@ -124,7 +124,7 @@ export class OptimizedServiceRegistry {
         useStrategy: true,
         useCommands: true,
         useAggregation: true,
-        optimizationLevel: 'advanced'
+        optimizationLevel: 'advanced',
       },
       {
         name: 'ServiceRequestService',
@@ -135,7 +135,7 @@ export class OptimizedServiceRegistry {
         useStrategy: true,
         useCommands: true,
         useAggregation: true,
-        optimizationLevel: 'advanced'
+        optimizationLevel: 'advanced',
       },
       {
         name: 'ReviewService',
@@ -146,7 +146,7 @@ export class OptimizedServiceRegistry {
         useStrategy: true,
         useCommands: false,
         useAggregation: true,
-        optimizationLevel: 'advanced'
+        optimizationLevel: 'advanced',
       },
       {
         name: 'AdminService',
@@ -157,7 +157,7 @@ export class OptimizedServiceRegistry {
         useStrategy: true,
         useCommands: true,
         useAggregation: true,
-        optimizationLevel: 'enterprise'
+        optimizationLevel: 'enterprise',
       },
       {
         name: 'ChatService',
@@ -168,8 +168,8 @@ export class OptimizedServiceRegistry {
         useStrategy: true,
         useCommands: false,
         useAggregation: true,
-        optimizationLevel: 'advanced'
-      }
+        optimizationLevel: 'advanced',
+      },
     ];
 
     // Sort by priority for proper initialization order
@@ -208,7 +208,7 @@ export class OptimizedServiceRegistry {
         instance: serviceInstance,
         initialized: false,
         scope: definition.scope,
-        optimizationLevel: definition.optimizationLevel || 'basic'
+        optimizationLevel: definition.optimizationLevel || 'basic',
       };
 
       // Add strategy support if enabled
@@ -235,12 +235,12 @@ export class OptimizedServiceRegistry {
         averageExecutionTime: 0,
         errorCount: 0,
         lastUsed: new Date(),
-        optimizationLevel: definition.optimizationLevel || 'basic'
+        optimizationLevel: definition.optimizationLevel || 'basic',
       });
 
       // Register in container
       this.container.provide([
-        { provide: definition.name, useValue: serviceInstance }
+        { provide: definition.name, useValue: serviceInstance },
       ]);
 
       // Store optimized instance
@@ -270,21 +270,21 @@ export class OptimizedServiceRegistry {
    */
   private async initializeServiceStrategies(
     serviceInstance: OptimizedServiceInstance,
-    definition: OptimizedServiceDefinition
+    definition: OptimizedServiceDefinition,
   ): Promise<void> {
     // Service-specific strategy initialization
     switch (definition.name) {
-      case 'AdminService':
-        // AdminService strategies are initialized internally
-        break;
-      case 'UserService':
+    case 'AdminService':
+      // AdminService strategies are initialized internally
+      break;
+    case 'UserService':
         // Initialize user-specific strategies
         serviceInstance.strategies!.set('validation', new StrategyRegistry<any, any>());
-        break;
-      case 'ProviderService':
+      break;
+    case 'ProviderService':
         // Initialize provider-specific strategies
         serviceInstance.strategies!.set('approval', new AsyncStrategyRegistry<any, any>());
-        break;
+      break;
       // Add more service-specific strategy initializations as needed
     }
   }
@@ -294,20 +294,20 @@ export class OptimizedServiceRegistry {
    */
   private async initializeServiceCommands(
     serviceInstance: OptimizedServiceInstance,
-    definition: OptimizedServiceDefinition
+    definition: OptimizedServiceDefinition,
   ): Promise<void> {
     // Service-specific command initialization
     switch (definition.name) {
-      case 'AdminService':
+    case 'AdminService':
         // AdminService commands are handled by AdminCommandFactory
         serviceInstance.commands!.set('factory', AdminCommandFactory);
-        break;
-      case 'UserService':
-        // Initialize user-specific commands
-        break;
-      case 'ProviderService':
-        // Initialize provider-specific commands
-        break;
+      break;
+    case 'UserService':
+      // Initialize user-specific commands
+      break;
+    case 'ProviderService':
+      // Initialize provider-specific commands
+      break;
       // Add more service-specific command initializations as needed
     }
   }
@@ -359,7 +359,7 @@ export class OptimizedServiceRegistry {
       strategies: serviceInstance.strategies,
       commands: serviceInstance.commands,
       aggregationBuilder: serviceInstance.aggregationBuilder,
-      optimizationLevel: serviceInstance.optimizationLevel
+      optimizationLevel: serviceInstance.optimizationLevel,
     };
   }
 
@@ -413,14 +413,14 @@ export class OptimizedServiceRegistry {
     }
 
     switch (feature) {
-      case 'strategy':
-        return !!serviceInstance.strategies;
-      case 'commands':
-        return !!serviceInstance.commands;
-      case 'aggregation':
-        return !!serviceInstance.aggregationBuilder;
-      default:
-        return false;
+    case 'strategy':
+      return !!serviceInstance.strategies;
+    case 'commands':
+      return !!serviceInstance.commands;
+    case 'aggregation':
+      return !!serviceInstance.aggregationBuilder;
+    default:
+      return false;
     }
   }
 
@@ -432,12 +432,12 @@ export class OptimizedServiceRegistry {
     strategyRegistry: StrategyRegistry<any, any>;
     asyncStrategyRegistry: AsyncStrategyRegistry<any, any>;
     conditionalHelpers: typeof ConditionalHelpers;
-  } {
+    } {
     return {
       aggregationBuilder: this.globalAggregationBuilder,
       strategyRegistry: this.globalStrategyRegistry,
       asyncStrategyRegistry: this.globalAsyncStrategyRegistry,
-      conditionalHelpers: ConditionalHelpers
+      conditionalHelpers: ConditionalHelpers,
     };
   }
 
@@ -449,7 +449,7 @@ export class OptimizedServiceRegistry {
       userId,
       adminId,
       timestamp: new Date(),
-      metadata
+      metadata,
     };
   }
 
@@ -466,7 +466,7 @@ export class OptimizedServiceRegistry {
         serviceStatuses.push({
           name,
           status,
-          optimizationLevel: instance.optimizationLevel
+          optimizationLevel: instance.optimizationLevel,
         });
         
         if (!instance.initialized) {
@@ -476,7 +476,7 @@ export class OptimizedServiceRegistry {
         serviceStatuses.push({
           name,
           status: 'error',
-          optimizationLevel: instance.optimizationLevel
+          optimizationLevel: instance.optimizationLevel,
         });
         allHealthy = false;
       }
@@ -484,7 +484,7 @@ export class OptimizedServiceRegistry {
 
     return {
       healthy: allHealthy,
-      services: serviceStatuses
+      services: serviceStatuses,
     };
   }
 
