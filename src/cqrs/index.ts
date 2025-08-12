@@ -1,76 +1,186 @@
 /**
- * CQRS Module Index
+ * Modern CQRS Module Index
  * 
- * Central export point for all CQRS components
+ * Central export point for the new enhanced CQRS architecture
+ * with optimized patterns, event sourcing, and comprehensive utilities.
  */
 
-// Types
-export * from './types';
+// Core CQRS Infrastructure
+export * from './core';
 
-// Commands
-export * from './commands/admin.commands';
+// Command Implementations
+export * from './command/AdminCommands';
+export * from './command/UserCommands';
+export * from './command/index';
 
-// Queries
-export * from './queries/admin.queries';
+// Query Implementations (to be created)
+// export * from './query';
 
-// Command Handlers
-export * from './handlers/command/admin.command.handlers';
+// Event Implementations (to be created)
+// export * from './event';
 
-// Query Handlers
-export * from './handlers/query/admin.query.handlers';
-
-// Events (placeholder for future implementation)
-// export * from './events/admin.events';
+// Re-export for backward compatibility
+export {
+  EnhancedCommandBus as CommandBus,
+  EnhancedQueryBus as QueryBus,
+  EnhancedEventBus as EventBus
+} from './core';
 
 /**
- * CQRS Command Bus Interface
+ * CQRS System Factory
+ * 
+ * Provides pre-configured CQRS system instances for different environments
  */
-export interface CommandBus {
-  execute<T>(command: T): Promise<any>;
-}
+import { CQRSFactory } from './core';
 
-/**
- * CQRS Query Bus Interface
- */
-export interface QueryBus {
-  execute<T>(query: T): Promise<any>;
-}
-
-/**
- * Simple Command Bus Implementation
- */
-export class SimpleCommandBus implements CommandBus {
-  private handlers = new Map();
-
-  register(commandType: string, handler: any) {
-    this.handlers.set(commandType, handler);
+export class CQRSSystemFactory {
+  /**
+   * Create development CQRS system with full features enabled
+   */
+  static createDevelopmentSystem() {
+    return CQRSFactory.createFullCQRSSystem({
+      enableCache: true,
+      enableEventStore: true
+    });
   }
 
-  async execute<T>(command: any): Promise<any> {
-    const handler = this.handlers.get(command.type);
-    if (!handler) {
-      throw new Error(`No handler registered for command type: ${command.type}`);
-    }
-    return await handler.handle(command);
-  }
-}
-
-/**
- * Simple Query Bus Implementation
- */
-export class SimpleQueryBus implements QueryBus {
-  private handlers = new Map();
-
-  register(queryType: string, handler: any) {
-    this.handlers.set(queryType, handler);
+  /**
+   * Create production CQRS system with optimized settings
+   */
+  static createProductionSystem() {
+    return CQRSFactory.createFullCQRSSystem({
+      enableCache: true,
+      enableEventStore: false // Disable in-memory event store for production
+    });
   }
 
-  async execute<T>(query: any): Promise<any> {
-    const handler = this.handlers.get(query.type);
-    if (!handler) {
-      throw new Error(`No handler registered for query type: ${query.type}`);
-    }
-    return await handler.handle(query);
+  /**
+   * Create testing CQRS system with minimal features
+   */
+  static createTestingSystem() {
+    return CQRSFactory.createFullCQRSSystem({
+      enableCache: false,
+      enableEventStore: true
+    });
   }
 }
 
+/**
+ * CQRS Middleware Registry
+ * 
+ * Common middleware for command and query processing
+ */
+export class CQRSMiddleware {
+  /**
+   * Logging middleware for commands
+   */
+  static loggingMiddleware() {
+    return async (command: any, next: () => Promise<any>) => {
+      console.log(`[CQRS] Executing command: ${command.type}`, {
+        id: command.id,
+        timestamp: command.timestamp,
+        userId: command.metadata?.userId
+      });
+      
+      const startTime = Date.now();
+      try {
+        const result = await next();
+        const duration = Date.now() - startTime;
+        
+        console.log(`[CQRS] Command completed: ${command.type}`, {
+          success: result.success,
+          duration: `${duration}ms`
+        });
+        
+        return result;
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        console.error(`[CQRS] Command failed: ${command.type}`, {
+          error: error.message,
+          duration: `${duration}ms`
+        });
+        throw error;
+      }
+    };
+  }
+
+  /**
+   * Validation middleware for commands
+   */
+  static validationMiddleware() {
+    return async (command: any, next: () => Promise<any>) => {
+      // Basic validation
+      if (!command.type) {
+        throw new Error('Command type is required');
+      }
+      
+      if (!command.payload) {
+        throw new Error('Command payload is required');
+      }
+      
+      if (!command.metadata?.userId) {
+        throw new Error('User ID is required in command metadata');
+      }
+      
+      return await next();
+    };
+  }
+
+  /**
+   * Rate limiting middleware for commands
+   */
+  static rateLimitingMiddleware(maxRequestsPerMinute: number = 60) {
+    const requestCounts = new Map<string, { count: number; resetTime: number }>();
+    
+    return async (command: any, next: () => Promise<any>) => {
+      const userId = command.metadata?.userId;
+      if (!userId) {
+        return await next();
+      }
+      
+      const now = Date.now();
+      const windowStart = Math.floor(now / 60000) * 60000; // 1-minute window
+      
+      const userRequests = requestCounts.get(userId);
+      
+      if (!userRequests || userRequests.resetTime !== windowStart) {
+        requestCounts.set(userId, { count: 1, resetTime: windowStart });
+      } else {
+        userRequests.count++;
+        
+        if (userRequests.count > maxRequestsPerMinute) {
+          throw new Error(`Rate limit exceeded: ${maxRequestsPerMinute} requests per minute`);
+        }
+      }
+      
+      return await next();
+    };
+  }
+
+  /**
+   * Authentication middleware for commands
+   */
+  static authenticationMiddleware() {
+    return async (command: any, next: () => Promise<any>) => {
+      const userId = command.metadata?.userId;
+      const source = command.metadata?.source;
+      
+      // Skip authentication for system commands
+      if (source === 'system') {
+        return await next();
+      }
+      
+      if (!userId) {
+        throw new Error('Authentication required: User ID missing');
+      }
+      
+      // Additional authentication logic would go here
+      // For now, just ensure we have a valid user ID format
+      if (typeof userId !== 'string' || userId.length < 1) {
+        throw new Error('Invalid user ID format');
+      }
+      
+      return await next();
+    };
+  }
+}

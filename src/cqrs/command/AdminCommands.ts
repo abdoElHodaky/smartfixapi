@@ -1,13 +1,23 @@
 /**
- * CQRS Admin Command Implementations
+ * Modern CQRS Admin Command Implementations
  * 
- * Enhanced CQRS command pattern implementations for admin operations
- * with optimized execution, validation, and error handling using existing utilities.
+ * Enhanced admin commands using the new CQRS core architecture
+ * with optimized execution, validation, and event sourcing capabilities.
  */
 
 import { IsString, IsOptional, IsObject, IsEnum, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
+import { 
+  BaseCommand, 
+  ICommand, 
+  ICommandHandler, 
+  CommandResult, 
+  CommandMetadata,
+  IEvent,
+  BaseEvent,
+  EventMetadata,
+  CQRSUtils
+} from '../core';
 import { IUserService, IProviderService, IServiceRequestService } from '../../interfaces/services';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
@@ -19,38 +29,218 @@ import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { ServiceRequest } from '../../models/ServiceRequest';
 
-// Command enums
+// Admin command enums
 enum ProviderStatus {
+  PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
   SUSPENDED = 'suspended',
-  PENDING = 'pending'
+  ACTIVE = 'active'
 }
 
-enum UserAction {
-  DELETE = 'delete',
-  SUSPEND = 'suspend',
-  ACTIVATE = 'activate',
-  UPDATE_ROLE = 'update_role'
+enum UserRole {
+  USER = 'user',
+  PROVIDER = 'provider',
+  ADMIN = 'admin',
+  SUPER_ADMIN = 'super_admin'
 }
 
-// Base admin command with permission validation
-abstract class AdminCommandBase<TResult = any> extends CommandBase<TResult> {
-  @IsString()
-  @IsNotEmpty()
-  protected adminId: string;
+// Admin Events
+export class ProviderApprovedEvent extends BaseEvent {
+  constructor(
+    aggregateId: string,
+    payload: { providerId: string; adminId: string; notes?: string },
+    metadata: EventMetadata
+  ) {
+    super('PROVIDER_APPROVED', aggregateId, 'Provider', 1, payload, metadata);
+  }
+}
 
-  constructor(context: CommandContext, adminId: string) {
-    super(context);
-    this.adminId = adminId;
+export class ProviderRejectedEvent extends BaseEvent {
+  constructor(
+    aggregateId: string,
+    payload: { providerId: string; adminId: string; reason: string },
+    metadata: EventMetadata
+  ) {
+    super('PROVIDER_REJECTED', aggregateId, 'Provider', 1, payload, metadata);
+  }
+}
+
+export class ProviderSuspendedEvent extends BaseEvent {
+  constructor(
+    aggregateId: string,
+    payload: { providerId: string; adminId: string; reason: string; suspensionDetails?: any },
+    metadata: EventMetadata
+  ) {
+    super('PROVIDER_SUSPENDED', aggregateId, 'Provider', 1, payload, metadata);
+  }
+}
+
+export class UserDeletedEvent extends BaseEvent {
+  constructor(
+    aggregateId: string,
+    payload: { userId: string; adminId: string; reason?: string },
+    metadata: EventMetadata
+  ) {
+    super('USER_DELETED', aggregateId, 'User', 1, payload, metadata);
+  }
+}
+
+export class ReportGeneratedEvent extends BaseEvent {
+  constructor(
+    aggregateId: string,
+    payload: { reportType: string; adminId: string; reportData: any },
+    metadata: EventMetadata
+  ) {
+    super('REPORT_GENERATED', aggregateId, 'Report', 1, payload, metadata);
+  }
+}
+
+// Admin Commands
+export class ApproveProviderCommand extends BaseCommand {
+  constructor(
+    payload: {
+      adminId: string;
+      providerId: string;
+      notes?: string;
+    },
+    metadata: CommandMetadata
+  ) {
+    super('APPROVE_PROVIDER', payload, metadata, payload.providerId);
+  }
+}
+
+export class RejectProviderCommand extends BaseCommand {
+  constructor(
+    payload: {
+      adminId: string;
+      providerId: string;
+      reason: string;
+    },
+    metadata: CommandMetadata
+  ) {
+    super('REJECT_PROVIDER', payload, metadata, payload.providerId);
+  }
+}
+
+export class SuspendProviderCommand extends BaseCommand {
+  constructor(
+    payload: {
+      adminId: string;
+      providerId: string;
+      reason: string;
+      suspensionDetails?: any;
+    },
+    metadata: CommandMetadata
+  ) {
+    super('SUSPEND_PROVIDER', payload, metadata, payload.providerId);
+  }
+}
+
+export class DeleteUserCommand extends BaseCommand {
+  constructor(
+    payload: {
+      adminId: string;
+      userId: string;
+      reason?: string;
+    },
+    metadata: CommandMetadata
+  ) {
+    super('DELETE_USER', payload, metadata, payload.userId);
+  }
+}
+
+export class GenerateReportCommand extends BaseCommand {
+  constructor(
+    payload: {
+      adminId: string;
+      reportType: string;
+      dateRange?: { from: Date; to: Date };
+      filters?: Record<string, any>;
+      paginationOptions?: PaginationOptions;
+    },
+    metadata: CommandMetadata
+  ) {
+    super('GENERATE_REPORT', payload, metadata);
+  }
+}
+
+export class BulkUpdateUserRolesCommand extends BaseCommand {
+  constructor(
+    payload: {
+      adminId: string;
+      userRoleUpdates: { userId: string; newRole: string }[];
+      reason?: string;
+    },
+    metadata: CommandMetadata
+  ) {
+    super('BULK_UPDATE_USER_ROLES', payload, metadata);
+  }
+}
+
+// Command Handlers
+export class ApproveProviderHandler implements ICommandHandler<ApproveProviderCommand> {
+  constructor(
+    private providerService: IProviderService,
+    private userService: IUserService
+  ) {}
+
+  canHandle(command: ICommand): boolean {
+    return command.type === 'APPROVE_PROVIDER';
   }
 
-  /**
-   * Validate admin permissions before execution
-   */
-  protected async validateAdminPermissions(userService: IUserService): Promise<void> {
-    const admin = await userService.getUserById(this.adminId);
+  async handle(command: ApproveProviderCommand): Promise<CommandResult> {
+    try {
+      // Validate admin permissions
+      await this.validateAdminPermissions(command.payload.adminId);
+
+      // Approve provider
+      await this.providerService.updateProviderStatus(
+        command.payload.providerId,
+        ProviderStatus.APPROVED
+      );
+
+      // Create event
+      const event = new ProviderApprovedEvent(
+        command.payload.providerId,
+        {
+          providerId: command.payload.providerId,
+          adminId: command.payload.adminId,
+          notes: command.payload.notes
+        },
+        CQRSUtils.createEventMetadata(
+          command.payload.adminId,
+          command.metadata.correlationId,
+          command.id
+        )
+      );
+
+      return {
+        success: true,
+        data: {
+          providerId: command.payload.providerId,
+          status: ProviderStatus.APPROVED,
+          approvedBy: command.payload.adminId,
+          approvedAt: new Date(),
+          notes: command.payload.notes
+        },
+        events: [event]
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  private async validateAdminPermissions(adminId: string): Promise<void> {
+    const admin = await this.userService.getUserById(adminId);
     
+    if (!admin) {
+      throw new Error('Admin user not found');
+    }
+
     const roleCheck = ConditionalHelpers.validateUserRole(admin, {
       allowedRoles: ['admin', 'super_admin'],
       requireActive: true,
@@ -58,400 +248,266 @@ abstract class AdminCommandBase<TResult = any> extends CommandBase<TResult> {
     });
 
     if (!roleCheck.isValid) {
-      throw new Error(`Insufficient permissions: ${roleCheck.errors.join(', ')}`);
+      throw new Error(`Insufficient admin permissions: ${roleCheck.errors.join(', ')}`);
     }
   }
 }
 
-/**
- * Command to approve a service provider
- */
-export class ApproveProviderCommand extends AdminCommandBase<CommandResult> {
-  @IsString()
-  @IsNotEmpty()
-  private providerId: string;
-
-  @IsOptional()
-  @IsString()
-  private notes?: string;
-
+export class RejectProviderHandler implements ICommandHandler<RejectProviderCommand> {
   constructor(
-    context: CommandContext,
-    adminId: string,
-    providerId: string,
-    notes?: string,
-    private providerService?: IProviderService,
-    private userService?: IUserService
-  ) {
-    super(context, adminId);
-    this.providerId = providerId;
-    this.notes = notes;
+    private providerService: IProviderService,
+    private userService: IUserService
+  ) {}
+
+  canHandle(command: ICommand): boolean {
+    return command.type === 'REJECT_PROVIDER';
   }
 
-  async execute(): Promise<CommandResult> {
+  async handle(command: RejectProviderCommand): Promise<CommandResult> {
     try {
       // Validate admin permissions
-      await this.validateAdminPermissions(this.userService!);
+      await this.validateAdminPermissions(command.payload.adminId);
 
-      // Check if provider exists
-      const provider = await this.providerService!.getProviderById(this.providerId);
-      if (!provider) {
-        return CommandResult.failure('Provider not found');
-      }
-
-      // Check if provider is in pending status
-      if (provider.status !== 'pending') {
-        return CommandResult.failure(`Provider is not in pending status. Current status: ${provider.status}`);
-      }
-
-      // Update provider status
-      await this.providerService!.updateProviderStatus(this.providerId, ProviderStatus.APPROVED);
-
-      // Log the action
-      console.log(`Provider ${this.providerId} approved by admin ${this.adminId}`);
-
-      return CommandResult.success(
-        { 
-          providerId: this.providerId, 
-          status: ProviderStatus.APPROVED,
-          approvedBy: this.adminId,
-          approvedAt: new Date(),
-          notes: this.notes
-        },
-        'Provider approved successfully'
+      // Reject provider
+      await this.providerService.updateProviderStatus(
+        command.payload.providerId,
+        ProviderStatus.REJECTED
       );
-    } catch (error) {
-      return CommandResult.failure('Failed to approve provider', [error.message]);
-    }
-  }
 
-  async undo(): Promise<void> {
-    if (this.providerService) {
-      await this.providerService.updateProviderStatus(this.providerId, ProviderStatus.PENDING);
-      console.log(`Provider ${this.providerId} approval undone by admin ${this.adminId}`);
-    }
-  }
-}
+      // Create event
+      const event = new ProviderRejectedEvent(
+        command.payload.providerId,
+        {
+          providerId: command.payload.providerId,
+          adminId: command.payload.adminId,
+          reason: command.payload.reason
+        },
+        CQRSUtils.createEventMetadata(
+          command.payload.adminId,
+          command.metadata.correlationId,
+          command.id
+        )
+      );
 
-/**
- * Command to reject a service provider
- */
-export class RejectProviderCommand extends AdminCommandBase<CommandResult> {
-  @IsString()
-  @IsNotEmpty()
-  private providerId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  private reason: string;
-
-  constructor(
-    context: CommandContext,
-    adminId: string,
-    providerId: string,
-    reason: string,
-    private providerService?: IProviderService,
-    private userService?: IUserService
-  ) {
-    super(context, adminId);
-    this.providerId = providerId;
-    this.reason = reason;
-  }
-
-  async execute(): Promise<CommandResult> {
-    try {
-      // Validate admin permissions
-      await this.validateAdminPermissions(this.userService!);
-
-      // Check if provider exists
-      const provider = await this.providerService!.getProviderById(this.providerId);
-      if (!provider) {
-        return CommandResult.failure('Provider not found');
-      }
-
-      // Update provider status
-      await this.providerService!.updateProviderStatus(this.providerId, ProviderStatus.REJECTED);
-
-      // Log the action
-      console.log(`Provider ${this.providerId} rejected by admin ${this.adminId}. Reason: ${this.reason}`);
-
-      return CommandResult.success(
-        { 
-          providerId: this.providerId, 
+      return {
+        success: true,
+        data: {
+          providerId: command.payload.providerId,
           status: ProviderStatus.REJECTED,
-          rejectedBy: this.adminId,
+          rejectedBy: command.payload.adminId,
           rejectedAt: new Date(),
-          reason: this.reason
+          reason: command.payload.reason
         },
-        'Provider rejected successfully'
-      );
+        events: [event]
+      };
     } catch (error) {
-      return CommandResult.failure('Failed to reject provider', [error.message]);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 
-  async undo(): Promise<void> {
-    if (this.providerService) {
-      await this.providerService.updateProviderStatus(this.providerId, ProviderStatus.PENDING);
-      console.log(`Provider ${this.providerId} rejection undone by admin ${this.adminId}`);
+  private async validateAdminPermissions(adminId: string): Promise<void> {
+    const admin = await this.userService.getUserById(adminId);
+    
+    if (!admin) {
+      throw new Error('Admin user not found');
+    }
+
+    const roleCheck = ConditionalHelpers.validateUserRole(admin, {
+      allowedRoles: ['admin', 'super_admin'],
+      requireActive: true,
+      requireEmailVerified: true
+    });
+
+    if (!roleCheck.isValid) {
+      throw new Error(`Insufficient admin permissions: ${roleCheck.errors.join(', ')}`);
     }
   }
 }
 
-/**
- * Command to suspend a service provider
- */
-export class SuspendProviderCommand extends AdminCommandBase<CommandResult> {
-  @IsString()
-  @IsNotEmpty()
-  private providerId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  private reason: string;
-
-  @IsOptional()
-  @IsObject()
-  private suspensionDetails?: {
-    duration?: number; // days
-    canAppeal?: boolean;
-    appealDeadline?: Date;
-  };
-
+export class SuspendProviderHandler implements ICommandHandler<SuspendProviderCommand> {
   constructor(
-    context: CommandContext,
-    adminId: string,
-    providerId: string,
-    reason: string,
-    suspensionDetails?: any,
-    private providerService?: IProviderService,
-    private userService?: IUserService
-  ) {
-    super(context, adminId);
-    this.providerId = providerId;
-    this.reason = reason;
-    this.suspensionDetails = suspensionDetails;
+    private providerService: IProviderService,
+    private userService: IUserService
+  ) {}
+
+  canHandle(command: ICommand): boolean {
+    return command.type === 'SUSPEND_PROVIDER';
   }
 
-  async execute(): Promise<CommandResult> {
+  async handle(command: SuspendProviderCommand): Promise<CommandResult> {
     try {
       // Validate admin permissions
-      await this.validateAdminPermissions(this.userService!);
+      await this.validateAdminPermissions(command.payload.adminId);
 
-      // Check if provider exists
-      const provider = await this.providerService!.getProviderById(this.providerId);
-      if (!provider) {
-        return CommandResult.failure('Provider not found');
-      }
+      // Suspend provider
+      await this.providerService.updateProviderStatus(
+        command.payload.providerId,
+        ProviderStatus.SUSPENDED
+      );
 
-      // Update provider status
-      await this.providerService!.updateProviderStatus(this.providerId, ProviderStatus.SUSPENDED);
+      // Create event
+      const event = new ProviderSuspendedEvent(
+        command.payload.providerId,
+        {
+          providerId: command.payload.providerId,
+          adminId: command.payload.adminId,
+          reason: command.payload.reason,
+          suspensionDetails: command.payload.suspensionDetails
+        },
+        CQRSUtils.createEventMetadata(
+          command.payload.adminId,
+          command.metadata.correlationId,
+          command.id
+        )
+      );
 
-      // Log the action
-      console.log(`Provider ${this.providerId} suspended by admin ${this.adminId}. Reason: ${this.reason}`);
-
-      return CommandResult.success(
-        { 
-          providerId: this.providerId, 
+      return {
+        success: true,
+        data: {
+          providerId: command.payload.providerId,
           status: ProviderStatus.SUSPENDED,
-          suspendedBy: this.adminId,
+          suspendedBy: command.payload.adminId,
           suspendedAt: new Date(),
-          reason: this.reason,
-          suspensionDetails: this.suspensionDetails
+          reason: command.payload.reason,
+          suspensionDetails: command.payload.suspensionDetails
         },
-        'Provider suspended successfully'
-      );
+        events: [event]
+      };
     } catch (error) {
-      return CommandResult.failure('Failed to suspend provider', [error.message]);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 
-  async undo(): Promise<void> {
-    if (this.providerService) {
-      await this.providerService.updateProviderStatus(this.providerId, ProviderStatus.APPROVED);
-      console.log(`Provider ${this.providerId} suspension undone by admin ${this.adminId}`);
+  private async validateAdminPermissions(adminId: string): Promise<void> {
+    const admin = await this.userService.getUserById(adminId);
+    
+    if (!admin) {
+      throw new Error('Admin user not found');
+    }
+
+    const roleCheck = ConditionalHelpers.validateUserRole(admin, {
+      allowedRoles: ['admin', 'super_admin'],
+      requireActive: true,
+      requireEmailVerified: true
+    });
+
+    if (!roleCheck.isValid) {
+      throw new Error(`Insufficient admin permissions: ${roleCheck.errors.join(', ')}`);
     }
   }
 }
 
-/**
- * Command to delete a user
- */
-export class DeleteUserCommand extends AdminCommandBase<CommandResult> {
-  @IsString()
-  @IsNotEmpty()
-  private userId: string;
-
-  @IsOptional()
-  @IsString()
-  private reason?: string;
-
-  private deletedUserData?: any; // For undo operation
-
+export class GenerateReportHandler implements ICommandHandler<GenerateReportCommand> {
   constructor(
-    context: CommandContext,
-    adminId: string,
-    userId: string,
-    reason?: string,
-    private userService?: IUserService
-  ) {
-    super(context, adminId);
-    this.userId = userId;
-    this.reason = reason;
+    private userService: IUserService
+  ) {}
+
+  canHandle(command: ICommand): boolean {
+    return command.type === 'GENERATE_REPORT';
   }
 
-  async execute(): Promise<CommandResult> {
+  async handle(command: GenerateReportCommand): Promise<CommandResult> {
     try {
       // Validate admin permissions
-      await this.validateAdminPermissions(this.userService!);
+      await this.validateAdminPermissions(command.payload.adminId);
 
-      // Check if user exists and get user data for potential undo
-      const user = await this.userService!.getUserById(this.userId);
-      if (!user) {
-        return CommandResult.failure('User not found');
-      }
+      // Generate report based on type
+      let reportData: any;
+      const reportStrategies = new AsyncStrategyRegistry<any, any>();
 
-      // Prevent admin from deleting themselves
-      if (this.userId === this.adminId) {
-        return CommandResult.failure('Cannot delete your own account');
-      }
+      // Register report strategies
+      reportStrategies.register('user_activity', {
+        execute: async (input: any) => this.generateUserActivityReport(input)
+      });
 
-      // Store user data for undo operation
-      this.deletedUserData = { ...user };
+      reportStrategies.register('provider_performance', {
+        execute: async (input: any) => this.generateProviderPerformanceReport(input)
+      });
 
-      // Delete the user
-      await this.userService!.deleteUser(this.userId);
+      reportStrategies.register('service_requests', {
+        execute: async (input: any) => this.generateServiceRequestReport(input)
+      });
 
-      // Log the action
-      console.log(`User ${this.userId} deleted by admin ${this.adminId}. Reason: ${this.reason || 'Not specified'}`);
+      reportStrategies.register('revenue', {
+        execute: async (input: any) => this.generateRevenueReport(input)
+      });
 
-      return CommandResult.success(
-        { 
-          userId: this.userId,
-          deletedBy: this.adminId,
-          deletedAt: new Date(),
-          reason: this.reason
-        },
-        'User deleted successfully'
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to delete user', [error.message]);
-    }
-  }
-
-  async undo(): Promise<void> {
-    if (this.userService && this.deletedUserData) {
-      // Note: This would require a restore user method in the service
-      console.log(`User ${this.userId} deletion undone by admin ${this.adminId}`);
-      // await this.userService.restoreUser(this.deletedUserData);
-    }
-  }
-}
-
-/**
- * Enhanced CQRS command to generate admin reports using optimized utilities
- */
-export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
-  @IsString()
-  @IsNotEmpty()
-  private reportType: string;
-
-  @IsOptional()
-  @IsObject()
-  private dateRange?: { from: Date; to: Date };
-
-  @IsOptional()
-  @IsObject()
-  private filters?: Record<string, any>;
-
-  @IsOptional()
-  @IsObject()
-  private paginationOptions?: PaginationOptions;
-
-  private reportStrategies: AsyncStrategyRegistry<any, any>;
-
-  constructor(
-    context: CommandContext,
-    adminId: string,
-    reportType: string,
-    dateRange?: { from: Date; to: Date },
-    filters?: Record<string, any>,
-    paginationOptions?: PaginationOptions,
-    private userService?: IUserService
-  ) {
-    super(context, adminId);
-    this.reportType = reportType;
-    this.dateRange = dateRange;
-    this.filters = filters;
-    this.paginationOptions = paginationOptions;
-    this.initializeReportStrategies();
-  }
-
-  private initializeReportStrategies(): void {
-    this.reportStrategies = new AsyncStrategyRegistry<any, any>();
-    
-    // Register optimized report strategies
-    this.reportStrategies.register('user_activity', {
-      execute: async (input: any) => this.generateUserActivityReport(input)
-    });
-    
-    this.reportStrategies.register('provider_performance', {
-      execute: async (input: any) => this.generateProviderPerformanceReport(input)
-    });
-    
-    this.reportStrategies.register('service_requests', {
-      execute: async (input: any) => this.generateServiceRequestReport(input)
-    });
-    
-    this.reportStrategies.register('revenue', {
-      execute: async (input: any) => this.generateRevenueReport(input)
-    });
-
-    this.reportStrategies.register('advanced_analytics', {
-      execute: async (input: any) => this.generateAdvancedAnalyticsReport(input)
-    });
-  }
-
-  async execute(): Promise<CommandResult> {
-    try {
-      // Validate admin permissions
-      await this.validateAdminPermissions(this.userService!);
-
-      if (!this.reportStrategies.has(this.reportType)) {
-        return CommandResult.failure(`Unsupported report type: ${this.reportType}`);
+      if (!reportStrategies.has(command.payload.reportType)) {
+        throw new Error(`Unsupported report type: ${command.payload.reportType}`);
       }
 
       const reportInput = {
-        dateRange: this.dateRange,
-        filters: this.filters,
-        pagination: this.paginationOptions,
-        adminId: this.adminId
+        dateRange: command.payload.dateRange,
+        filters: command.payload.filters,
+        pagination: command.payload.paginationOptions,
+        adminId: command.payload.adminId
       };
 
-      const reportData = await this.reportStrategies.execute(this.reportType, reportInput);
+      reportData = await reportStrategies.execute(command.payload.reportType, reportInput);
 
-      return CommandResult.success(
+      // Create event
+      const event = new ReportGeneratedEvent(
+        `report_${Date.now()}`,
         {
-          reportType: this.reportType,
-          data: reportData,
-          generatedBy: this.adminId,
-          generatedAt: new Date(),
-          dateRange: this.dateRange,
-          filters: this.filters,
-          pagination: this.paginationOptions
+          reportType: command.payload.reportType,
+          adminId: command.payload.adminId,
+          reportData
         },
-        'Report generated successfully'
+        CQRSUtils.createEventMetadata(
+          command.payload.adminId,
+          command.metadata.correlationId,
+          command.id
+        )
       );
+
+      return {
+        success: true,
+        data: {
+          reportType: command.payload.reportType,
+          data: reportData,
+          generatedBy: command.payload.adminId,
+          generatedAt: new Date(),
+          dateRange: command.payload.dateRange,
+          filters: command.payload.filters,
+          pagination: command.payload.paginationOptions
+        },
+        events: [event]
+      };
     } catch (error) {
-      return CommandResult.failure('Failed to generate report', [error.message]);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  private async validateAdminPermissions(adminId: string): Promise<void> {
+    const admin = await this.userService.getUserById(adminId);
+    
+    if (!admin) {
+      throw new Error('Admin user not found');
+    }
+
+    const roleCheck = ConditionalHelpers.validateUserRole(admin, {
+      allowedRoles: ['admin', 'super_admin'],
+      requireActive: true,
+      requireEmailVerified: true
+    });
+
+    if (!roleCheck.isValid) {
+      throw new Error(`Insufficient admin permissions: ${roleCheck.errors.join(', ')}`);
     }
   }
 
   private async generateUserActivityReport(input: any): Promise<any> {
     const filterBuilder = new FilterBuilder();
-    const optionsBuilder = new OptionsBuilder();
 
-    // Build optimized filters
     if (input.filters) {
       if (input.filters.role) {
         filterBuilder.addFilter('role', input.filters.role);
@@ -464,12 +520,10 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
       }
     }
 
-    // Build aggregation with filters
     const aggregation = AggregationBuilder.create()
       .match(filterBuilder.build())
       .buildUserActivityReport(input.dateRange);
 
-    // Add pagination if specified
     if (input.pagination) {
       aggregation.skip(input.pagination.skip).limit(input.pagination.limit);
     }
@@ -479,9 +533,7 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
 
   private async generateProviderPerformanceReport(input: any): Promise<any> {
     const filterBuilder = new FilterBuilder();
-    const optionsBuilder = new OptionsBuilder();
 
-    // Build performance-specific filters
     if (input.filters) {
       if (input.filters.minRating) {
         filterBuilder.addRangeFilter('averageRating', { $gte: input.filters.minRating });
@@ -494,7 +546,6 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
       }
     }
 
-    // Build optimized provider performance aggregation
     const aggregation = AggregationBuilder.create()
       .match(filterBuilder.build())
       .buildTopProviders(
@@ -509,7 +560,6 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
   private async generateServiceRequestReport(input: any): Promise<any> {
     const filterBuilder = new FilterBuilder();
 
-    // Build service request filters
     if (input.filters) {
       if (input.filters.status) {
         filterBuilder.addFilter('status', input.filters.status);
@@ -538,8 +588,6 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
 
   private async generateRevenueReport(input: any): Promise<any> {
     const filterBuilder = new FilterBuilder();
-
-    // Build revenue-specific filters
     filterBuilder.addFilter('status', 'completed');
     
     if (input.filters) {
@@ -574,350 +622,174 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
     
     return await aggregation.execute(ServiceRequest);
   }
-
-  private async generateAdvancedAnalyticsReport(input: any): Promise<any> {
-    const filterBuilder = new FilterBuilder();
-    const optionsBuilder = new OptionsBuilder();
-
-    // Build comprehensive analytics
-    const [
-      userGrowth,
-      providerDistribution,
-      servicePopularity,
-      revenueAnalytics,
-      geographicDistribution
-    ] = await Promise.all([
-      // User growth analytics
-      AggregationBuilder.create()
-        .buildUserStatistics(input.dateRange)
-        .execute(User),
-      
-      // Provider distribution
-      AggregationBuilder.create()
-        .buildStatusStatistics('status')
-        .execute(ServiceProvider),
-      
-      // Service popularity
-      AggregationBuilder.create()
-        .buildCategoryStatistics('category', 20)
-        .execute(ServiceRequest),
-      
-      // Revenue analytics
-      AggregationBuilder.create()
-        .match({ status: 'completed' })
-        .buildStatistics({
-          dateField: 'completedAt',
-          groupBy: 'completedAt',
-          sumField: 'budget',
-          countField: 'totalRequests'
-        })
-        .execute(ServiceRequest),
-      
-      // Geographic distribution
-      AggregationBuilder.create()
-        .buildGeographicDistribution('location.city', 15)
-        .execute(ServiceRequest)
-    ]);
-
-    return {
-      userGrowth,
-      providerDistribution,
-      servicePopularity,
-      revenueAnalytics,
-      geographicDistribution,
-      generatedAt: new Date(),
-      reportScope: input.dateRange
-    };
-  }
 }
 
-/**
- * Command to bulk update user roles
- */
-export class BulkUpdateUserRolesCommand extends AdminCommandBase<CommandResult> {
-  @IsObject()
-  private userRoleUpdates: { userId: string; newRole: string }[];
-
-  @IsOptional()
-  @IsString()
-  private reason?: string;
-
-  constructor(
-    context: CommandContext,
-    adminId: string,
-    userRoleUpdates: { userId: string; newRole: string }[],
-    reason?: string,
-    private userService?: IUserService
-  ) {
-    super(context, adminId);
-    this.userRoleUpdates = userRoleUpdates;
-    this.reason = reason;
-  }
-
-  async execute(): Promise<CommandResult> {
-    try {
-      // Validate admin permissions
-      await this.validateAdminPermissions(this.userService!);
-
-      const results: any[] = [];
-      const errors: string[] = [];
-
-      // Process each user role update
-      for (const update of this.userRoleUpdates) {
-        try {
-          const user = await this.userService!.getUserById(update.userId);
-          if (!user) {
-            errors.push(`User ${update.userId} not found`);
-            continue;
-          }
-
-          // Update user role
-          await this.userService!.updateUserRole(update.userId, update.newRole);
-          
-          results.push({
-            userId: update.userId,
-            oldRole: user.role,
-            newRole: update.newRole,
-            updatedAt: new Date()
-          });
-
-          console.log(`User ${update.userId} role updated from ${user.role} to ${update.newRole} by admin ${this.adminId}`);
-        } catch (error) {
-          errors.push(`Failed to update user ${update.userId}: ${error.message}`);
-        }
-      }
-
-      if (errors.length > 0 && results.length === 0) {
-        return CommandResult.failure('All role updates failed', errors);
-      }
-
-      return CommandResult.success(
-        {
-          successful: results,
-          failed: errors,
-          updatedBy: this.adminId,
-          updatedAt: new Date(),
-          reason: this.reason
-        },
-        `Successfully updated ${results.length} user roles${errors.length > 0 ? ` with ${errors.length} failures` : ''}`
-      );
-    } catch (error) {
-      return CommandResult.failure('Failed to execute bulk role update', [error.message]);
-    }
-  }
-}
-
-/**
- * Enhanced CQRS Command Factory with Optimization Support
- */
-export class AdminCommandFactory {
+// Modern Command Factory using CQRS Core
+export class ModernAdminCommandFactory {
   private static commandRegistry: StrategyRegistry<any, any> = new StrategyRegistry<any, any>();
 
   static {
-    // Initialize command creation strategies
-    AdminCommandFactory.initializeCommandStrategies();
+    ModernAdminCommandFactory.initializeCommandStrategies();
   }
 
   private static initializeCommandStrategies(): void {
-    // Register command creation strategies
     this.commandRegistry.register('approve_provider', {
       execute: (params: any) => new ApproveProviderCommand(
-        params.context,
-        params.adminId,
-        params.providerId,
-        params.notes,
-        params.providerService,
-        params.userService
+        {
+          adminId: params.adminId,
+          providerId: params.providerId,
+          notes: params.notes
+        },
+        params.metadata
       )
     });
 
     this.commandRegistry.register('reject_provider', {
       execute: (params: any) => new RejectProviderCommand(
-        params.context,
-        params.adminId,
-        params.providerId,
-        params.reason,
-        params.providerService,
-        params.userService
+        {
+          adminId: params.adminId,
+          providerId: params.providerId,
+          reason: params.reason
+        },
+        params.metadata
       )
     });
 
     this.commandRegistry.register('suspend_provider', {
       execute: (params: any) => new SuspendProviderCommand(
-        params.context,
-        params.adminId,
-        params.providerId,
-        params.reason,
-        params.suspensionDetails,
-        params.providerService,
-        params.userService
+        {
+          adminId: params.adminId,
+          providerId: params.providerId,
+          reason: params.reason,
+          suspensionDetails: params.suspensionDetails
+        },
+        params.metadata
       )
     });
 
     this.commandRegistry.register('delete_user', {
       execute: (params: any) => new DeleteUserCommand(
-        params.context,
-        params.adminId,
-        params.userId,
-        params.reason,
-        params.userService
+        {
+          adminId: params.adminId,
+          userId: params.userId,
+          reason: params.reason
+        },
+        params.metadata
       )
     });
 
     this.commandRegistry.register('generate_report', {
       execute: (params: any) => new GenerateReportCommand(
-        params.context,
-        params.adminId,
-        params.reportType,
-        params.dateRange,
-        params.filters,
-        params.paginationOptions,
-        params.userService
+        {
+          adminId: params.adminId,
+          reportType: params.reportType,
+          dateRange: params.dateRange,
+          filters: params.filters,
+          paginationOptions: params.paginationOptions
+        },
+        params.metadata
       )
     });
 
     this.commandRegistry.register('bulk_update_roles', {
       execute: (params: any) => new BulkUpdateUserRolesCommand(
-        params.context,
-        params.adminId,
-        params.userRoleUpdates,
-        params.reason,
-        params.userService
+        {
+          adminId: params.adminId,
+          userRoleUpdates: params.userRoleUpdates,
+          reason: params.reason
+        },
+        params.metadata
       )
     });
   }
 
-  /**
-   * Create command using strategy pattern
-   */
-  static createCommand<T extends CommandBase>(commandType: string, params: any): T {
+  static createCommand<T extends BaseCommand>(commandType: string, params: any): T {
     if (!this.commandRegistry.has(commandType)) {
       throw new Error(`Unsupported command type: ${commandType}`);
     }
     return this.commandRegistry.execute(commandType, params);
   }
 
-  /**
-   * Get available command types
-   */
   static getAvailableCommandTypes(): string[] {
     return this.commandRegistry.getAvailableKeys();
   }
 
-  // Legacy factory methods for backward compatibility
+  // Convenience methods
   static createApproveProviderCommand(
-    context: CommandContext,
     adminId: string,
     providerId: string,
     notes?: string,
-    providerService?: IProviderService,
-    userService?: IUserService
+    metadata?: CommandMetadata
   ): ApproveProviderCommand {
     return this.createCommand('approve_provider', {
-      context, adminId, providerId, notes, providerService, userService
+      adminId,
+      providerId,
+      notes,
+      metadata: metadata || CQRSUtils.createCommandMetadata(adminId)
     });
   }
 
   static createRejectProviderCommand(
-    context: CommandContext,
     adminId: string,
     providerId: string,
     reason: string,
-    providerService?: IProviderService,
-    userService?: IUserService
+    metadata?: CommandMetadata
   ): RejectProviderCommand {
     return this.createCommand('reject_provider', {
-      context, adminId, providerId, reason, providerService, userService
-    });
-  }
-
-  static createSuspendProviderCommand(
-    context: CommandContext,
-    adminId: string,
-    providerId: string,
-    reason: string,
-    suspensionDetails?: any,
-    providerService?: IProviderService,
-    userService?: IUserService
-  ): SuspendProviderCommand {
-    return this.createCommand('suspend_provider', {
-      context, adminId, providerId, reason, suspensionDetails, providerService, userService
-    });
-  }
-
-  static createDeleteUserCommand(
-    context: CommandContext,
-    adminId: string,
-    userId: string,
-    reason?: string,
-    userService?: IUserService
-  ): DeleteUserCommand {
-    return this.createCommand('delete_user', {
-      context, adminId, userId, reason, userService
+      adminId,
+      providerId,
+      reason,
+      metadata: metadata || CQRSUtils.createCommandMetadata(adminId)
     });
   }
 
   static createGenerateReportCommand(
-    context: CommandContext,
     adminId: string,
     reportType: string,
-    dateRange?: { from: Date; to: Date },
-    filters?: Record<string, any>,
-    paginationOptions?: PaginationOptions,
-    userService?: IUserService
-  ): GenerateReportCommand {
-    return this.createCommand('generate_report', {
-      context, adminId, reportType, dateRange, filters, paginationOptions, userService
-    });
-  }
-
-  static createBulkUpdateUserRolesCommand(
-    context: CommandContext,
-    adminId: string,
-    userRoleUpdates: { userId: string; newRole: string }[],
-    reason?: string,
-    userService?: IUserService
-  ): BulkUpdateUserRolesCommand {
-    return this.createCommand('bulk_update_roles', {
-      context, adminId, userRoleUpdates, reason, userService
-    });
-  }
-
-  /**
-   * Create optimized report command with advanced filtering
-   */
-  static createAdvancedReportCommand(
-    context: CommandContext,
-    adminId: string,
-    reportConfig: {
-      type: string;
+    options?: {
       dateRange?: { from: Date; to: Date };
       filters?: Record<string, any>;
-      pagination?: PaginationOptions;
-      aggregationOptions?: any;
+      paginationOptions?: PaginationOptions;
     },
-    userService?: IUserService
+    metadata?: CommandMetadata
   ): GenerateReportCommand {
     return this.createCommand('generate_report', {
-      context,
       adminId,
-      reportType: reportConfig.type,
-      dateRange: reportConfig.dateRange,
-      filters: reportConfig.filters,
-      paginationOptions: reportConfig.pagination,
-      userService
+      reportType,
+      dateRange: options?.dateRange,
+      filters: options?.filters,
+      paginationOptions: options?.paginationOptions,
+      metadata: metadata || CQRSUtils.createCommandMetadata(adminId)
     });
   }
+}
 
-  /**
-   * Batch create multiple commands
-   */
-  static createBatchCommands(commandConfigs: Array<{
-    type: string;
-    params: any;
-  }>): CommandBase[] {
-    return commandConfigs.map(config => 
-      this.createCommand(config.type, config.params)
-    );
+// Handler Factory
+export class AdminHandlerFactory {
+  static createApproveProviderHandler(
+    providerService: IProviderService,
+    userService: IUserService
+  ): ApproveProviderHandler {
+    return new ApproveProviderHandler(providerService, userService);
+  }
+
+  static createRejectProviderHandler(
+    providerService: IProviderService,
+    userService: IUserService
+  ): RejectProviderHandler {
+    return new RejectProviderHandler(providerService, userService);
+  }
+
+  static createSuspendProviderHandler(
+    providerService: IProviderService,
+    userService: IUserService
+  ): SuspendProviderHandler {
+    return new SuspendProviderHandler(providerService, userService);
+  }
+
+  static createGenerateReportHandler(
+    userService: IUserService
+  ): GenerateReportHandler {
+    return new GenerateReportHandler(userService);
   }
 }
