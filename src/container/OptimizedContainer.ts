@@ -8,7 +8,7 @@
 import 'reflect-metadata';
 import { Container } from '@decorators/di';
 import { optimizedServiceRegistry, OptimizedServiceRegistry } from '../services/ServiceRegistry.optimized';
-import { serviceRegistry as legacyServiceRegistry } from '../services/ServiceRegistry.decorator';
+import { devMetricsCollector, DevMetricsCollector } from '../utils/performance/DevMetrics';
 import { 
   IAuthService, 
   IUserService, 
@@ -21,10 +21,8 @@ import {
 
 // Configuration options
 export interface ContainerConfig {
-  useOptimizedServices: boolean;
   enablePerformanceTracking: boolean;
   enableServiceMetrics: boolean;
-  fallbackToLegacy: boolean;
   optimizationLevel: 'basic' | 'advanced' | 'enterprise';
 }
 
@@ -40,10 +38,8 @@ export class OptimizedContainer {
 
   private constructor(config: Partial<ContainerConfig> = {}) {
     this.config = {
-      useOptimizedServices: true,
       enablePerformanceTracking: true,
       enableServiceMetrics: true,
-      fallbackToLegacy: true,
       optimizationLevel: 'advanced',
       ...config
     };
@@ -74,9 +70,23 @@ export class OptimizedContainer {
     console.log(`📊 Configuration:`, this.config);
 
     try {
-      if (this.config.useOptimizedServices) {
-        await this.optimizedRegistry.initialize();
-        console.log('✅ Optimized services initialized');
+      await this.optimizedRegistry.initialize();
+      console.log('✅ Optimized services initialized');
+
+      // Initialize development metrics for all services
+      if (this.config.enableServiceMetrics) {
+        console.log('📊 Initializing development metrics...');
+        const serviceNames = this.optimizedRegistry.getServicesByOptimizationLevel('basic')
+          .concat(this.optimizedRegistry.getServicesByOptimizationLevel('advanced'))
+          .concat(this.optimizedRegistry.getServicesByOptimizationLevel('enterprise'));
+        
+        for (const serviceName of serviceNames) {
+          const baseMetrics = this.optimizedRegistry.getServiceMetrics(serviceName);
+          if (baseMetrics && !Array.isArray(baseMetrics)) {
+            devMetricsCollector.initializeServiceMetrics(serviceName, baseMetrics);
+          }
+        }
+        console.log('✅ Development metrics initialized');
       }
 
       // Register service providers in the container
@@ -86,13 +96,7 @@ export class OptimizedContainer {
       console.log('✅ Optimized Container initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize Optimized Container:', error);
-      
-      if (this.config.fallbackToLegacy) {
-        console.log('🔄 Falling back to legacy services...');
-        await this.initializeLegacyFallback();
-      } else {
-        throw error;
-      }
+      throw error;
     }
   }
 
@@ -134,140 +138,63 @@ export class OptimizedContainer {
   }
 
   /**
-   * Initialize legacy fallback services
+   * Initialize optimized services only
    */
-  private async initializeLegacyFallback(): void {
-    console.log('🔄 Initializing legacy service fallback...');
-    // Legacy services are already initialized in ServiceRegistry.decorator.ts
+  private async initializeOptimizedServices(): Promise<void> {
+    console.log('🔄 Initializing optimized services...');
+    await this.optimizedRegistry.initialize();
     this.initialized = true;
-    console.log('✅ Legacy fallback initialized');
+    console.log('✅ Optimized services initialized');
   }
 
   /**
    * Get AuthService with optimization features
    */
   getAuthService(): IAuthService {
-    if (this.config.useOptimizedServices) {
-      try {
-        return this.optimizedRegistry.getService<IAuthService>('AuthService');
-      } catch (error) {
-        if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy AuthService:', error instanceof Error ? error.message : String(error));
-          return legacyServiceRegistry.getService<IAuthService>('AuthService');
-        }
-        throw error;
-      }
-    }
-    return legacyServiceRegistry.getService<IAuthService>('AuthService');
+    return this.optimizedRegistry.getService<IAuthService>('AuthService');
   }
 
   /**
    * Get UserService with optimization features
    */
   getUserService(): IUserService {
-    if (this.config.useOptimizedServices) {
-      try {
-        return this.optimizedRegistry.getService<IUserService>('UserService');
-      } catch (error) {
-        if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy UserService:', error instanceof Error ? error.message : String(error));
-          return legacyServiceRegistry.getService<IUserService>('UserService');
-        }
-        throw error;
-      }
-    }
-    return legacyServiceRegistry.getService<IUserService>('UserService');
+    return this.optimizedRegistry.getService<IUserService>('UserService');
   }
 
   /**
    * Get ProviderService with optimization features
    */
   getProviderService(): IProviderService {
-    if (this.config.useOptimizedServices) {
-      try {
-        return this.optimizedRegistry.getService<IProviderService>('ProviderService');
-      } catch (error) {
-        if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ProviderService:', error instanceof Error ? error.message : String(error));
-          return legacyServiceRegistry.getService<IProviderService>('ProviderService');
-        }
-        throw error;
-      }
-    }
-    return legacyServiceRegistry.getService<IProviderService>('ProviderService');
+    return this.optimizedRegistry.getService<IProviderService>('ProviderService');
   }
 
   /**
    * Get ServiceRequestService with optimization features
    */
   getServiceRequestService(): IServiceRequestService {
-    if (this.config.useOptimizedServices) {
-      try {
-        return this.optimizedRegistry.getService<IServiceRequestService>('ServiceRequestService');
-      } catch (error) {
-        if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ServiceRequestService:', error instanceof Error ? error.message : String(error));
-          return legacyServiceRegistry.getService<IServiceRequestService>('ServiceRequestService');
-        }
-        throw error;
-      }
-    }
-    return legacyServiceRegistry.getService<IServiceRequestService>('ServiceRequestService');
+    return this.optimizedRegistry.getService<IServiceRequestService>('ServiceRequestService');
   }
 
   /**
    * Get ReviewService with optimization features
    */
   getReviewService(): IReviewService {
-    if (this.config.useOptimizedServices) {
-      try {
-        return this.optimizedRegistry.getService<IReviewService>('ReviewService');
-      } catch (error) {
-        if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ReviewService:', error instanceof Error ? error.message : String(error));
-          return legacyServiceRegistry.getService<IReviewService>('ReviewService');
-        }
-        throw error;
-      }
-    }
-    return legacyServiceRegistry.getService<IReviewService>('ReviewService');
+    return this.optimizedRegistry.getService<IReviewService>('ReviewService');
   }
 
   /**
    * Get AdminService with optimization features (Strategy-based)
    */
   getAdminService(): IAdminService {
-    if (this.config.useOptimizedServices) {
-      try {
-        // Always use the optimized strategy-based AdminService
-        return this.optimizedRegistry.getService<IAdminService>('AdminService');
-      } catch (error) {
-        if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy AdminService:', error instanceof Error ? error.message : String(error));
-          return legacyServiceRegistry.getService<IAdminService>('AdminService');
-        }
-        throw error;
-      }
-    }
-    return legacyServiceRegistry.getService<IAdminService>('AdminService');
+    // Always use the optimized strategy-based AdminService
+    return this.optimizedRegistry.getService<IAdminService>('AdminService');
   }
 
   /**
    * Get ChatService with optimization features
    */
   getChatService(): IChatService {
-    if (this.config.useOptimizedServices) {
-      try {
-        return this.optimizedRegistry.getService<IChatService>('ChatService');
-      } catch (error) {
-        if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ChatService:', error instanceof Error ? error.message : String(error));
-          return legacyServiceRegistry.getService<IChatService>('ChatService');
-        }
-        throw error;
-      }
-    }
-    return legacyServiceRegistry.getService<IChatService>('ChatService');
+    return this.optimizedRegistry.getService<IChatService>('ChatService');
   }
 
   /**
@@ -296,6 +223,43 @@ export class OptimizedContainer {
     }
 
     return this.optimizedRegistry.getServiceMetrics(serviceName);
+  }
+
+  /**
+   * Get development performance metrics (enhanced)
+   */
+  getDevMetrics(serviceName?: string) {
+    if (process.env.NODE_ENV === 'production' && !this.config.enablePerformanceTracking) {
+      throw new Error('Development metrics are disabled in production');
+    }
+
+    if (serviceName) {
+      return devMetricsCollector.getServiceMetrics(serviceName);
+    }
+
+    return devMetricsCollector.getAllMetrics();
+  }
+
+  /**
+   * Get development performance summary
+   */
+  getDevPerformanceSummary() {
+    if (process.env.NODE_ENV === 'production' && !this.config.enablePerformanceTracking) {
+      throw new Error('Development metrics are disabled in production');
+    }
+
+    return devMetricsCollector.getPerformanceSummary();
+  }
+
+  /**
+   * Generate development performance report
+   */
+  generateDevReport(): string {
+    if (process.env.NODE_ENV === 'production' && !this.config.enablePerformanceTracking) {
+      throw new Error('Development metrics are disabled in production');
+    }
+
+    return devMetricsCollector.generateDevReport();
   }
 
   /**

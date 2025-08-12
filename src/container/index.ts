@@ -1,13 +1,11 @@
 /**
- * Enhanced Container Index with Optimized Service Support
+ * Unified Container Index - Optimized Service Registry Only
  * 
- * Provides both legacy compatibility and optimized service access
- * with automatic fallback and feature detection.
+ * Provides unified service access through the OptimizedContainer.
+ * Legacy service registries have been removed for consistency.
  */
 
-import { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
-import { OptimizedServiceRegistry, optimizedServiceRegistry } from '../services/ServiceRegistry.optimized';
-import { OptimizedContainer, optimizedContainer, legacyOptimizedServiceContainer } from './OptimizedContainer';
+import { OptimizedContainer, optimizedContainer } from './OptimizedContainer';
 import { moduleManager } from '../decorators/module';
 import { 
   IAuthService, 
@@ -19,144 +17,85 @@ import {
   IChatService 
 } from '../interfaces/services';
 
-// Export optimized systems
+// Export optimized systems only
 export { OptimizedServiceRegistry, optimizedServiceRegistry } from '../services/ServiceRegistry.optimized';
-export { OptimizedContainer, optimizedContainer, legacyOptimizedServiceContainer } from './OptimizedContainer';
-export { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
+export { OptimizedContainer, optimizedContainer } from './OptimizedContainer';
 export { moduleManager } from '../decorators/module';
 
-// Configuration for container behavior
-export interface ContainerMode {
-  useOptimizedServices: boolean;
-  enableAutoFallback: boolean;
-  enablePerformanceTracking: boolean;
-}
-
-// Global container configuration
-let containerMode: ContainerMode = {
-  useOptimizedServices: true,
-  enableAutoFallback: true,
-  enablePerformanceTracking: true
-};
-
 /**
- * Enhanced Service Container with Optimization Support
+ * Unified Service Container - Direct OptimizedContainer Access
  */
-class EnhancedServiceContainer {
-  private static instance: EnhancedServiceContainer;
-  private legacyServiceRegistry: DecoratorServiceRegistry;
+class UnifiedServiceContainer {
+  private static instance: UnifiedServiceContainer;
   private optimizedContainer: OptimizedContainer;
   private initialized: boolean = false;
 
   constructor() {
-    this.legacyServiceRegistry = new DecoratorServiceRegistry();
     this.optimizedContainer = optimizedContainer;
   }
 
-  static getInstance(): EnhancedServiceContainer {
-    if (!EnhancedServiceContainer.instance) {
-      EnhancedServiceContainer.instance = new EnhancedServiceContainer();
+  static getInstance(): UnifiedServiceContainer {
+    if (!UnifiedServiceContainer.instance) {
+      UnifiedServiceContainer.instance = new UnifiedServiceContainer();
     }
-    return EnhancedServiceContainer.instance;
+    return UnifiedServiceContainer.instance;
   }
 
   /**
-   * Initialize the enhanced container
+   * Initialize the unified container
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
       return;
     }
 
-    console.log('🚀 Initializing Enhanced Service Container...');
+    console.log('🚀 Initializing Unified Service Container...');
     
     try {
-      if (containerMode.useOptimizedServices) {
-        await this.optimizedContainer.initialize();
-        console.log('✅ Optimized services initialized');
-      }
+      await this.optimizedContainer.initialize();
+      console.log('✅ Optimized services initialized');
       
       this.initialized = true;
-      console.log('✅ Enhanced Service Container initialized successfully');
+      console.log('✅ Unified Service Container initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize Enhanced Service Container:', error);
-      
-      if (containerMode.enableAutoFallback) {
-        console.log('🔄 Falling back to legacy services only...');
-        containerMode.useOptimizedServices = false;
-        this.initialized = true;
-      } else {
-        throw error;
-      }
+      console.error('❌ Failed to initialize Unified Service Container:', error);
+      throw error;
     }
   }
 
-  /**
-   * Get service with automatic optimization detection
-   */
-  private getServiceWithFallback<T>(serviceName: string): T {
-    if (containerMode.useOptimizedServices) {
-      try {
-        return this.optimizedContainer.getService<T>(serviceName);
-      } catch (error) {
-        if (containerMode.enableAutoFallback) {
-          console.warn(`⚠️ Falling back to legacy ${serviceName}:`, error instanceof Error ? error.message : String(error));
-          return this.legacyServiceRegistry.getService<T>(serviceName);
-        }
-        throw error;
-      }
-    }
-    return this.legacyServiceRegistry.getService<T>(serviceName);
-  }
-
-  // Service getter methods with optimization support
+  // Direct service getter methods using optimized container
   getServiceRequestService(): IServiceRequestService {
-    return this.getServiceWithFallback<IServiceRequestService>('ServiceRequestService');
+    return this.optimizedContainer.getServiceRequestService();
   }
 
   getUserService(): IUserService {
-    return this.getServiceWithFallback<IUserService>('UserService');
+    return this.optimizedContainer.getUserService();
   }
 
   getProviderService(): IProviderService {
-    return this.getServiceWithFallback<IProviderService>('ProviderService');
+    return this.optimizedContainer.getProviderService();
   }
 
   getReviewService(): IReviewService {
-    return this.getServiceWithFallback<IReviewService>('ReviewService');
+    return this.optimizedContainer.getReviewService();
   }
 
   getAuthService(): IAuthService {
-    return this.getServiceWithFallback<IAuthService>('AuthService');
+    return this.optimizedContainer.getAuthService();
   }
 
   getAdminService(): IAdminService {
-    // Always prefer the optimized strategy-based AdminService when available
-    if (containerMode.useOptimizedServices) {
-      try {
-        return this.optimizedContainer.getAdminService();
-      } catch (error) {
-        if (containerMode.enableAutoFallback) {
-          console.warn('⚠️ Falling back to legacy AdminService:', error instanceof Error ? error.message : String(error));
-          return this.legacyServiceRegistry.getService<IAdminService>('AdminService');
-        }
-        throw error;
-      }
-    }
-    return this.legacyServiceRegistry.getService<IAdminService>('AdminService');
+    return this.optimizedContainer.getAdminService();
   }
 
   getChatService(): IChatService {
-    return this.getServiceWithFallback<IChatService>('ChatService');
+    return this.optimizedContainer.getChatService();
   }
 
   /**
    * Get optimized service with full feature access
    */
   getOptimizedService<T>(serviceName: string) {
-    if (!containerMode.useOptimizedServices) {
-      throw new Error('Optimized services are disabled');
-    }
     return this.optimizedContainer.getOptimizedService<T>(serviceName);
   }
 
@@ -164,9 +103,6 @@ class EnhancedServiceContainer {
    * Get service performance metrics
    */
   getServiceMetrics(serviceName?: string) {
-    if (!containerMode.enablePerformanceTracking) {
-      throw new Error('Performance tracking is disabled');
-    }
     return this.optimizedContainer.getServiceMetrics(serviceName);
   }
 
@@ -174,9 +110,6 @@ class EnhancedServiceContainer {
    * Check if service supports optimization features
    */
   serviceSupportsFeature(serviceName: string, feature: 'strategy' | 'commands' | 'aggregation'): boolean {
-    if (!containerMode.useOptimizedServices) {
-      return false;
-    }
     return this.optimizedContainer.serviceSupportsFeature(serviceName, feature);
   }
 
@@ -186,92 +119,21 @@ class EnhancedServiceContainer {
   async getHealthStatus() {
     const health = {
       initialized: this.initialized,
-      mode: containerMode,
-      services: {
-        legacy: true,
-        optimized: containerMode.useOptimizedServices
-      }
+      containerType: 'unified-optimized'
     };
 
-    if (containerMode.useOptimizedServices) {
-      try {
-        const optimizedHealth = await this.optimizedContainer.healthCheck();
-        return { ...health, optimizedServices: optimizedHealth };
-      } catch (error) {
-        return { ...health, optimizedServices: { error: error instanceof Error ? error.message : String(error) } };
-      }
+    try {
+      const optimizedHealth = await this.optimizedContainer.healthCheck();
+      return { ...health, services: optimizedHealth };
+    } catch (error) {
+      return { ...health, error: error instanceof Error ? error.message : String(error) };
     }
-
-    return health;
-  }
-
-  /**
-   * Switch container mode
-   */
-  async switchMode(newMode: Partial<ContainerMode>): Promise<void> {
-    const oldMode = { ...containerMode };
-    containerMode = { ...containerMode, ...newMode };
-
-    console.log('🔄 Switching container mode:', { from: oldMode, to: containerMode });
-
-    if (containerMode.useOptimizedServices && !oldMode.useOptimizedServices) {
-      await this.optimizedContainer.initialize();
-    }
-
-    console.log('✅ Container mode switched successfully');
   }
 }
 
-// Legacy compatibility - create minimal service container interface
-class LegacyServiceContainer {
-  private static instance: LegacyServiceContainer;
-  private enhancedContainer: EnhancedServiceContainer;
-
-  constructor() {
-    this.enhancedContainer = EnhancedServiceContainer.getInstance();
-  }
-
-  static getInstance(): LegacyServiceContainer {
-    if (!LegacyServiceContainer.instance) {
-      LegacyServiceContainer.instance = new LegacyServiceContainer();
-    }
-    return LegacyServiceContainer.instance;
-  }
-
-  // Legacy methods for backward compatibility
-  getServiceRequestService(): IServiceRequestService {
-    return this.enhancedContainer.getServiceRequestService();
-  }
-
-  getUserService(): IUserService {
-    return this.enhancedContainer.getUserService();
-  }
-
-  getProviderService(): IProviderService {
-    return this.enhancedContainer.getProviderService();
-  }
-
-  getReviewService(): IReviewService {
-    return this.enhancedContainer.getReviewService();
-  }
-
-  getAuthService(): IAuthService {
-    return this.enhancedContainer.getAuthService();
-  }
-
-  getAdminService(): IAdminService {
-    return this.enhancedContainer.getAdminService();
-  }
-
-  getChatService(): IChatService {
-    return this.enhancedContainer.getChatService();
-  }
-}
-
-// Export instances
-export const enhancedServiceContainer = EnhancedServiceContainer.getInstance();
-export const serviceContainer = LegacyServiceContainer.getInstance();
-export const serviceRegistry = new DecoratorServiceRegistry();
+// Export unified container instance
+export const serviceContainer = UnifiedServiceContainer.getInstance();
+export const serviceRegistry = serviceContainer; // Alias for backward compatibility
 
 // NEW: Module manager instance for the modular architecture
 export { moduleManager as globalModuleManager };
@@ -282,55 +144,27 @@ export const containerUtils = {
    * Initialize the container system
    */
   async initialize(): Promise<void> {
-    await enhancedServiceContainer.initialize();
-  },
-
-  /**
-   * Get current container mode
-   */
-  getMode(): ContainerMode {
-    return { ...containerMode };
-  },
-
-  /**
-   * Switch to optimized services
-   */
-  async enableOptimizedServices(): Promise<void> {
-    await enhancedServiceContainer.switchMode({ useOptimizedServices: true });
-  },
-
-  /**
-   * Switch to legacy services only
-   */
-  async disableOptimizedServices(): Promise<void> {
-    await enhancedServiceContainer.switchMode({ useOptimizedServices: false });
-  },
-
-  /**
-   * Enable performance tracking
-   */
-  async enablePerformanceTracking(): Promise<void> {
-    await enhancedServiceContainer.switchMode({ enablePerformanceTracking: true });
+    await serviceContainer.initialize();
   },
 
   /**
    * Get container health status
    */
   async getHealthStatus() {
-    return await enhancedServiceContainer.getHealthStatus();
+    return await serviceContainer.getHealthStatus();
   },
 
   /**
-   * Get service metrics (if performance tracking is enabled)
+   * Get service metrics
    */
   getServiceMetrics(serviceName?: string) {
-    return enhancedServiceContainer.getServiceMetrics(serviceName);
+    return serviceContainer.getServiceMetrics(serviceName);
   },
 
   /**
    * Check if service supports optimization features
    */
   serviceSupportsFeature(serviceName: string, feature: 'strategy' | 'commands' | 'aggregation'): boolean {
-    return enhancedServiceContainer.serviceSupportsFeature(serviceName, feature);
+    return serviceContainer.serviceSupportsFeature(serviceName, feature);
   }
 };
