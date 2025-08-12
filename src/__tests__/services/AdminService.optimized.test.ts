@@ -6,7 +6,7 @@
  */
 
 import { AdminServiceStrategy } from '../../services/admin/AdminService.strategy';
-import { AdminCommandFactory } from '../../services/commands/AdminCommands';
+import { AdminCommandFactory } from '../../cqrs/command/AdminCommands';
 import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { CommandResult } from '../../utils/service-optimization/CommandBase';

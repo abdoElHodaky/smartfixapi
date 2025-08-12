@@ -1,15 +1,20 @@
 /**
- * Admin Command Implementations
+ * CQRS Admin Command Implementations
  * 
- * Command pattern implementations for admin operations using CommandBase
- * for standardized execution, validation, and error handling.
+ * Enhanced CQRS command pattern implementations for admin operations
+ * with optimized execution, validation, and error handling using existing utilities.
  */
 
-import { IsString, IsOptional, IsObject, IsEnum, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsEnum, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
 import { IUserService, IProviderService, IServiceRequestService } from '../../interfaces/services';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
+import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { StrategyRegistry, AsyncStrategyRegistry } from '../../utils/conditions/StrategyPatterns';
+import { FilterBuilder } from '../../utils/service-optimization/FilterBuilder';
+import { OptionsBuilder } from '../../utils/service-optimization/OptionsBuilder';
+import { PaginationOptions } from '../../utils/service-optimization/PaginationOptions';
 import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { ServiceRequest } from '../../models/ServiceRequest';
@@ -344,7 +349,7 @@ export class DeleteUserCommand extends AdminCommandBase<CommandResult> {
 }
 
 /**
- * Command to generate admin reports using AggregationBuilder
+ * Enhanced CQRS command to generate admin reports using optimized utilities
  */
 export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
   @IsString()
@@ -359,18 +364,52 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
   @IsObject()
   private filters?: Record<string, any>;
 
+  @IsOptional()
+  @IsObject()
+  private paginationOptions?: PaginationOptions;
+
+  private reportStrategies: AsyncStrategyRegistry<any, any>;
+
   constructor(
     context: CommandContext,
     adminId: string,
     reportType: string,
     dateRange?: { from: Date; to: Date },
     filters?: Record<string, any>,
+    paginationOptions?: PaginationOptions,
     private userService?: IUserService
   ) {
     super(context, adminId);
     this.reportType = reportType;
     this.dateRange = dateRange;
     this.filters = filters;
+    this.paginationOptions = paginationOptions;
+    this.initializeReportStrategies();
+  }
+
+  private initializeReportStrategies(): void {
+    this.reportStrategies = new AsyncStrategyRegistry<any, any>();
+    
+    // Register optimized report strategies
+    this.reportStrategies.register('user_activity', {
+      execute: async (input: any) => this.generateUserActivityReport(input)
+    });
+    
+    this.reportStrategies.register('provider_performance', {
+      execute: async (input: any) => this.generateProviderPerformanceReport(input)
+    });
+    
+    this.reportStrategies.register('service_requests', {
+      execute: async (input: any) => this.generateServiceRequestReport(input)
+    });
+    
+    this.reportStrategies.register('revenue', {
+      execute: async (input: any) => this.generateRevenueReport(input)
+    });
+
+    this.reportStrategies.register('advanced_analytics', {
+      execute: async (input: any) => this.generateAdvancedAnalyticsReport(input)
+    });
   }
 
   async execute(): Promise<CommandResult> {
@@ -378,25 +417,18 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
       // Validate admin permissions
       await this.validateAdminPermissions(this.userService!);
 
-      let reportData: any;
-
-      // Generate report based on type using AggregationBuilder
-      switch (this.reportType) {
-        case 'user_activity':
-          reportData = await this.generateUserActivityReport();
-          break;
-        case 'provider_performance':
-          reportData = await this.generateProviderPerformanceReport();
-          break;
-        case 'service_requests':
-          reportData = await this.generateServiceRequestReport();
-          break;
-        case 'revenue':
-          reportData = await this.generateRevenueReport();
-          break;
-        default:
-          return CommandResult.failure(`Unsupported report type: ${this.reportType}`);
+      if (!this.reportStrategies.has(this.reportType)) {
+        return CommandResult.failure(`Unsupported report type: ${this.reportType}`);
       }
+
+      const reportInput = {
+        dateRange: this.dateRange,
+        filters: this.filters,
+        pagination: this.paginationOptions,
+        adminId: this.adminId
+      };
+
+      const reportData = await this.reportStrategies.execute(this.reportType, reportInput);
 
       return CommandResult.success(
         {
@@ -405,7 +437,8 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
           generatedBy: this.adminId,
           generatedAt: new Date(),
           dateRange: this.dateRange,
-          filters: this.filters
+          filters: this.filters,
+          pagination: this.paginationOptions
         },
         'Report generated successfully'
       );
@@ -414,38 +447,187 @@ export class GenerateReportCommand extends AdminCommandBase<CommandResult> {
     }
   }
 
-  private async generateUserActivityReport(): Promise<any> {
+  private async generateUserActivityReport(input: any): Promise<any> {
+    const filterBuilder = new FilterBuilder();
+    const optionsBuilder = new OptionsBuilder();
+
+    // Build optimized filters
+    if (input.filters) {
+      if (input.filters.role) {
+        filterBuilder.addFilter('role', input.filters.role);
+      }
+      if (input.filters.status) {
+        filterBuilder.addFilter('status', input.filters.status);
+      }
+      if (input.filters.location) {
+        filterBuilder.addGeoFilter('location', input.filters.location);
+      }
+    }
+
+    // Build aggregation with filters
     const aggregation = AggregationBuilder.create()
-      .buildUserActivityReport(this.dateRange);
+      .match(filterBuilder.build())
+      .buildUserActivityReport(input.dateRange);
+
+    // Add pagination if specified
+    if (input.pagination) {
+      aggregation.skip(input.pagination.skip).limit(input.pagination.limit);
+    }
     
     return await aggregation.execute(User);
   }
 
-  private async generateProviderPerformanceReport(): Promise<any> {
+  private async generateProviderPerformanceReport(input: any): Promise<any> {
+    const filterBuilder = new FilterBuilder();
+    const optionsBuilder = new OptionsBuilder();
+
+    // Build performance-specific filters
+    if (input.filters) {
+      if (input.filters.minRating) {
+        filterBuilder.addRangeFilter('averageRating', { $gte: input.filters.minRating });
+      }
+      if (input.filters.serviceCategory) {
+        filterBuilder.addFilter('serviceCategories', input.filters.serviceCategory);
+      }
+      if (input.filters.location) {
+        filterBuilder.addGeoFilter('location', input.filters.location);
+      }
+    }
+
+    // Build optimized provider performance aggregation
     const aggregation = AggregationBuilder.create()
-      .buildTopProviders(5, 4.0, 20);
+      .match(filterBuilder.build())
+      .buildTopProviders(
+        input.pagination?.limit || 10,
+        input.filters?.minRating || 4.0,
+        input.filters?.minReviews || 5
+      );
     
     return await aggregation.execute(ServiceProvider);
   }
 
-  private async generateServiceRequestReport(): Promise<any> {
+  private async generateServiceRequestReport(input: any): Promise<any> {
+    const filterBuilder = new FilterBuilder();
+
+    // Build service request filters
+    if (input.filters) {
+      if (input.filters.status) {
+        filterBuilder.addFilter('status', input.filters.status);
+      }
+      if (input.filters.category) {
+        filterBuilder.addFilter('category', input.filters.category);
+      }
+      if (input.filters.budgetRange) {
+        filterBuilder.addRangeFilter('budget', input.filters.budgetRange);
+      }
+      if (input.filters.location) {
+        filterBuilder.addGeoFilter('location', input.filters.location);
+      }
+    }
+
     const aggregation = AggregationBuilder.create()
-      .buildServiceRequestStatistics(this.dateRange);
+      .match(filterBuilder.build())
+      .buildServiceRequestStatistics(input.dateRange);
+
+    if (input.pagination) {
+      aggregation.skip(input.pagination.skip).limit(input.pagination.limit);
+    }
     
     return await aggregation.execute(ServiceRequest);
   }
 
-  private async generateRevenueReport(): Promise<any> {
+  private async generateRevenueReport(input: any): Promise<any> {
+    const filterBuilder = new FilterBuilder();
+
+    // Build revenue-specific filters
+    filterBuilder.addFilter('status', 'completed');
+    
+    if (input.filters) {
+      if (input.filters.paymentMethod) {
+        filterBuilder.addFilter('paymentMethod', input.filters.paymentMethod);
+      }
+      if (input.filters.category) {
+        filterBuilder.addFilter('category', input.filters.category);
+      }
+      if (input.filters.budgetRange) {
+        filterBuilder.addRangeFilter('budget', input.filters.budgetRange);
+      }
+    }
+
     const aggregation = AggregationBuilder.create()
-      .match({ status: 'completed' })
+      .match(filterBuilder.build())
       .buildStatistics({
         dateField: 'completedAt',
-        groupBy: 'completedAt',
+        groupBy: input.filters?.groupBy || 'completedAt',
         sumField: 'budget',
         countField: 'totalRequests'
       });
+
+    if (input.dateRange) {
+      aggregation.match({
+        completedAt: {
+          $gte: input.dateRange.from,
+          $lte: input.dateRange.to
+        }
+      });
+    }
     
     return await aggregation.execute(ServiceRequest);
+  }
+
+  private async generateAdvancedAnalyticsReport(input: any): Promise<any> {
+    const filterBuilder = new FilterBuilder();
+    const optionsBuilder = new OptionsBuilder();
+
+    // Build comprehensive analytics
+    const [
+      userGrowth,
+      providerDistribution,
+      servicePopularity,
+      revenueAnalytics,
+      geographicDistribution
+    ] = await Promise.all([
+      // User growth analytics
+      AggregationBuilder.create()
+        .buildUserStatistics(input.dateRange)
+        .execute(User),
+      
+      // Provider distribution
+      AggregationBuilder.create()
+        .buildStatusStatistics('status')
+        .execute(ServiceProvider),
+      
+      // Service popularity
+      AggregationBuilder.create()
+        .buildCategoryStatistics('category', 20)
+        .execute(ServiceRequest),
+      
+      // Revenue analytics
+      AggregationBuilder.create()
+        .match({ status: 'completed' })
+        .buildStatistics({
+          dateField: 'completedAt',
+          groupBy: 'completedAt',
+          sumField: 'budget',
+          countField: 'totalRequests'
+        })
+        .execute(ServiceRequest),
+      
+      // Geographic distribution
+      AggregationBuilder.create()
+        .buildGeographicDistribution('location.city', 15)
+        .execute(ServiceRequest)
+    ]);
+
+    return {
+      userGrowth,
+      providerDistribution,
+      servicePopularity,
+      revenueAnalytics,
+      geographicDistribution,
+      generatedAt: new Date(),
+      reportScope: input.dateRange
+    };
   }
 }
 
@@ -526,9 +708,103 @@ export class BulkUpdateUserRolesCommand extends AdminCommandBase<CommandResult> 
 }
 
 /**
- * Command factory for creating admin commands
+ * Enhanced CQRS Command Factory with Optimization Support
  */
 export class AdminCommandFactory {
+  private static commandRegistry: StrategyRegistry<any, any> = new StrategyRegistry<any, any>();
+
+  static {
+    // Initialize command creation strategies
+    AdminCommandFactory.initializeCommandStrategies();
+  }
+
+  private static initializeCommandStrategies(): void {
+    // Register command creation strategies
+    this.commandRegistry.register('approve_provider', {
+      execute: (params: any) => new ApproveProviderCommand(
+        params.context,
+        params.adminId,
+        params.providerId,
+        params.notes,
+        params.providerService,
+        params.userService
+      )
+    });
+
+    this.commandRegistry.register('reject_provider', {
+      execute: (params: any) => new RejectProviderCommand(
+        params.context,
+        params.adminId,
+        params.providerId,
+        params.reason,
+        params.providerService,
+        params.userService
+      )
+    });
+
+    this.commandRegistry.register('suspend_provider', {
+      execute: (params: any) => new SuspendProviderCommand(
+        params.context,
+        params.adminId,
+        params.providerId,
+        params.reason,
+        params.suspensionDetails,
+        params.providerService,
+        params.userService
+      )
+    });
+
+    this.commandRegistry.register('delete_user', {
+      execute: (params: any) => new DeleteUserCommand(
+        params.context,
+        params.adminId,
+        params.userId,
+        params.reason,
+        params.userService
+      )
+    });
+
+    this.commandRegistry.register('generate_report', {
+      execute: (params: any) => new GenerateReportCommand(
+        params.context,
+        params.adminId,
+        params.reportType,
+        params.dateRange,
+        params.filters,
+        params.paginationOptions,
+        params.userService
+      )
+    });
+
+    this.commandRegistry.register('bulk_update_roles', {
+      execute: (params: any) => new BulkUpdateUserRolesCommand(
+        params.context,
+        params.adminId,
+        params.userRoleUpdates,
+        params.reason,
+        params.userService
+      )
+    });
+  }
+
+  /**
+   * Create command using strategy pattern
+   */
+  static createCommand<T extends CommandBase>(commandType: string, params: any): T {
+    if (!this.commandRegistry.has(commandType)) {
+      throw new Error(`Unsupported command type: ${commandType}`);
+    }
+    return this.commandRegistry.execute(commandType, params);
+  }
+
+  /**
+   * Get available command types
+   */
+  static getAvailableCommandTypes(): string[] {
+    return this.commandRegistry.getAvailableKeys();
+  }
+
+  // Legacy factory methods for backward compatibility
   static createApproveProviderCommand(
     context: CommandContext,
     adminId: string,
@@ -537,7 +813,9 @@ export class AdminCommandFactory {
     providerService?: IProviderService,
     userService?: IUserService
   ): ApproveProviderCommand {
-    return new ApproveProviderCommand(context, adminId, providerId, notes, providerService, userService);
+    return this.createCommand('approve_provider', {
+      context, adminId, providerId, notes, providerService, userService
+    });
   }
 
   static createRejectProviderCommand(
@@ -548,7 +826,9 @@ export class AdminCommandFactory {
     providerService?: IProviderService,
     userService?: IUserService
   ): RejectProviderCommand {
-    return new RejectProviderCommand(context, adminId, providerId, reason, providerService, userService);
+    return this.createCommand('reject_provider', {
+      context, adminId, providerId, reason, providerService, userService
+    });
   }
 
   static createSuspendProviderCommand(
@@ -560,7 +840,9 @@ export class AdminCommandFactory {
     providerService?: IProviderService,
     userService?: IUserService
   ): SuspendProviderCommand {
-    return new SuspendProviderCommand(context, adminId, providerId, reason, suspensionDetails, providerService, userService);
+    return this.createCommand('suspend_provider', {
+      context, adminId, providerId, reason, suspensionDetails, providerService, userService
+    });
   }
 
   static createDeleteUserCommand(
@@ -570,7 +852,9 @@ export class AdminCommandFactory {
     reason?: string,
     userService?: IUserService
   ): DeleteUserCommand {
-    return new DeleteUserCommand(context, adminId, userId, reason, userService);
+    return this.createCommand('delete_user', {
+      context, adminId, userId, reason, userService
+    });
   }
 
   static createGenerateReportCommand(
@@ -579,9 +863,12 @@ export class AdminCommandFactory {
     reportType: string,
     dateRange?: { from: Date; to: Date },
     filters?: Record<string, any>,
+    paginationOptions?: PaginationOptions,
     userService?: IUserService
   ): GenerateReportCommand {
-    return new GenerateReportCommand(context, adminId, reportType, dateRange, filters, userService);
+    return this.createCommand('generate_report', {
+      context, adminId, reportType, dateRange, filters, paginationOptions, userService
+    });
   }
 
   static createBulkUpdateUserRolesCommand(
@@ -591,6 +878,46 @@ export class AdminCommandFactory {
     reason?: string,
     userService?: IUserService
   ): BulkUpdateUserRolesCommand {
-    return new BulkUpdateUserRolesCommand(context, adminId, userRoleUpdates, reason, userService);
+    return this.createCommand('bulk_update_roles', {
+      context, adminId, userRoleUpdates, reason, userService
+    });
+  }
+
+  /**
+   * Create optimized report command with advanced filtering
+   */
+  static createAdvancedReportCommand(
+    context: CommandContext,
+    adminId: string,
+    reportConfig: {
+      type: string;
+      dateRange?: { from: Date; to: Date };
+      filters?: Record<string, any>;
+      pagination?: PaginationOptions;
+      aggregationOptions?: any;
+    },
+    userService?: IUserService
+  ): GenerateReportCommand {
+    return this.createCommand('generate_report', {
+      context,
+      adminId,
+      reportType: reportConfig.type,
+      dateRange: reportConfig.dateRange,
+      filters: reportConfig.filters,
+      paginationOptions: reportConfig.pagination,
+      userService
+    });
+  }
+
+  /**
+   * Batch create multiple commands
+   */
+  static createBatchCommands(commandConfigs: Array<{
+    type: string;
+    params: any;
+  }>): CommandBase[] {
+    return commandConfigs.map(config => 
+      this.createCommand(config.type, config.params)
+    );
   }
 }

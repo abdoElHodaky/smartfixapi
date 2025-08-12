@@ -24,8 +24,8 @@ import { StrategyRegistry, AsyncStrategyRegistry } from '../utils/conditions/Str
 import { ConditionalHelpers } from '../utils/conditions/ConditionalHelpers';
 import { CommandBase, CommandContext } from '../utils/service-optimization/CommandBase';
 
-// Import command factories
-import { AdminCommandFactory } from './commands/AdminCommands';
+// Import CQRS command factories
+import { AdminCommandFactory } from '../cqrs/command/AdminCommands';
 
 export interface OptimizedServiceDefinition {
   name: string;
