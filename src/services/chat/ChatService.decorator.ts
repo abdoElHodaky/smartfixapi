@@ -22,6 +22,9 @@ import {
   ChatStatisticsDto
 } from '../../dtos';
 
+// Import optimization utilities
+import { AggregationBuilder, ConditionalHelpers, ErrorHandlers } from '../../utils';
+
 // Import service decorators
 import {
   Singleton,
@@ -124,10 +127,8 @@ export class ChatService implements IChatService {
         data: chat
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to create chat');
+      // Optimized: Use ErrorHandlers for standardized error handling
+      return ErrorHandlers.handleServiceError(error, 'Failed to create chat');
     }
   }
 
@@ -599,7 +600,7 @@ export class ChatService implements IChatService {
   }
 
   /**
-   * Get chat statistics with caching
+   * Get chat statistics with caching - OPTIMIZED with AggregationBuilder
    */
   @Log('Getting chat statistics')
   @Cached(10 * 60 * 1000) // Cache for 10 minutes
@@ -626,14 +627,16 @@ export class ChatService implements IChatService {
           lastActivity: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Active in last 7 days
         }),
         Message.countDocuments(messageQuery),
-        Chat.aggregate([
-          { $match: chatQuery },
-          { $group: { _id: null, avgMessages: { $avg: '$messageCount' } } }
-        ]),
-        Chat.aggregate([
-          { $match: chatQuery },
-          { $group: { _id: '$chatType', count: { $sum: 1 } } }
-        ])
+        // Optimized: Use AggregationBuilder for average messages per chat
+        AggregationBuilder.create()
+          .match(chatQuery)
+          .buildAverageField('messageCount')
+          .execute(Chat),
+        // Optimized: Use AggregationBuilder for chat type statistics
+        AggregationBuilder.create()
+          .match(chatQuery)
+          .buildCategoryStatistics('chatType')
+          .execute(Chat)
       ]);
 
       return {
@@ -680,4 +683,3 @@ export class ChatService implements IChatService {
     }
   }
 }
-

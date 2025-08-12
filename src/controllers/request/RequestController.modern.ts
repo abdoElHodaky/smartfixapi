@@ -16,6 +16,9 @@ import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IServiceRequestService } from '../../interfaces/services';
 
+// Utility imports
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+
 // DTO imports
 import { 
   ServiceRequestDto,
@@ -189,16 +192,20 @@ export class RequestController extends BaseController {
   acceptProvider = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Accept Provider for Service Request');
 
-    if (!this.requireAuth(req, res)) {
+    // Optimized: Use ConditionalHelpers for combined validation
+    const authError = ConditionalHelpers.guardAuthenticated(req.user);
+    if (authError) {
+      this.sendError(res, authError, 401);
+      return;
+    }
+
+    const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['requestId', 'providerId']);
+    if (paramError) {
+      this.sendError(res, paramError, 400);
       return;
     }
 
     const { requestId, providerId } = req.params;
-
-    if (!requestId || !providerId) {
-      this.sendError(res, 'Request ID and Provider ID are required', 400);
-      return;
-    }
 
     try {
       const result = await this.serviceRequestService.acceptProvider(requestId, req.user!.id, providerId);
@@ -216,16 +223,20 @@ export class RequestController extends BaseController {
   rejectProvider = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Reject Provider for Service Request');
 
-    if (!this.requireAuth(req, res)) {
+    // Optimized: Use ConditionalHelpers for combined validation
+    const authError = ConditionalHelpers.guardAuthenticated(req.user);
+    if (authError) {
+      this.sendError(res, authError, 401);
+      return;
+    }
+
+    const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['requestId', 'providerId']);
+    if (paramError) {
+      this.sendError(res, paramError, 400);
       return;
     }
 
     const { requestId, providerId } = req.params;
-
-    if (!requestId || !providerId) {
-      this.sendError(res, 'Request ID and Provider ID are required', 400);
-      return;
-    }
 
     try {
       await this.serviceRequestService.rejectProvider(requestId, req.user!.id, providerId, req.body.reason);

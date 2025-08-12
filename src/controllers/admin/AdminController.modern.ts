@@ -16,6 +16,9 @@ import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IAdminService } from '../../interfaces/services';
 
+// Utility imports
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+
 // DTO imports
 import { 
   AdminDashboardDto,
@@ -55,7 +58,10 @@ export class AdminController extends BaseController {
   getDashboard = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get Admin Dashboard');
 
-    if (!this.requireRole(req, res, ['admin'])) {
+    // Optimized: Use ConditionalHelpers for guard clause
+    const authError = ConditionalHelpers.guardAuthorized(req.user?.role || '', ['admin']);
+    if (authError) {
+      this.sendError(res, authError, 403);
       return;
     }
 
@@ -76,7 +82,10 @@ export class AdminController extends BaseController {
   getUsers = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Get All Users');
 
-    if (!this.requireRole(req, res, ['admin'])) {
+    // Optimized: Use ConditionalHelpers for guard clause
+    const authError = ConditionalHelpers.guardAuthorized(req.user?.role || '', ['admin']);
+    if (authError) {
+      this.sendError(res, authError, 403);
       return;
     }
 
@@ -134,16 +143,22 @@ export class AdminController extends BaseController {
   updateUserStatus = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     this.logRequest(req, 'Update User Status');
 
-    if (!this.requireRole(req, res, ['admin'])) {
+    // Optimized: Combined guard clauses using ConditionalHelpers
+    const authError = ConditionalHelpers.guardAuthorized(req.user?.role || '', ['admin']);
+    if (authError) {
+      this.sendError(res, authError, 403);
       return;
     }
 
-    const validation = this.validateRequest(req.body, {
-      isActive: { required: true }
-    });
+    const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['userId']);
+    if (paramError) {
+      this.sendError(res, paramError, 400);
+      return;
+    }
 
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
+    const bodyValidation = ConditionalHelpers.validateRequiredFields(req.body, ['isActive']);
+    if (!bodyValidation.isValid) {
+      this.sendError(res, 'Validation failed', 400, bodyValidation.errors);
       return;
     }
 
