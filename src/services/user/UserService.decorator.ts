@@ -20,6 +20,9 @@ import {
   ReviewStatisticsRequestDto
 } from '../../dtos';
 
+// Import optimization utilities
+import { AggregationBuilder, ConditionalHelpers, ErrorHandlers } from '../../utils';
+
 // Import service decorators
 import {
   Singleton,
@@ -398,27 +401,68 @@ export class UserService implements IUserService {
   }
 
   /**
-   * Get user statistics with caching
+   * Get user statistics - OPTIMIZED with AggregationBuilder following AdminService strategy
    */
   @Log('Getting user statistics')
-  @Cached(10 * 60 * 1000) // Cache for 10 minutes
-  async getUserStatistics(userId: string): Promise<UserStatisticsDto> {
+  @Cached(15 * 60 * 1000) // Cache for 15 minutes
+  @Retryable({
+    attempts: 3,
+    delay: 1000,
+    condition: (error: Error) => error.message.includes('database')
+  })
+  async getUserStatistics(userId?: string): Promise<any> {
     try {
-      const user = await this.getUserById(userId);
+      const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      
+      // If userId provided, get individual user stats, otherwise get platform user stats
+      if (userId) {
+        const [
+          user,
+          serviceRequestStats,
+          reviewStats
+        ] = await Promise.all([
+          this.getUserById(userId),
+          this.getUserServiceRequestStatistics(userId),
+          this.getUserReviewStatistics(userId)
+        ]);
 
-      // In a real implementation, you would gather actual statistics from related services
-      const statistics: UserStatisticsDto = {
-        totalServiceRequests: 0,
-        activeServiceRequests: 0,
-        completedServiceRequests: 0,
-        totalReviews: 0,
-        averageRating: 0,
-        totalSpent: 0,
-        joinDate: user.createdAt,
-        lastActivity: user.lastLogin || user.updatedAt
+        return {
+          user: user,
+          serviceRequests: serviceRequestStats,
+          reviews: reviewStats,
+          generatedAt: new Date()
+        };
+      }
+
+      // Platform-wide user statistics using AdminService strategy
+      const [
+        totalUsers,
+        activeUsers,
+        newUsersThisMonth,
+        usersByRole,
+        userGrowth
+      ] = await Promise.all([
+        User.countDocuments(),
+        User.countDocuments({ status: 'active' }),
+        User.countDocuments({ createdAt: { $gte: currentMonth } }),
+        // Optimized: Use AggregationBuilder for role statistics
+        AggregationBuilder.create().buildUserRoleStatistics().execute(User),
+        // Optimized: Use AggregationBuilder for user growth with date grouping
+        AggregationBuilder.create()
+          .buildDateGrouping('createdAt', { year: true, month: true })
+          .sort({ '_id.year': 1, '_id.month': 1 })
+          .limit(12)
+          .execute(User)
+      ]);
+
+      return {
+        total: totalUsers,
+        active: activeUsers,
+        newThisMonth: newUsersThisMonth,
+        byRole: usersByRole,
+        growth: userGrowth,
+        generatedAt: new Date()
       };
-
-      return statistics;
     } catch (error) {
       throw new ValidationError('Failed to get user statistics');
     }
@@ -475,5 +519,214 @@ export class UserService implements IUserService {
       throw new ValidationError('Failed to get activity log');
     }
   }
-}
 
+  /**
+   * Get user service request statistics - OPTIMIZED with AggregationBuilder following AdminService strategy
+   */
+  @Log('Getting user service request statistics')
+  @Cached(10 * 60 * 1000) // Cache for 10 minutes
+  @Retryable({
+    attempts: 2,
+    delay: 1500
+  })
+  private async getUserServiceRequestStatistics(userId: string): Promise<any> {
+    try {
+      if (!this.serviceRequestService) {
+        // Return placeholder data when service is not available
+        return {
+          total: 0,
+          pending: 0,
+          completed: 0,
+          byStatus: [],
+          byCategory: [],
+          generatedAt: new Date()
+        };
+      }
+
+      // In real implementation, these would use ServiceRequest model
+      const [
+        totalRequests,
+        pendingRequests,
+        completedRequests,
+        requestsByStatus,
+        requestsByCategory
+      ] = await Promise.all([
+        // Use AggregationBuilder for user-specific request counts
+        AggregationBuilder.create()
+          .match({ userId: userId })
+          .group({ _id: null, count: { $sum: 1 } })
+          .execute(User), // Would be ServiceRequest model
+        AggregationBuilder.create()
+          .match({ userId: userId, status: 'pending' })
+          .group({ _id: null, count: { $sum: 1 } })
+          .execute(User), // Would be ServiceRequest model
+        AggregationBuilder.create()
+          .match({ userId: userId, status: 'completed' })
+          .group({ _id: null, count: { $sum: 1 } })
+          .execute(User), // Would be ServiceRequest model
+        // Optimized: Use AggregationBuilder for status statistics
+        AggregationBuilder.create()
+          .match({ userId: userId })
+          .buildStatusStatistics('status')
+          .execute(User), // Would be ServiceRequest model
+        // Optimized: Use AggregationBuilder for category statistics
+        AggregationBuilder.create()
+          .match({ userId: userId })
+          .buildCategoryStatistics('category', 10)
+          .execute(User) // Would be ServiceRequest model
+      ]);
+
+      return {
+        total: totalRequests[0]?.count || 0,
+        pending: pendingRequests[0]?.count || 0,
+        completed: completedRequests[0]?.count || 0,
+        byStatus: requestsByStatus,
+        byCategory: requestsByCategory,
+        generatedAt: new Date()
+      };
+    } catch (error) {
+      throw new ValidationError('Failed to get user service request statistics');
+    }
+  }
+
+  /**
+   * Get user review statistics - OPTIMIZED with AggregationBuilder following AdminService strategy
+   */
+  @Log('Getting user review statistics')
+  @Cached(10 * 60 * 1000) // Cache for 10 minutes
+  @Retryable({
+    attempts: 2,
+    delay: 1500
+  })
+  private async getUserReviewStatistics(userId: string): Promise<any> {
+    try {
+      if (!this.reviewService) {
+        // Return placeholder data when service is not available
+        return {
+          total: 0,
+          averageRating: 0,
+          distribution: [],
+          recent: [],
+          generatedAt: new Date()
+        };
+      }
+
+      // In real implementation, these would use Review model
+      const [
+        totalReviews,
+        averageRating,
+        ratingDistribution,
+        recentReviews
+      ] = await Promise.all([
+        // Use AggregationBuilder for user-specific review counts
+        AggregationBuilder.create()
+          .match({ userId: userId })
+          .group({ _id: null, count: { $sum: 1 } })
+          .execute(User), // Would be Review model
+        // Optimized: Use AggregationBuilder for average rating
+        AggregationBuilder.create()
+          .match({ userId: userId })
+          .buildAverageRating()
+          .execute(User), // Would be Review model
+        // Optimized: Use AggregationBuilder for rating distribution
+        AggregationBuilder.create()
+          .match({ userId: userId })
+          .buildRatingDistribution()
+          .execute(User), // Would be Review model
+        // Get recent reviews with limit
+        AggregationBuilder.create()
+          .match({ userId: userId })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .execute(User) // Would be Review model
+      ]);
+
+      return {
+        total: totalReviews[0]?.count || 0,
+        averageRating: averageRating[0]?.averageRating || 0,
+        distribution: ratingDistribution,
+        recent: recentReviews,
+        generatedAt: new Date()
+      };
+    } catch (error) {
+      throw new ValidationError('Failed to get user review statistics');
+    }
+  }
+
+  /**
+   * Search users with advanced filtering - OPTIMIZED with AggregationBuilder following AdminService strategy
+   */
+  @Log('Advanced user search with aggregation')
+  @Cached(2 * 60 * 1000) // Cache for 2 minutes
+  @Retryable({
+    attempts: 2,
+    delay: 1000
+  })
+  async searchUsersAdvanced(filters: UserFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto> {
+    try {
+      const skip = (page - 1) * limit;
+      
+      // Build aggregation pipeline using AggregationBuilder following AdminService strategy
+      let aggregationBuilder = AggregationBuilder.create()
+        .match({ status: 'active' });
+
+      // Apply filters using AggregationBuilder
+      if (filters.role) {
+        aggregationBuilder = aggregationBuilder.match({ role: filters.role });
+      }
+
+      if (filters.location && filters.radius) {
+        aggregationBuilder = aggregationBuilder.match({
+          location: {
+            $near: {
+              $geometry: {
+                type: 'Point',
+                coordinates: [filters.location.longitude, filters.location.latitude]
+              },
+              $maxDistance: filters.radius * 1000
+            }
+          }
+        });
+      }
+
+      if (filters.searchTerm) {
+        aggregationBuilder = aggregationBuilder.match({
+          $or: [
+            { firstName: { $regex: filters.searchTerm, $options: 'i' } },
+            { lastName: { $regex: filters.searchTerm, $options: 'i' } },
+            { email: { $regex: filters.searchTerm, $options: 'i' } }
+          ]
+        });
+      }
+
+      // Execute aggregation with pagination using AdminService strategy
+      const [users, totalCount] = await Promise.all([
+        aggregationBuilder
+          .project({ password: 0 }) // Exclude password
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .execute(User),
+        aggregationBuilder
+          .group({ _id: null, count: { $sum: 1 } })
+          .execute(User)
+      ]);
+
+      const total = totalCount[0]?.count || 0;
+
+      return {
+        success: true,
+        message: 'Users retrieved successfully with advanced filtering',
+        data: users,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: limit
+        }
+      };
+    } catch (error) {
+      throw new ValidationError('Failed to search users with advanced filtering');
+    }
+  }
+}

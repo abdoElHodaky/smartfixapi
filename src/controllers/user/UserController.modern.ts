@@ -33,8 +33,11 @@ import {
   Delete,
   RequireAuth, 
   RequireRoles,
-  Validate 
+  UseMiddleware 
 } from '../../decorators';
+
+// Middleware imports
+import { validateBody, validateParams, validateQuery } from '../../middleware';
 
 @Controller({ path: '/users' })
 export class UserController extends BaseController {
@@ -50,122 +53,86 @@ export class UserController extends BaseController {
    */
   @Get('/profile')
   @RequireAuth()
-  getProfile = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get User Profile');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
+  async getProfile(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get User Profile');
+
       const result = await this.userService.getUserProfile(req.user!.id);
       this.sendSuccess<UserProfileResponseDto>(res, result, 'Profile retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get profile', 400);
     }
-  });
+  }
 
   /**
    * Update user profile
    */
   @Put('/profile')
   @RequireAuth()
-  @Validate({
-    firstName: { minLength: 2, maxLength: 50 },
-    lastName: { minLength: 2, maxLength: 50 },
-    phone: { minLength: 10 }
-  })
-  updateProfile = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Update User Profile');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    // Validate request data
-    const validation = this.validateRequest(req.body, {
-      firstName: { minLength: 2, maxLength: 50 },
-      lastName: { minLength: 2, maxLength: 50 },
-      phone: { minLength: 10 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
+  @UseMiddleware(validateBody(UserUpdateDto))
+  async updateProfile(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Update User Profile');
+
       const result = await this.userService.updateUserProfile(req.user!.id, req.body as UserUpdateDto);
       this.sendSuccess<UserProfileResponseDto>(res, result, 'Profile updated successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to update profile', 400);
     }
-  });
+  }
 
   /**
    * Upload profile image
    */
   @Post('/profile/image')
   @RequireAuth()
-  uploadProfileImage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Upload Profile Image');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    if (!req.file) {
-      this.sendError(res, 'No image file provided', 400);
-      return;
-    }
-
+  async uploadProfileImage(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Upload Profile Image');
+
+      if (!req.file) {
+        this.sendError(res, 'No image file provided', 400);
+        return;
+      }
+
       const result = await this.userService.uploadProfileImage(req.user!.id, req.file);
       this.sendSuccess(res, result, 'Profile image uploaded successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to upload image', 400);
     }
-  });
+  }
 
   /**
    * Delete profile image
    */
   @Delete('/profile/image')
   @RequireAuth()
-  deleteProfileImage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Delete Profile Image');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
+  async deleteProfileImage(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Delete Profile Image');
+
       await this.userService.deleteProfileImage(req.user!.id);
       this.sendSuccess(res, null, 'Profile image deleted successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to delete image', 400);
     }
-  });
+  }
 
   /**
    * Get user statistics
    */
   @Get('/statistics')
   @RequireAuth()
-  getUserStatistics = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get User Statistics');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
+  async getUserStatistics(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get User Statistics');
+
       const result = await this.userService.getUserStatistics(req.user!.id);
       this.sendSuccess(res, result, 'Statistics retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get statistics', 400);
     }
-  });
+  }
 
   /**
    * Get user service requests
