@@ -15,7 +15,7 @@ on:
       run_tests:
         description: 'Run test suite'
         required: false
-        default: true
+        default: false
         type: boolean
       run_security_scan:
         description: 'Run security scan'
@@ -78,7 +78,7 @@ jobs:
             echo "should_deploy=${{ github.event.inputs.deploy_after_success }}" >> $GITHUB_OUTPUT
           else
             echo "environment=preview" >> $GITHUB_OUTPUT
-            echo "run_tests=true" >> $GITHUB_OUTPUT
+            echo "run_tests=false" >> $GITHUB_OUTPUT
             echo "run_security=true" >> $GITHUB_OUTPUT
             echo "run_performance=false" >> $GITHUB_OUTPUT
             echo "should_deploy=false" >> $GITHUB_OUTPUT

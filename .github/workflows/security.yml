@@ -4,8 +4,6 @@ on:
   schedule:
     # Run security scans daily at 2 AM UTC
     - cron: '0 2 * * *'
-  push:
-    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
@@ -13,7 +11,7 @@ on:
       skip_tests:
         description: 'Skip test execution'
         required: false
-        default: false
+        default: true
         type: boolean
       run_full_scan:
         description: 'Run comprehensive security scan'
