@@ -108,7 +108,7 @@ jobs:
           node tests/performance/generate-report.js load-test-results.json > performance-report.json
 
       - name: 📊 Upload performance results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: load-test-results
           path: |
@@ -200,7 +200,7 @@ jobs:
           node tests/performance/generate-report.js stress-test-results.json > stress-report.json
 
       - name: 📊 Upload stress test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: stress-test-results
           path: |
@@ -291,7 +291,7 @@ jobs:
           node tests/performance/generate-report.js spike-test-results.json > spike-report.json
 
       - name: 📊 Upload spike test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: spike-test-results
           path: |
@@ -387,7 +387,7 @@ jobs:
           node tests/performance/analyze-memory.js memory-data.json > memory-analysis.json
 
       - name: 📊 Upload endurance test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: endurance-test-results
           path: |
@@ -429,7 +429,7 @@ jobs:
         run: npm ci
 
       - name: 📥 Download all test results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: 📊 Generate comprehensive performance report
         run: |
@@ -445,7 +445,7 @@ jobs:
           node tests/performance/benchmark-check.js comprehensive-performance-report.json > benchmark-results.json
 
       - name: 📊 Upload comprehensive results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: comprehensive-performance-analysis
           path: |
@@ -482,7 +482,7 @@ jobs:
           fi
 
       - name: 📊 Upload performance summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-summary
           path: performance-summary.md
