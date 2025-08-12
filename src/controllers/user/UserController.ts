@@ -33,8 +33,15 @@ import {
   Delete,
   RequireAuth, 
   RequireRoles,
+  UseMiddleware,
   Validate 
 } from '../../decorators';
+
+// Middleware imports
+import { validateBody, validateQuery, validateParams } from '../../middleware';
+
+// Utility imports
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 
 @Controller({ path: '/users' })
 export class UserController extends BaseController {
@@ -50,20 +57,23 @@ export class UserController extends BaseController {
    */
   @Get('/profile')
   @RequireAuth()
-  getProfile = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get User Profile');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
+  async getProfile(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get User Profile');
+
+      // Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
       const result = await this.userService.getUserProfile(req.user!.id);
       this.sendSuccess<UserProfileResponseDto>(res, result, 'Profile retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get profile', 400);
     }
-  });
+  }
 
   /**
    * Update user profile

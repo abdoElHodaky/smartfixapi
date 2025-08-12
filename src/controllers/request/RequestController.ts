@@ -65,14 +65,17 @@ export class RequestController extends BaseController {
   @Post('/')
   @RequireAuth()
   @UseMiddleware(validateBody(CreateRequestDto))
-  createServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Create Service Request');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
+  async createServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Create Service Request');
+
+      // Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
       const requestData = {
         ...req.body,
         userId: req.user!.id
@@ -83,7 +86,7 @@ export class RequestController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to create service request', 400);
     }
-  });
+  }
 
   /**
    * Get user's service requests
@@ -91,14 +94,17 @@ export class RequestController extends BaseController {
   @Get('/my-requests')
   @RequireAuth()
   @UseMiddleware(validateQuery(RequestQueryDto))
-  getMyRequests = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get My Service Requests');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
+  async getMyRequests(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get My Service Requests');
+
+      // Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
       const queryParams = req.query as any;
       const result = await this.serviceRequestService.getUserRequests(req.user!.id, {
         ...queryParams,
@@ -108,7 +114,7 @@ export class RequestController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get service requests', 400);
     }
-  });
+  }
 
   /**
    * Get service request by ID
