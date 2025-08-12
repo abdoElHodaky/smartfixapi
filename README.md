@@ -32,6 +32,13 @@ A modern, enterprise-grade service providers platform built with **ExpressJS**, 
 - **✅ Input Validation**: Request validation and sanitization
 - **📚 API Documentation**: RESTful API with comprehensive documentation
 
+### Phase 2 Enhancements
+- **🔧 Unified Controller Architecture**: All controllers follow AdminController pattern with ConditionalHelpers
+- **🏗️ AggregationBuilder Utility**: Fluent API for optimized MongoDB aggregation pipelines
+- **⚙️ Workflow Dispatch Support**: All GitHub workflows support manual dispatch with configurable parameters
+- **🚀 Performance Optimizations**: Enhanced database queries with AggregationBuilder patterns
+- **🎯 Standardized Error Handling**: Consistent guard clauses and error responses across all controllers
+
 ## 📁 Project Structure
 
 ```
@@ -289,6 +296,73 @@ export interface CreateUserDto {
   email: string;
   password: string;
   role: 'user' | 'provider';
+}
+```
+
+### AggregationBuilder Utility
+Phase 2 introduces a powerful AggregationBuilder for optimized MongoDB queries:
+
+```typescript
+import { AggregationBuilder } from '../utils/aggregation/AggregationBuilder';
+
+// Basic usage
+const pipeline = new AggregationBuilder()
+  .match({ isActive: true })
+  .group({ _id: '$role', count: { $sum: 1 } })
+  .sort({ count: -1 })
+  .limit(10)
+  .comment('User role statistics')
+  .getPipeline();
+
+// Advanced patterns
+const statsBuilder = AggregationBuilder.createStatsPattern(
+  { status: 'active' },
+  'createdAt',
+  startDate,
+  endDate
+);
+
+// Performance optimizations
+const optimizedPipeline = new AggregationBuilder()
+  .match({ userId: userId })
+  .hint('userId_1_createdAt_-1') // Use specific index
+  .allowDiskUse(true)
+  .maxTime(30000) // 30 second timeout
+  .paginate(page, limit)
+  .build();
+```
+
+### Unified Controller Pattern
+All controllers follow the AdminController pattern for consistency:
+
+```typescript
+@Controller({ path: '/api/resource' })
+export class ResourceController extends BaseController {
+  @Get('/:id')
+  @RequireAuth()
+  async getResource(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      this.logRequest(req, 'Get Resource');
+
+      // Use ConditionalHelpers for guard clauses
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
+      const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['id']);
+      if (paramError) {
+        this.sendError(res, paramError, 400);
+        return;
+      }
+
+      const result = await this.resourceService.getById(req.params.id);
+      this.sendSuccess(res, result, 'Resource retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get resource', 400);
+    }
+  }
 }
 ```
 

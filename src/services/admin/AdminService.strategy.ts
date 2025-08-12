@@ -22,7 +22,7 @@ import {
 } from '../../dtos';
 
 // Import optimization utilities
-// import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
 import { 
   AsyncStrategyRegistry
 } from '../../utils/conditions/StrategyPatterns';
@@ -339,25 +339,34 @@ export class AdminServiceStrategy implements IAdminService {
       requestStatusStats,
       averageRating
     ] = await Promise.all([
-      // Optimized user role statistics with index on role field
-      User.aggregate([
-        { $match: { isActive: true } }, // Filter active users first
-        { $group: { _id: '$role', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
-      ]),
-      // Optimized provider service statistics with compound index
-      ServiceProvider.aggregate([
-        { $match: { isActive: true, isVerified: true } }, // Filter active/verified providers
-        { $unwind: '$serviceTypes' }, // Handle array of service types
-        { $group: { _id: '$serviceTypes', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 15 } // Limit to top 15 service types
-      ]),
-      // Optimized request status statistics with index on status
-      ServiceRequest.aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
-      ]),
+      // Optimized user role statistics using AggregationBuilder
+      User.aggregate(
+        new AggregationBuilder()
+          .match({ isActive: true })
+          .group({ _id: '$role', count: { $sum: 1 } })
+          .sort({ count: -1 })
+          .comment('User role statistics query')
+          .getPipeline()
+      ),
+      // Optimized provider service statistics using AggregationBuilder
+      ServiceProvider.aggregate(
+        new AggregationBuilder()
+          .match({ isActive: true, isVerified: true })
+          .unwind('$serviceTypes')
+          .group({ _id: '$serviceTypes', count: { $sum: 1 } })
+          .sort({ count: -1 })
+          .limit(15)
+          .comment('Provider service types statistics')
+          .getPipeline()
+      ),
+      // Optimized request status statistics using AggregationBuilder
+      ServiceRequest.aggregate(
+        new AggregationBuilder()
+          .group({ _id: '$status', count: { $sum: 1 } })
+          .sort({ count: -1 })
+          .comment('Service request status statistics')
+          .getPipeline()
+      ),
       // Optimized average rating calculation with sample for large datasets
       Review.aggregate([
         { $match: { rating: { $exists: true, $gte: 1, $lte: 5 } } }, // Valid ratings only

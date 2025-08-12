@@ -1,71 +1,99 @@
 /**
- * MongoDB Aggregation Builder Utility
+ * AggregationBuilder - MongoDB Aggregation Pipeline Builder
  * 
- * Provides reusable methods for common MongoDB aggregation pipeline patterns
- * to reduce code duplication and improve maintainability across services.
+ * Provides a fluent API for building optimized MongoDB aggregation pipelines
+ * with performance optimizations and reusable patterns.
+ * 
+ * Features:
+ * - Fluent API for pipeline construction
+ * - Performance optimizations (indexHints, allowDiskUse)
+ * - Common aggregation patterns
+ * - Type-safe pipeline building
+ * - Caching support integration
  */
 
-import mongoose from 'mongoose';
+import { PipelineStage, Document } from 'mongodb';
 
-export interface DateGrouping {
-  year?: boolean;
-  month?: boolean;
-  day?: boolean;
-  hour?: boolean;
+export interface AggregationOptions {
+  allowDiskUse?: boolean;
+  maxTimeMS?: number;
+  hint?: string | Document;
+  collation?: Document;
+  comment?: string;
 }
 
-export interface StatisticsOptions {
-  dateField?: string;
-  groupBy?: string;
-  countField?: string;
-  avgField?: string;
-  sumField?: string;
+export interface MatchConditions {
+  [key: string]: any;
 }
 
-export interface LookupOptions {
+export interface GroupStage {
+  _id: any;
+  [key: string]: any;
+}
+
+export interface ProjectStage {
+  [key: string]: 0 | 1 | any;
+}
+
+export interface SortStage {
+  [key: string]: 1 | -1;
+}
+
+export interface LookupStage {
   from: string;
   localField: string;
   foreignField: string;
   as: string;
-  unwind?: boolean;
+  pipeline?: PipelineStage[];
+}
+
+export interface FacetStage {
+  [key: string]: PipelineStage[];
 }
 
 export class AggregationBuilder {
-  private pipeline: any[] = [];
+  private pipeline: PipelineStage[] = [];
+  private options: AggregationOptions = {};
 
-  /**
-   * Create a new aggregation builder instance
-   */
-  static create(): AggregationBuilder {
-    return new AggregationBuilder();
+  constructor() {
+    // Enable disk use by default for better performance on large datasets
+    this.options.allowDiskUse = true;
   }
 
   /**
-   * Add a match stage to filter documents
+   * Add a $match stage to filter documents
    */
-  match(conditions: any): AggregationBuilder {
+  match(conditions: MatchConditions): AggregationBuilder {
     this.pipeline.push({ $match: conditions });
     return this;
   }
 
   /**
-   * Add a group stage for aggregation
+   * Add a $group stage for aggregation
    */
-  group(groupSpec: any): AggregationBuilder {
-    this.pipeline.push({ $group: groupSpec });
+  group(groupStage: GroupStage): AggregationBuilder {
+    this.pipeline.push({ $group: groupStage });
     return this;
   }
 
   /**
-   * Add a sort stage
+   * Add a $project stage to reshape documents
    */
-  sort(sortSpec: any): AggregationBuilder {
-    this.pipeline.push({ $sort: sortSpec });
+  project(projectStage: ProjectStage): AggregationBuilder {
+    this.pipeline.push({ $project: projectStage });
     return this;
   }
 
   /**
-   * Add a limit stage
+   * Add a $sort stage to order documents
+   */
+  sort(sortStage: SortStage): AggregationBuilder {
+    this.pipeline.push({ $sort: sortStage });
+    return this;
+  }
+
+  /**
+   * Add a $limit stage to limit results
    */
   limit(count: number): AggregationBuilder {
     this.pipeline.push({ $limit: count });
@@ -73,7 +101,7 @@ export class AggregationBuilder {
   }
 
   /**
-   * Add a skip stage
+   * Add a $skip stage for pagination
    */
   skip(count: number): AggregationBuilder {
     this.pipeline.push({ $skip: count });
@@ -81,281 +109,173 @@ export class AggregationBuilder {
   }
 
   /**
-   * Add a lookup stage for joining collections
+   * Add a $lookup stage for joins
    */
-  lookup(options: LookupOptions): AggregationBuilder {
-    this.pipeline.push({
-      $lookup: {
-        from: options.from,
-        localField: options.localField,
-        foreignField: options.foreignField,
-        as: options.as
+  lookup(lookupStage: LookupStage): AggregationBuilder {
+    this.pipeline.push({ $lookup: lookupStage });
+    return this;
+  }
+
+  /**
+   * Add an $unwind stage to deconstruct arrays
+   */
+  unwind(path: string, preserveNullAndEmptyArrays: boolean = false): AggregationBuilder {
+    this.pipeline.push({ 
+      $unwind: {
+        path,
+        preserveNullAndEmptyArrays
       }
     });
-
-    if (options.unwind) {
-      this.pipeline.push({ $unwind: `$${options.as}` });
-    }
-
     return this;
   }
 
   /**
-   * Add an unwind stage
+   * Add a $facet stage for multiple aggregation pipelines
    */
-  unwind(path: string): AggregationBuilder {
-    this.pipeline.push({ $unwind: `$${path}` });
+  facet(facetStage: FacetStage): AggregationBuilder {
+    this.pipeline.push({ $facet: facetStage });
     return this;
   }
 
   /**
-   * Add a project stage
+   * Add a $addFields stage to add computed fields
    */
-  project(projection: any): AggregationBuilder {
-    this.pipeline.push({ $project: projection });
+  addFields(fields: Document): AggregationBuilder {
+    this.pipeline.push({ $addFields: fields });
     return this;
   }
 
   /**
-   * Build statistics aggregation for counting and grouping
+   * Add a $sample stage for random sampling
    */
-  buildStatistics(options: StatisticsOptions): AggregationBuilder {
-    const groupSpec: any = {
-      _id: options.groupBy ? `$${options.groupBy}` : null
-    };
-
-    if (options.countField) {
-      groupSpec[options.countField] = { $sum: 1 };
-    }
-
-    if (options.avgField) {
-      groupSpec.average = { $avg: `$${options.avgField}` };
-    }
-
-    if (options.sumField) {
-      groupSpec.total = { $sum: `$${options.sumField}` };
-    }
-
-    return this.group(groupSpec);
-  }
-
-  /**
-   * Build date-based grouping aggregation
-   */
-  buildDateGrouping(dateField: string, grouping: DateGrouping): AggregationBuilder {
-    const groupId: any = {};
-
-    if (grouping.year) {
-      groupId.year = { $year: `$${dateField}` };
-    }
-    if (grouping.month) {
-      groupId.month = { $month: `$${dateField}` };
-    }
-    if (grouping.day) {
-      groupId.day = { $dayOfMonth: `$${dateField}` };
-    }
-    if (grouping.hour) {
-      groupId.hour = { $hour: `$${dateField}` };
-    }
-
-    return this.group({
-      _id: groupId,
-      count: { $sum: 1 }
-    });
-  }
-
-  /**
-   * Build user statistics aggregation
-   */
-  buildUserStatistics(dateRange?: { from: Date; to: Date }): AggregationBuilder {
-    if (dateRange) {
-      this.match({
-        createdAt: { $gte: dateRange.from, $lte: dateRange.to }
-      });
-    }
-
-    return this.buildDateGrouping('createdAt', { year: true, month: true, day: true })
-      .sort({ '_id.year': 1, '_id.month': 1, '_id.day': 1 });
-  }
-
-  /**
-   * Build role-based user statistics
-   */
-  buildUserRoleStatistics(): AggregationBuilder {
-    return this.group({
-      _id: '$role',
-      count: { $sum: 1 }
-    }).sort({ count: -1 });
-  }
-
-  /**
-   * Build rating distribution aggregation
-   */
-  buildRatingDistribution(): AggregationBuilder {
-    return this.group({
-      _id: '$rating',
-      count: { $sum: 1 }
-    }).sort({ _id: 1 });
-  }
-
-  /**
-   * Build average rating aggregation
-   */
-  buildAverageRating(): AggregationBuilder {
-    return this.group({
-      _id: null,
-      avgRating: { $avg: '$rating' }
-    });
-  }
-
-  /**
-   * Build top providers aggregation with ratings
-   */
-  buildTopProviders(minReviews: number = 5, minRating: number = 4.0, limit: number = 10): AggregationBuilder {
-    return this
-      .group({
-        _id: '$providerId',
-        averageRating: { $avg: '$rating' },
-        totalReviews: { $sum: 1 }
-      })
-      .match({
-        totalReviews: { $gte: minReviews },
-        averageRating: { $gte: minRating }
-      })
-      .sort({ averageRating: -1, totalReviews: -1 })
-      .limit(limit);
-  }
-
-  /**
-   * Build category statistics aggregation
-   */
-  buildCategoryStatistics(categoryField: string, limit?: number): AggregationBuilder {
-    this.group({
-      _id: `$${categoryField}`,
-      count: { $sum: 1 }
-    }).sort({ count: -1 });
-
-    if (limit) {
-      this.limit(limit);
-    }
-
+  sample(size: number): AggregationBuilder {
+    this.pipeline.push({ $sample: { size } });
     return this;
   }
 
   /**
-   * Build service provider category aggregation with unwind
+   * Add a $count stage to count documents
    */
-  buildProviderServiceStatistics(limit: number = 10): AggregationBuilder {
-    return this
-      .unwind('services')
-      .group({
-        _id: '$services',
-        count: { $sum: 1 }
-      })
-      .sort({ count: -1 })
-      .limit(limit);
+  count(field: string = 'count'): AggregationBuilder {
+    this.pipeline.push({ $count: field });
+    return this;
   }
 
   /**
-   * Build conditional aggregation with status filtering
+   * Add date range filtering optimized for performance
    */
-  buildStatusStatistics(statusField: string = 'status'): AggregationBuilder {
-    return this.group({
-      _id: `$${statusField}`,
-      count: { $sum: 1 }
-    });
-  }
-
-  /**
-   * Build user activity report with conditional counting
-   */
-  buildUserActivityReport(dateRange?: { from: Date; to: Date }): AggregationBuilder {
-    if (dateRange) {
-      this.match({
-        createdAt: { $gte: dateRange.from, $lte: dateRange.to }
-      });
+  dateRange(field: string, startDate?: Date, endDate?: Date): AggregationBuilder {
+    const dateConditions: any = {};
+    
+    if (startDate) {
+      dateConditions.$gte = startDate;
     }
+    
+    if (endDate) {
+      dateConditions.$lte = endDate;
+    }
+    
+    if (Object.keys(dateConditions).length > 0) {
+      this.match({ [field]: dateConditions });
+    }
+    
+    return this;
+  }
 
-    return this.group({
-      _id: {
-        year: { $year: '$createdAt' },
-        month: { $month: '$createdAt' },
-        day: { $dayOfMonth: '$createdAt' }
-      },
-      newUsers: { $sum: 1 },
-      activeUsers: {
-        $sum: {
-          $cond: [{ $eq: ['$status', 'active'] }, 1, 0]
+  /**
+   * Add pagination with optimized skip/limit
+   */
+  paginate(page: number = 1, limit: number = 10): AggregationBuilder {
+    const skip = (page - 1) * limit;
+    return this.skip(skip).limit(limit);
+  }
+
+  /**
+   * Add text search stage
+   */
+  textSearch(searchTerm: string, options?: { caseSensitive?: boolean; diacriticSensitive?: boolean }): AggregationBuilder {
+    this.pipeline.push({
+      $match: {
+        $text: {
+          $search: searchTerm,
+          $caseSensitive: options?.caseSensitive || false,
+          $diacriticSensitive: options?.diacriticSensitive || false
         }
       }
-    }).sort({ '_id.year': 1, '_id.month': 1, '_id.day': 1 });
-  }
-
-  /**
-   * Build service request statistics with budget analysis
-   */
-  buildServiceRequestStatistics(dateRange?: { from: Date; to: Date }): AggregationBuilder {
-    if (dateRange) {
-      this.match({
-        createdAt: { $gte: dateRange.from, $lte: dateRange.to }
-      });
-    }
-
-    return this.group({
-      _id: '$status',
-      count: { $sum: 1 },
-      averageBudget: { $avg: '$budget' }
     });
+    return this;
   }
 
   /**
-   * Build chat analytics aggregation
+   * Set aggregation options for performance tuning
    */
-  buildChatAnalytics(chatQuery: any = {}): AggregationBuilder {
-    if (Object.keys(chatQuery).length > 0) {
-      this.match(chatQuery);
-    }
-
-    return this.group({
-      _id: null,
-      avgMessages: { $avg: '$messageCount' },
-      totalChats: { $sum: 1 }
-    });
+  setOptions(options: AggregationOptions): AggregationBuilder {
+    this.options = { ...this.options, ...options };
+    return this;
   }
 
   /**
-   * Build chat type distribution
+   * Set index hint for query optimization
    */
-  buildChatTypeDistribution(chatQuery: any = {}): AggregationBuilder {
-    if (Object.keys(chatQuery).length > 0) {
-      this.match(chatQuery);
-    }
-
-    return this.group({
-      _id: '$chatType',
-      count: { $sum: 1 }
-    });
+  hint(indexHint: string | Document): AggregationBuilder {
+    this.options.hint = indexHint;
+    return this;
   }
 
   /**
-   * Get the built pipeline
+   * Set maximum execution time
    */
-  getPipeline(): any[] {
+  maxTime(timeMS: number): AggregationBuilder {
+    this.options.maxTimeMS = timeMS;
+    return this;
+  }
+
+  /**
+   * Add comment for query profiling
+   */
+  comment(comment: string): AggregationBuilder {
+    this.options.comment = comment;
+    return this;
+  }
+
+  /**
+   * Enable or disable disk usage
+   */
+  allowDiskUse(allow: boolean = true): AggregationBuilder {
+    this.options.allowDiskUse = allow;
+    return this;
+  }
+
+  /**
+   * Build the aggregation pipeline
+   */
+  build(): { pipeline: PipelineStage[]; options: AggregationOptions } {
+    return {
+      pipeline: [...this.pipeline],
+      options: { ...this.options }
+    };
+  }
+
+  /**
+   * Get only the pipeline stages
+   */
+  getPipeline(): PipelineStage[] {
     return [...this.pipeline];
   }
 
   /**
-   * Execute the aggregation on a model
+   * Get only the options
    */
-  async execute(model: mongoose.Model<any>): Promise<any[]> {
-    return await model.aggregate(this.pipeline);
+  getOptions(): AggregationOptions {
+    return { ...this.options };
   }
 
   /**
-   * Clear the pipeline for reuse
+   * Reset the builder to start fresh
    */
-  clear(): AggregationBuilder {
+  reset(): AggregationBuilder {
     this.pipeline = [];
+    this.options = { allowDiskUse: true };
     return this;
   }
 
@@ -363,66 +283,142 @@ export class AggregationBuilder {
    * Clone the current builder
    */
   clone(): AggregationBuilder {
-    const newBuilder = new AggregationBuilder();
-    newBuilder.pipeline = [...this.pipeline];
-    return newBuilder;
+    const cloned = new AggregationBuilder();
+    cloned.pipeline = [...this.pipeline];
+    cloned.options = { ...this.options };
+    return cloned;
   }
-}
 
-/**
- * Utility functions for common aggregation patterns
- */
-export class AggregationUtils {
+  // ============================================================================
+  // COMMON PATTERNS
+  // ============================================================================
+
   /**
-   * Create date range match condition
+   * Common pattern: Get statistics with faceted aggregation
    */
-  static createDateRangeMatch(dateField: string, from?: Date, to?: Date): any {
-    if (!from && !to) return {};
+  static createStatsPattern(
+    matchConditions: MatchConditions = {},
+    dateField: string = 'createdAt',
+    startDate?: Date,
+    endDate?: Date
+  ): AggregationBuilder {
+    const builder = new AggregationBuilder();
     
-    const condition: any = {};
-    if (from && to) {
-      condition[dateField] = { $gte: from, $lte: to };
-    } else if (from) {
-      condition[dateField] = { $gte: from };
-    } else if (to) {
-      condition[dateField] = { $lte: to };
+    // Apply date range if provided
+    if (startDate || endDate) {
+      builder.dateRange(dateField, startDate, endDate);
     }
     
-    return condition;
-  }
-
-  /**
-   * Create ObjectId from string if needed
-   */
-  static toObjectId(id: string | mongoose.Types.ObjectId): mongoose.Types.ObjectId {
-    return typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
-  }
-
-  /**
-   * Create text search match condition
-   */
-  static createTextSearchMatch(searchTerm: string, fields: string[]): any {
-    if (!searchTerm || fields.length === 0) return {};
-
-    return {
-      $or: fields.map(field => ({
-        [field]: { $regex: searchTerm, $options: 'i' }
-      }))
-    };
-  }
-
-  /**
-   * Create location-based match condition
-   */
-  static createLocationMatch(location: { latitude: number; longitude: number }, radius: number): any {
-    return {
-      $near: {
-        $geometry: {
-          type: 'Point',
-          coordinates: [location.longitude, location.latitude]
+    // Apply additional match conditions
+    if (Object.keys(matchConditions).length > 0) {
+      builder.match(matchConditions);
+    }
+    
+    // Faceted aggregation for multiple statistics
+    builder.facet({
+      totalCount: [{ $count: 'count' }],
+      avgStats: [
+        {
+          $group: {
+            _id: null,
+            avgValue: { $avg: '$value' },
+            minValue: { $min: '$value' },
+            maxValue: { $max: '$value' }
+          }
+        }
+      ],
+      recentTrends: [
+        { $sort: { [dateField]: -1 } },
+        { $limit: 30 },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: `$${dateField}`
+              }
+            },
+            count: { $sum: 1 }
+          }
         },
-        $maxDistance: radius * 1000 // Convert km to meters
-      }
+        { $sort: { _id: -1 } }
+      ]
+    });
+    
+    return builder;
+  }
+
+  /**
+   * Common pattern: User activity aggregation
+   */
+  static createUserActivityPattern(
+    userId?: string,
+    activityTypes?: string[],
+    days: number = 30
+  ): AggregationBuilder {
+    const builder = new AggregationBuilder();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    // Match conditions
+    const matchConditions: any = {
+      createdAt: { $gte: startDate }
     };
+    
+    if (userId) {
+      matchConditions.userId = userId;
+    }
+    
+    if (activityTypes && activityTypes.length > 0) {
+      matchConditions.type = { $in: activityTypes };
+    }
+    
+    builder
+      .match(matchConditions)
+      .group({
+        _id: {
+          date: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$createdAt'
+            }
+          },
+          type: '$type'
+        },
+        count: { $sum: 1 }
+      })
+      .sort({ '_id.date': -1, '_id.type': 1 });
+    
+    return builder;
+  }
+
+  /**
+   * Common pattern: Rating distribution
+   */
+  static createRatingDistributionPattern(
+    matchConditions: MatchConditions = {}
+  ): AggregationBuilder {
+    const builder = new AggregationBuilder();
+    
+    if (Object.keys(matchConditions).length > 0) {
+      builder.match(matchConditions);
+    }
+    
+    builder
+      .group({
+        _id: '$rating',
+        count: { $sum: 1 }
+      })
+      .sort({ _id: 1 })
+      .project({
+        rating: '$_id',
+        count: 1,
+        _id: 0
+      });
+    
+    return builder;
   }
 }
+
+export default AggregationBuilder;
+

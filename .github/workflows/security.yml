@@ -9,6 +9,17 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test execution'
+        required: false
+        default: false
+        type: boolean
+      run_full_scan:
+        description: 'Run comprehensive security scan'
+        required: false
+        default: true
+        type: boolean
 
 env:
   NODE_VERSION: '18.x'

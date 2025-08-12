@@ -16,6 +16,9 @@ import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IChatService } from '../../interfaces/services';
 
+// Utility imports
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+
 // DTO imports
 import { 
   ChatDto,
@@ -51,22 +54,30 @@ export class ChatController extends BaseController {
    */
   @Get('/service-request/:serviceRequestId')
   @RequireAuth()
-  getChatByServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get Chat By Service Request');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { serviceRequestId } = req.params;
-
+  async getChatByServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get Chat By Service Request');
+
+      // Optimized: Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
+      const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['serviceRequestId']);
+      if (paramError) {
+        this.sendError(res, paramError, 400);
+        return;
+      }
+
+      const { serviceRequestId } = req.params;
       const result = await this.chatService.getChatByServiceRequest(serviceRequestId, req.user!.id);
       this.sendSuccess<ChatDto>(res, result, 'Chat retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get chat', 400);
     }
-  });
+  }
 
   /**
    * Create a new chat for a service request
@@ -76,26 +87,26 @@ export class ChatController extends BaseController {
   @Validate({
     initialMessage: { required: false, maxLength: 1000 }
   })
-  createChatForServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Create Chat For Service Request');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { serviceRequestId } = req.params;
-    const { initialMessage } = req.body;
-
-    const validation = this.validateRequest(req.body, {
-      initialMessage: { maxLength: 1000 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
+  async createChatForServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Create Chat For Service Request');
+
+      // Optimized: Use ConditionalHelpers for guard clauses
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
+      const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['serviceRequestId']);
+      if (paramError) {
+        this.sendError(res, paramError, 400);
+        return;
+      }
+
+      const { serviceRequestId } = req.params;
+      const { initialMessage } = req.body;
+
       const result = await this.chatService.createChatForServiceRequest({
         serviceRequestId,
         userId: req.user!.id,
@@ -105,25 +116,28 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to create chat', 400);
     }
-  });
+  }
 
   /**
    * Get all chats for the authenticated user
    */
   @Get('/my-chats')
   @RequireAuth()
-  getMyChats = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Get My Chats');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { page, limit, offset } = this.getPaginationParams(req);
-    const { sortBy, sortOrder } = this.getSortParams(req, ['lastMessageAt', 'createdAt']);
-    const filters = this.getFilterParams(req, ['status', 'hasUnreadMessages']);
-
+  async getMyChats(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Get My Chats');
+
+      // Optimized: Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
+      const { page, limit, offset } = this.getPaginationParams(req);
+      const { sortBy, sortOrder } = this.getSortParams(req, ['lastMessageAt', 'createdAt']);
+      const filters = this.getFilterParams(req, ['status', 'hasUnreadMessages']);
+
       const result = await this.chatService.getUserChats(req.user!.id, {
         page,
         limit,
@@ -136,7 +150,7 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get chats', 400);
     }
-  });
+  }
 
   /**
    * Get chat by ID
