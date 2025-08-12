@@ -11,7 +11,7 @@ import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { User } from '../../models/User';
 import { ServiceRequest } from '../../models/ServiceRequest';
 import { Review } from '../../models/Review';
-import { UserOperationInput, UserSearchInput, UserLocationInput } from '../interfaces/ServiceStrategy';
+import { UserOperationInput, UserSearchInput, UserLocationInput, UserStatisticsInput } from '../interfaces/ServiceStrategy';
 import { StatisticsOperationInput } from '../interfaces/BaseStrategy';
 
 // User operation strategies
@@ -368,8 +368,8 @@ export class GetUsersByLocationStrategy implements AsyncStrategy<UserLocationInp
 }
 
 // User statistics strategies
-export class GetUserStatisticsStrategy implements AsyncStrategy<StatisticsOperationInput, CommandResult> {
-  async execute(input: StatisticsOperationInput): Promise<CommandResult> {
+export class GetUserStatisticsStrategy implements AsyncStrategy<UserStatisticsInput, CommandResult> {
+  async execute(input: UserStatisticsInput): Promise<CommandResult> {
     try {
       const dateRange = input.dateRange || {
         from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
