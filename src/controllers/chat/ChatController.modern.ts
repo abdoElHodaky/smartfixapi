@@ -220,61 +220,47 @@ export class ChatController extends BaseController {
    */
   @Put('/:chatId/messages/read')
   @RequireAuth()
-  @Validate({
-    messageIds: { required: false }
-  })
-  markMessagesAsRead = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Mark Messages As Read');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const { chatId } = req.params;
-    const { messageIds } = req.body; // If not provided, mark all unread messages as read
-
+  async markMessagesAsRead(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Mark Messages As Read');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { chatId } = req.params;
+      const { messageIds } = req.body; // If not provided, mark all unread messages as read
+
       const result = await this.chatService.markMessagesAsRead(chatId, req.user!.id, messageIds);
       this.sendSuccess(res, result, 'Messages marked as read successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to mark messages as read', 400);
     }
-  });
+  }
 
   /**
    * Update message (edit)
    */
   @Put('/:chatId/messages/:messageId')
   @RequireAuth()
-  @Validate({
-    content: { required: true, minLength: 1, maxLength: 1000 }
-  })
-  updateMessage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    this.logRequest(req, 'Update Message');
-
-    if (!this.requireAuth(req, res)) {
-      return;
-    }
-
-    const validation = this.validateRequest(req.body, {
-      content: { required: true, minLength: 1, maxLength: 1000 }
-    });
-
-    if (!validation.isValid) {
-      this.sendError(res, 'Validation failed', 400, validation.errors);
-      return;
-    }
-
-    const { chatId, messageId } = req.params;
-    const { content } = req.body;
-
+  @UseMiddleware(validateBody(MessageUpdateDto))
+  async updateMessage(req: AuthRequest, res: Response): Promise<void> {
     try {
+      this.logRequest(req, 'Update Message');
+
+      if (!this.requireAuth(req, res)) {
+        return;
+      }
+
+      const { chatId, messageId } = req.params;
+      const { content } = req.body;
+
       const result = await this.chatService.updateMessage(messageId, req.user!.id, { content });
       this.sendSuccess<MessageDto>(res, result, 'Message updated successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to update message', 400);
     }
-  });
+  }
 
   /**
    * Delete message
