@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { asyncHandler, ValidationError } from '../../middleware/errorHandler';
 import { IUserService } from '../../interfaces/services';
@@ -23,7 +23,7 @@ export class UserController {
       return;
     }
 
-    const result = await this.userService.getUserProfile(req.user.id);
+    const result = await this.userService.getUserById(req.user.id);
     res.status(200).json(result);
   });
 
@@ -59,7 +59,7 @@ export class UserController {
       throw new ValidationError('No image file provided');
     }
 
-    const result = await this.userService.uploadProfileImage(req.user.id, req.file);
+    const result = await this.userService.uploadProfileImage(req.user.id, req.file.path);
     res.status(200).json(result);
   });
 
@@ -114,7 +114,7 @@ export class UserController {
       return;
     }
 
-    const result = await this.userService.getUserDashboard(req.user.id);
+    const result = await this.userService.getUserStatistics(req.user.id);
     res.status(200).json(result);
   });
 
@@ -167,9 +167,9 @@ export class UserController {
     const { q, role, isActive, page = 1, limit = 10 } = req.query;
 
     const result = await this.userService.searchUsers({
-      q: q as string,
-      role: role as string,
-      isActive: isActive as string,
+      search: q as string,
+      role: role as 'user' | 'provider' | undefined,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       page: parseInt(page as string),
       limit: parseInt(limit as string)
     });

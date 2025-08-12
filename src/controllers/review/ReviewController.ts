@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
 import { IReviewService } from '../../interfaces/services';
@@ -69,7 +69,7 @@ export class ReviewController {
 
     const { reviewId } = req.params;
 
-    const result = await this.reviewService.deleteReview(reviewId, req.user.id, req.user.role);
+    const result = await this.reviewService.deleteReview(reviewId, req.user.id);
     res.status(200).json(result);
   });
 
@@ -78,13 +78,10 @@ export class ReviewController {
    */
   getProviderReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { providerId } = req.params;
-    const searchParams = {
-      page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 10,
-      rating: req.query.rating ? parseInt(req.query.rating as string) : undefined
-    };
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
 
-    const result = await this.reviewService.getProviderReviews(providerId, searchParams);
+    const result = await this.reviewService.getReviewsByProvider(providerId, page, limit);
     res.status(200).json(result);
   });
 
@@ -98,17 +95,25 @@ export class ReviewController {
 
     const { reviewId } = req.params;
 
-    const result = await this.reviewService.addProviderResponse(reviewId, req.user.id, req.body.message);
+    const result = await this.reviewService.respondToReview(reviewId, req.user.id, req.body.message);
     res.status(200).json(result);
   });
 
   /**
-   * Mark review as helpful/not helpful
+   * Flag review as inappropriate
    */
-  markHelpful = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  flagReview = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+      return;
+    }
+
     const { reviewId } = req.params;
 
-    const result = await this.reviewService.markReviewHelpful(reviewId, req.body.helpful);
+    const result = await this.reviewService.flagReview(reviewId, req.user.id, req.body.reason);
     res.status(200).json(result);
   });
 
@@ -124,33 +129,36 @@ export class ReviewController {
       return;
     }
 
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await this.reviewService.getReviewsByUser(req.user.id, page, limit);
+    res.status(200).json(result);
+  });
+
+  /**
+   * Search reviews with filters
+   */
+  searchReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const searchParams = {
       page: parseInt(req.query.page as string) || 1,
-      limit: parseInt(req.query.limit as string) || 10
-    };
-
-    const result = await this.reviewService.getUserReviews(req.user.id, searchParams);
-    res.status(200).json(result);
-  });
-
-  /**
-   * Get recent reviews (public endpoint)
-   */
-  getRecentReviews = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const searchParams = {
       limit: parseInt(req.query.limit as string) || 10,
-      minRating: parseInt(req.query.minRating as string) || 1
+      rating: req.query.rating ? parseInt(req.query.rating as string) : undefined,
+      isVerified: req.query.isVerified ? req.query.isVerified === 'true' : undefined,
+      providerId: req.query.providerId as string || undefined,
+      userId: req.query.userId as string || undefined
     };
 
-    const result = await this.reviewService.getRecentReviews(searchParams);
+    const result = await this.reviewService.searchReviews(searchParams);
     res.status(200).json(result);
   });
 
   /**
-   * Get review statistics
+   * Get review statistics for provider
    */
   getReviewStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const result = await this.reviewService.getReviewStatistics();
+    const { providerId } = req.params;
+    const result = await this.reviewService.getReviewStatistics(providerId);
     res.status(200).json(result);
   });
 }

@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
 import { IProviderService } from '../../interfaces/services';
@@ -136,17 +136,30 @@ export class ProviderController {
    * Search providers
    */
   searchProviders = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const searchParams = {
-      q: req.query.q as string,
-      services: req.query.services as string,
-      location: req.query.location as string,
-      radius: parseInt(req.query.radius as string) || 10,
-      minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
-      isVerified: req.query.isVerified as string,
+    const searchParams: any = {
       page: parseInt(req.query.page as string) || 1,
       limit: parseInt(req.query.limit as string) || 10,
-      sort: req.query.sort as string || 'rating'
+      sort: (req.query.sort as string) || 'rating'
     };
+
+    if (req.query.services) {
+      searchParams.services = (req.query.services as string).split(',');
+    }
+    if (req.query.location) {
+      const coords = (req.query.location as string).split(',').map(Number);
+      if (coords.length === 2) {
+        searchParams.location = coords as [number, number];
+      }
+    }
+    if (req.query.radius) {
+      searchParams.radius = parseInt(req.query.radius as string) || 10;
+    }
+    if (req.query.minRating) {
+      searchParams.minRating = parseFloat(req.query.minRating as string);
+    }
+    if (req.query.isVerified) {
+      searchParams.isVerified = req.query.isVerified === 'true';
+    }
 
     const result = await this.providerService.searchProviders(searchParams);
     res.status(200).json(result);

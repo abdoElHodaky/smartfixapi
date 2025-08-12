@@ -3,17 +3,10 @@ import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { ServiceRequest } from '../../models/ServiceRequest';
 import { Review } from '../../models/Review';
-import { serviceRegistry } from '../../container';
 import { AuthRequest } from '../../types';
 import { asyncHandler, NotFoundError, AuthorizationError } from '../../middleware/errorHandler';
-import { IAdminService } from '../../interfaces/services';
 
 export class AdminController {
-  private adminService: IAdminService;
-
-  constructor() {
-    this.adminService = serviceRegistry.getAdminService();
-  }
 
   /**
    * Get admin dashboard statistics

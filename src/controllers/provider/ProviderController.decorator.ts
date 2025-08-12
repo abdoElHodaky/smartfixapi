@@ -176,7 +176,7 @@ export class ProviderController {
         return;
       }
 
-      const result = await this.providerService.submitProposal(req.user.id, body);
+      const result = await this.providerService.submitProposal(req.user.id, body.requestId, body);
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({
@@ -297,13 +297,24 @@ export class ProviderController {
     @Res() res: Response
   ): Promise<void> {
     try {
-      const filters = {
-        service: service || undefined,
-        location: location || undefined,
-        rating: rating ? parseFloat(rating) : undefined,
+      const filters: any = {
         page: parseInt(page) || 1,
         limit: parseInt(limit) || 10
       };
+
+      if (service) {
+        filters.services = [service];
+      }
+      if (location) {
+        // Assuming location is in format "lat,lng"
+        const coords = location.split(',').map(Number);
+        if (coords.length === 2) {
+          filters.location = coords as [number, number];
+        }
+      }
+      if (rating) {
+        filters.minRating = parseFloat(rating);
+      }
 
       const result = await this.providerService.searchProviders(filters);
       res.json(result);

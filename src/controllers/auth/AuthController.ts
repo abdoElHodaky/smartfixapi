@@ -8,7 +8,7 @@ export class AuthController {
   private authService: IAuthService;
 
   constructor() {
-    this.authService = serviceRegistry.getAuthService();
+    this.authService = serviceRegistry.getService<IAuthService>('AuthService');
   }
   /**
    * Register a new user
@@ -169,7 +169,7 @@ export class AuthController {
   /**
    * Logout (client-side token removal, but we can track it server-side if needed)
    */
-  logout = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  logout = asyncHandler(async (_req: AuthRequest, res: Response): Promise<void> => {
     // In a more sophisticated implementation, we might maintain a blacklist of tokens
     // For now, we just return success as the client will remove the token
     

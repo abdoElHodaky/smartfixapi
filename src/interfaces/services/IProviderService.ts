@@ -21,6 +21,11 @@ export interface IProviderService {
   getProviderByUserId(userId: string): Promise<any>;
 
   /**
+   * Get provider profile
+   */
+  getProviderProfile(providerId: string): Promise<any>;
+
+  /**
    * Update provider profile
    */
   updateProviderProfile(providerId: string, updateData: UpdateProviderDto): Promise<ApiResponseDto>;
@@ -104,6 +109,26 @@ export interface IProviderService {
    * Get provider service requests by delegating to ServiceRequestService
    */
   getProviderServiceRequests(providerId: string, filters?: any): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get available service requests for provider
+   */
+  getAvailableServiceRequests(providerId: string, filters?: any): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Get available requests for provider
+   */
+  getAvailableRequests(providerId: string, filters?: any): Promise<PaginatedResponseDto<any>>;
+
+  /**
+   * Submit proposal for service request
+   */
+  submitProposal(providerId: string, requestId: string, proposalData: any): Promise<ApiResponseDto>;
+
+  /**
+   * Get provider dashboard data
+   */
+  getProviderDashboard(providerId: string): Promise<any>;
 
   /**
    * Increment completed jobs count

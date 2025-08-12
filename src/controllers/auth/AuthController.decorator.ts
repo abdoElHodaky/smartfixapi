@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { 
   Controller, 
   Get, 
@@ -26,7 +26,7 @@ export class AuthController {
   private authService: IAuthService;
 
   constructor() {
-    this.authService = serviceRegistry.getAuthService();
+    this.authService = serviceRegistry.getService<IAuthService>('AuthService');
   }
 
   /**

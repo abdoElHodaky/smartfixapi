@@ -1,17 +1,14 @@
 import { Response } from 'express';
-import { serviceContainer } from '../../container/ServiceContainer';
-import { ServiceRequestService } from '../../services/request/ServiceRequestService.decorator';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { asyncHandler, AuthorizationError } from '../../middleware/errorHandler';
 import { IServiceRequestService } from '../../interfaces/services';
 
 export class RequestController {
-  private serviceRequestService: IServiceRequestService;
-  private requestService: ServiceRequestService;
+  private requestService: IServiceRequestService;
 
   constructor() {
-    this.serviceRequestService = serviceContainer.getServiceRequestService();
-    this.requestService = new ServiceRequestService(); // Using decorator-based service
+    this.requestService = serviceContainer.getServiceRequestService();
   }
   /**
    * Create a new service request
@@ -35,7 +32,7 @@ export class RequestController {
   getRequestById = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { requestId } = req.params;
 
-    const result = await this.requestService.getServiceRequestById(requestId, req.user?.id, req.user?.role);
+    const result = await this.requestService.getServiceRequestById(requestId);
     res.status(200).json(result);
   });
 
@@ -53,7 +50,7 @@ export class RequestController {
 
     const { requestId } = req.params;
 
-    const result = await this.requestService.updateServiceRequest(requestId, req.user.id, req.body);
+    const result = await this.requestService.updateServiceRequest(requestId, req.body);
     res.status(200).json(result);
   });
 
@@ -69,9 +66,10 @@ export class RequestController {
       return;
     }
 
-    const { requestId, proposalId } = req.params;
+    const { requestId } = req.params;
+    const { providerId } = req.body;
 
-    const result = await this.requestService.acceptProposal(requestId, proposalId, req.user.id);
+    const result = await this.requestService.acceptServiceRequest(requestId, providerId);
     res.status(200).json(result);
   });
 
@@ -144,18 +142,21 @@ export class RequestController {
    */
   getRequests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const searchParams = {
-      status: req.query.status as string,
-      category: req.query.category as string,
-      location: req.query.location as string,
-      radius: parseInt(req.query.radius as string) || 10,
+      status: req.query.status as string || undefined,
+      category: req.query.category as string || undefined,
+      urgency: req.query.urgency as 'low' | 'medium' | 'high' || undefined,
       minBudget: req.query.minBudget ? parseFloat(req.query.minBudget as string) : undefined,
       maxBudget: req.query.maxBudget ? parseFloat(req.query.maxBudget as string) : undefined,
+      search: req.query.search as string || undefined,
       page: parseInt(req.query.page as string) || 1,
       limit: parseInt(req.query.limit as string) || 10,
-      sort: req.query.sort as string || 'createdAt'
+      location: req.query.location ? {
+        address: req.query.location as string,
+        radius: parseInt(req.query.radius as string) || 10
+      } : undefined
     };
 
-    const result = await this.requestService.getServiceRequests(searchParams);
+    const result = await this.requestService.searchServiceRequests(searchParams);
     res.status(200).json(result);
   });
 
@@ -163,7 +164,8 @@ export class RequestController {
    * Get service request statistics
    */
   getStatistics = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    const result = await this.requestService.getServiceRequestStatistics();
+    const { requestId } = req.params;
+    const result = await this.requestService.getServiceRequestStatistics(requestId);
     res.status(200).json(result);
   });
 }

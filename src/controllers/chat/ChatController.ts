@@ -10,7 +10,7 @@ export class ChatController {
   private chatService: IChatService;
 
   constructor() {
-    this.chatService = serviceRegistry.getChatService();
+    this.chatService = serviceRegistry.getService<IChatService>('ChatService');
   }
 
   /**
@@ -85,7 +85,12 @@ export class ChatController {
       throw new AuthorizationError('You are not a participant in this chat');
     }
 
-    await chat.addMessage(req.user.id, content, messageType, attachments);
+    await this.chatService.sendMessage(chatId, { 
+      senderId: req.user.id, 
+      content, 
+      type: messageType || 'text', 
+      attachments 
+    });
 
     res.status(201).json({
       success: true,
@@ -128,7 +133,7 @@ export class ChatController {
       throw new AuthorizationError('You are not a participant in this chat');
     }
 
-    const messagesData = chat.getMessages(page, limit);
+    const messagesData = await this.chatService.getMessages(chatId, page, limit);
 
     res.status(200).json({
       success: true,
@@ -150,7 +155,7 @@ export class ChatController {
     }
 
     const { chatId } = req.params;
-    const { messageIds } = req.body; // Optional: specific message IDs to mark as read
+    // Mark all messages in conversation as read
 
     const chat = await Chat.findById(chatId);
     if (!chat) {
@@ -166,7 +171,7 @@ export class ChatController {
       throw new AuthorizationError('You are not a participant in this chat');
     }
 
-    await chat.markAsRead(req.user.id, messageIds);
+    await this.chatService.markConversationAsRead(chatId, req.user.id);
 
     res.status(200).json({
       success: true,
@@ -189,13 +194,7 @@ export class ChatController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
 
-    const chats = await Chat.findUserChats(req.user.id, page, limit);
-
-    // Add unread count for each chat
-    const chatsWithUnreadCount = chats.map((chat: any) => ({
-      ...chat.toJSON(),
-      unreadCount: chat.getUnreadCount(req.user!.id)
-    }));
+    const chatsWithUnreadCount = await this.chatService.getUserConversations(req.user.id, page, limit);
 
     res.status(200).json({
       success: true,
@@ -219,13 +218,8 @@ export class ChatController {
     const { chatId, messageId } = req.params;
     const { content } = req.body;
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
     try {
-      await chat.editMessage(messageId, content, req.user.id);
+      await this.chatService.editMessage(chatId, messageId, content, req.user.id);
 
       res.status(200).json({
         success: true,
@@ -264,7 +258,7 @@ export class ChatController {
       throw new AuthorizationError('You are not a participant in this chat');
     }
 
-    const unreadCount = chat.getUnreadCount(req.user.id);
+    const unreadCount = await this.chatService.getUnreadMessagesCount(req.user.id);
 
     res.status(200).json({
       success: true,
@@ -298,12 +292,11 @@ export class ChatController {
       throw new AuthorizationError('Only the service request owner can create a chat');
     }
 
-    const chat = await Chat.createChat(serviceRequestId, participants);
-
-    await chat.populate([
-      { path: 'participants', select: 'firstName lastName profileImage' },
-      { path: 'serviceRequest', select: 'title status' }
-    ]);
+    const chat = await this.chatService.createConversation({
+      participants,
+      type: 'direct',
+      serviceRequestId
+    });
 
     res.status(201).json({
       success: true,

@@ -14,7 +14,7 @@ import {
   Status
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
-import { serviceContainer } from '../../container/ServiceContainer';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { IUserService } from '../../interfaces/services';
 
@@ -47,7 +47,7 @@ export class UserController {
         return;
       }
 
-      const result = await this.userService.getUserProfile(req.user.id);
+      const result = await this.userService.getUserById(req.user.id);
       res.json(result);
     } catch (error) {
       res.status(500).json({
@@ -107,7 +107,7 @@ export class UserController {
         return;
       }
 
-      const result = await this.userService.uploadProfileImage(req.user.id, req.file);
+      const result = await this.userService.uploadProfileImage(req.user.id, req.file.path);
       res.json(result);
     } catch (error) {
       res.status(400).json({
@@ -207,7 +207,7 @@ export class UserController {
         return;
       }
 
-      const result = await this.userService.getUserDashboard(req.user.id);
+      const result = await this.userService.getUserStatistics(req.user.id);
       res.json(result);
     } catch (error) {
       res.status(500).json({
@@ -316,4 +316,3 @@ export class UserController {
     }
   }
 }
-
