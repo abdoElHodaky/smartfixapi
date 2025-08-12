@@ -1,8 +1,8 @@
 /**
- * CQRS Command Index
+ * Modern CQRS Command Index
  * 
  * Centralized exports for all CQRS command implementations
- * with enhanced optimization and utility integration.
+ * using the new enhanced CQRS core architecture.
  */
 
 // Admin Commands
@@ -13,7 +13,19 @@ export {
   DeleteUserCommand,
   GenerateReportCommand,
   BulkUpdateUserRolesCommand,
-  AdminCommandFactory
+  ModernAdminCommandFactory,
+  AdminHandlerFactory,
+  // Events
+  ProviderApprovedEvent,
+  ProviderRejectedEvent,
+  ProviderSuspendedEvent,
+  UserDeletedEvent,
+  ReportGeneratedEvent,
+  // Handlers
+  ApproveProviderHandler,
+  RejectProviderHandler,
+  SuspendProviderHandler,
+  GenerateReportHandler
 } from './AdminCommands';
 
 // User Commands
@@ -23,15 +35,22 @@ export {
   ChangePasswordCommand,
   SearchUsersCommand,
   GenerateUserAnalyticsCommand,
-  UserCommandFactory
+  ModernUserCommandFactory,
+  UserHandlerFactory
 } from './UserCommands';
 
-// Re-export base command utilities
+// Re-export CQRS core utilities
 export {
-  CommandBase,
+  BaseCommand,
+  ICommand,
+  ICommandHandler,
   CommandResult,
-  CommandContext
-} from '../../utils/service-optimization/CommandBase';
+  CommandMetadata,
+  IEvent,
+  BaseEvent,
+  EventMetadata,
+  CQRSUtils
+} from '../core';
 
 // Re-export utility classes for command building
 export {

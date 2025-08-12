@@ -7,7 +7,17 @@
 
 import { IsString, IsOptional, IsObject, IsEmail, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
+import { 
+  BaseCommand, 
+  ICommand, 
+  ICommandHandler, 
+  CommandResult, 
+  CommandMetadata,
+  IEvent,
+  BaseEvent,
+  EventMetadata,
+  CQRSUtils
+} from '../core';
 import { IUserService, IAuthService } from '../../interfaces/services';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
