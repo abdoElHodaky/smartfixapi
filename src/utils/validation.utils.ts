@@ -392,9 +392,9 @@ export function IsPrice(validationOptions?: ValidationOptions) {
       name: 'isPrice',
       target: object.constructor,
       propertyName: propertyName,
-      options: validationOptions,
+      options: validationOptions || {},
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any, _args: ValidationArguments) {
           if (typeof value !== 'number') return false;
           
           // Must be positive and have at most 2 decimal places
@@ -417,9 +417,9 @@ export function IsDurationMinutes(validationOptions?: ValidationOptions) {
       name: 'isDurationMinutes',
       target: object.constructor,
       propertyName: propertyName,
-      options: validationOptions,
+      options: validationOptions || {},
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any, _args: ValidationArguments) {
           if (typeof value !== 'number') return false;
           
           // Must be positive integer, minimum 15 minutes, maximum 24 hours (1440 minutes)

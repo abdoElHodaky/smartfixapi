@@ -88,7 +88,7 @@ export abstract class BaseController {
    * This method is deprecated and will be removed
    * @deprecated Use validation middleware instead
    */
-  protected validateRequest(data: any, validationRules: any): { isValid: boolean; errors?: string[] } {
+  protected validateRequest(_data: any, _validationRules: any): { isValid: boolean; errors?: string[] } {
     console.warn('validateRequest is deprecated. Use validation middleware with class-validator instead.');
     return { isValid: true };
   }
@@ -123,9 +123,9 @@ export abstract class BaseController {
   /**
    * Extract sorting parameters
    */
-  protected getSortParams(req: Request, allowedFields: string[] = []): { sortBy?: string; sortOrder: 'ASC' | 'DESC' } {
+  protected getSortParams(req: Request, allowedFields: string[] = []): { sortBy?: string; sortOrder: 'asc' | 'desc' } {
     const sortBy = req.query.sortBy as string;
-    const sortOrder = (req.query.sortOrder as string)?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc';
 
     const validSortBy = allowedFields.includes(sortBy) ? sortBy : undefined;
     return {
