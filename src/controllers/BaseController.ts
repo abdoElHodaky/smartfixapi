@@ -14,13 +14,13 @@ import { Request, Response, NextFunction } from 'express';
 
 // Internal imports
 import { AuthRequest } from '../types';
-import { serviceRegistry } from '../container';
+import { serviceContainer } from '../container';
 
 // DTO imports
 import { ApiResponseDto } from '../dtos';
 
 export abstract class BaseController {
-  protected serviceRegistry = serviceRegistry;
+  protected serviceRegistry = serviceContainer;
 
   /**
    * Standard success response formatter

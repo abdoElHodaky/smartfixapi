@@ -1,217 +1,287 @@
-import { Response } from 'express';
-import { Chat } from '../../models/Chat';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { serviceRegistry } from '../../container';
+/**
+ * Modern ChatController
+ * 
+ * Updated implementation using the new BaseController pattern with:
+ * - Modern dependency injection
+ * - Standardized response formatting
+ * - Built-in validation and error handling
+ * - Decorator-based routing
+ */
+
+// External imports
+import { Request, Response } from 'express';
+
+// Internal imports
+import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
-import { asyncHandler, NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 import { IChatService } from '../../interfaces/services';
 
-export class ChatController {
+// DTO imports
+import { 
+  ChatDto,
+  MessageDto,
+  ChatCreationDto,
+  MessageCreationDto,
+  ChatListDto,
+  MessageListDto
+} from '../../dtos';
+
+// Decorator imports
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Delete,
+  RequireAuth, 
+  Validate 
+} from '../../decorators';
+
+@Controller({ path: '/chats' })
+export class ChatController extends BaseController {
   private chatService: IChatService;
 
   constructor() {
-    this.chatService = serviceRegistry.getService<IChatService>('ChatService');
+    super();
+    this.chatService = this.serviceRegistry.getChatService();
   }
 
   /**
    * Get chat for a service request
    */
-  getChatByServiceRequest = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Get('/service-request/:serviceRequestId')
+  @RequireAuth()
+  getChatByServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Chat By Service Request');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
     const { serviceRequestId } = req.params;
 
-    // Check if user has access to this service request
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
+    try {
+      const result = await this.chatService.getChatByServiceRequest(serviceRequestId, req.user!.id);
+      this.sendSuccess<ChatDto>(res, result, 'Chat retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get chat', 400);
     }
-
-    const isOwner = serviceRequest.userId.toString() === req.user.id;
-    const isProvider = serviceRequest.providerId && 
-      (serviceRequest.providerId as any).userId?.toString() === req.user.id;
-
-    if (!isOwner && !isProvider) {
-      throw new AuthorizationError('Access denied');
-    }
-
-    const chat = await Chat.findOne({ serviceRequestId })
-      .populate('participants', 'firstName lastName profileImage')
-      .populate('serviceRequest', 'title status');
-
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Chat retrieved successfully',
-      data: chat
-    });
   });
 
   /**
-   * Send a message
+   * Create a new chat for a service request
    */
-  sendMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
+  @Post('/service-request/:serviceRequestId')
+  @RequireAuth()
+  @Validate({
+    initialMessage: { required: false, maxLength: 1000 }
+  })
+  createChatForServiceRequest = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Create Chat For Service Request');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { serviceRequestId } = req.params;
+    const { initialMessage } = req.body;
+
+    const validation = this.validateRequest(req.body, {
+      initialMessage: { maxLength: 1000 }
+    });
+
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
+      return;
+    }
+
+    try {
+      const result = await this.chatService.createChatForServiceRequest({
+        serviceRequestId,
+        userId: req.user!.id,
+        initialMessage
       });
+      this.sendSuccess<ChatDto>(res, result, 'Chat created successfully', 201);
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to create chat', 400);
+    }
+  });
+
+  /**
+   * Get all chats for the authenticated user
+   */
+  @Get('/my-chats')
+  @RequireAuth()
+  getMyChats = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get My Chats');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { page, limit, offset } = this.getPaginationParams(req);
+    const { sortBy, sortOrder } = this.getSortParams(req, ['lastMessageAt', 'createdAt']);
+    const filters = this.getFilterParams(req, ['status', 'hasUnreadMessages']);
+
+    try {
+      const result = await this.chatService.getUserChats(req.user!.id, {
+        page,
+        limit,
+        offset,
+        sortBy,
+        sortOrder,
+        filters
+      });
+      this.sendSuccess<ChatListDto>(res, result, 'Chats retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get chats', 400);
+    }
+  });
+
+  /**
+   * Get chat by ID
+   */
+  @Get('/:chatId')
+  @RequireAuth()
+  getChatById = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Chat By ID');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
     const { chatId } = req.params;
-    const { content, messageType = 'text', attachments } = req.body;
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
+    try {
+      const result = await this.chatService.getChatById(chatId, req.user!.id);
+      this.sendSuccess<ChatDto>(res, result, 'Chat retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get chat', 400);
+    }
+  });
+
+  /**
+   * Send a message in a chat
+   */
+  @Post('/:chatId/messages')
+  @RequireAuth()
+  @Validate({
+    content: { required: true, minLength: 1, maxLength: 1000 },
+    messageType: { required: false }
+  })
+  sendMessage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Send Message');
+
+    if (!this.requireAuth(req, res)) {
+      return;
     }
 
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    await this.chatService.sendMessage(chatId, { 
-      senderId: req.user.id, 
-      content, 
-      type: messageType || 'text', 
-      attachments 
+    const validation = this.validateRequest(req.body, {
+      content: { required: true, minLength: 1, maxLength: 1000 }
     });
 
-    res.status(201).json({
-      success: true,
-      message: 'Message sent successfully',
-      data: {
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
+      return;
+    }
+
+    const { chatId } = req.params;
+    const { content, messageType, attachments } = req.body;
+
+    try {
+      const result = await this.chatService.sendMessage({
+        chatId,
+        senderId: req.user!.id,
         content,
-        messageType,
-        timestamp: new Date()
-      }
-    });
+        messageType: messageType || 'text',
+        attachments
+      });
+      this.sendSuccess<MessageDto>(res, result, 'Message sent successfully', 201);
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to send message', 400);
+    }
   });
 
   /**
-   * Get messages with pagination
+   * Get messages for a chat
    */
-  getMessages = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Get('/:chatId/messages')
+  @RequireAuth()
+  getMessages = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Messages');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
     const { chatId } = req.params;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const { page, limit, offset } = this.getPaginationParams(req);
+    const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt']);
+    const { before, after } = req.query; // For cursor-based pagination
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
+    try {
+      const result = await this.chatService.getChatMessages(chatId, req.user!.id, {
+        page,
+        limit,
+        offset,
+        sortBy,
+        sortOrder,
+        before: before as string,
+        after: after as string
+      });
+      this.sendSuccess<MessageListDto>(res, result, 'Messages retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get messages', 400);
     }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    const messagesData = await this.chatService.getMessages(chatId, page, limit);
-
-    res.status(200).json({
-      success: true,
-      message: 'Messages retrieved successfully',
-      data: messagesData
-    });
   });
 
   /**
    * Mark messages as read
    */
-  markAsRead = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Put('/:chatId/messages/read')
+  @RequireAuth()
+  @Validate({
+    messageIds: { required: false }
+  })
+  markMessagesAsRead = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Mark Messages As Read');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
     const { chatId } = req.params;
-    // Mark all messages in conversation as read
+    const { messageIds } = req.body; // If not provided, mark all unread messages as read
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
+    try {
+      const result = await this.chatService.markMessagesAsRead(chatId, req.user!.id, messageIds);
+      this.sendSuccess(res, result, 'Messages marked as read successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to mark messages as read', 400);
     }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    await this.chatService.markConversationAsRead(chatId, req.user.id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Messages marked as read'
-    });
   });
 
   /**
-   * Get user's chats
+   * Update message (edit)
    */
-  getUserChats = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Put('/:chatId/messages/:messageId')
+  @RequireAuth()
+  @Validate({
+    content: { required: true, minLength: 1, maxLength: 1000 }
+  })
+  updateMessage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Update Message');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-
-    const chatsWithUnreadCount = await this.chatService.getUserConversations(req.user.id, page, limit);
-
-    res.status(200).json({
-      success: true,
-      message: 'User chats retrieved successfully',
-      data: chatsWithUnreadCount
+    const validation = this.validateRequest(req.body, {
+      content: { required: true, minLength: 1, maxLength: 1000 }
     });
-  });
 
-  /**
-   * Edit a message
-   */
-  editMessage = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
       return;
     }
 
@@ -219,89 +289,207 @@ export class ChatController {
     const { content } = req.body;
 
     try {
-      await this.chatService.editMessage(chatId, messageId, content, req.user.id);
-
-      res.status(200).json({
-        success: true,
-        message: 'Message edited successfully'
-      });
-    } catch (error) {
-      throw new ValidationError((error as Error).message);
+      const result = await this.chatService.updateMessage(messageId, req.user!.id, { content });
+      this.sendSuccess<MessageDto>(res, result, 'Message updated successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to update message', 400);
     }
   });
 
   /**
-   * Get unread message count
+   * Delete message
    */
-  getUnreadCount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Delete('/:chatId/messages/:messageId')
+  @RequireAuth()
+  deleteMessage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Delete Message');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { chatId, messageId } = req.params;
+
+    try {
+      await this.chatService.deleteMessage(messageId, req.user!.id);
+      this.sendSuccess(res, null, 'Message deleted successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to delete message', 400);
+    }
+  });
+
+  /**
+   * Get chat participants
+   */
+  @Get('/:chatId/participants')
+  @RequireAuth()
+  getChatParticipants = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Chat Participants');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
     const { chatId } = req.params;
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
+    try {
+      const result = await this.chatService.getChatParticipants(chatId, req.user!.id);
+      this.sendSuccess(res, result, 'Chat participants retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get chat participants', 400);
     }
-
-    // Check if user is a participant
-    const isParticipant = chat.participants.some(
-      (participantId: any) => participantId.toString() === req.user!.id
-    );
-
-    if (!isParticipant) {
-      throw new AuthorizationError('You are not a participant in this chat');
-    }
-
-    const unreadCount = await this.chatService.getUnreadMessagesCount(req.user.id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Unread count retrieved successfully',
-      data: { unreadCount }
-    });
   });
 
   /**
-   * Create a new chat (usually done automatically when a proposal is accepted)
+   * Add participant to chat (if allowed)
    */
-  createChat = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Post('/:chatId/participants')
+  @RequireAuth()
+  @Validate({
+    userId: { required: true }
+  })
+  addParticipant = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Add Chat Participant');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
-    const { serviceRequestId, participants } = req.body;
-
-    // Verify service request exists and user has permission
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
-    }
-
-    const isOwner = serviceRequest.userId.toString() === req.user.id;
-    if (!isOwner && req.user.role !== 'admin') {
-      throw new AuthorizationError('Only the service request owner can create a chat');
-    }
-
-    const chat = await this.chatService.createConversation({
-      participants,
-      type: 'direct',
-      serviceRequestId
+    const validation = this.validateRequest(req.body, {
+      userId: { required: true }
     });
 
-    res.status(201).json({
-      success: true,
-      message: 'Chat created successfully',
-      data: chat
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
+      return;
+    }
+
+    const { chatId } = req.params;
+    const { userId } = req.body;
+
+    try {
+      const result = await this.chatService.addParticipant(chatId, userId, req.user!.id);
+      this.sendSuccess(res, result, 'Participant added successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to add participant', 400);
+    }
+  });
+
+  /**
+   * Remove participant from chat (if allowed)
+   */
+  @Delete('/:chatId/participants/:userId')
+  @RequireAuth()
+  removeParticipant = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Remove Chat Participant');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { chatId, userId } = req.params;
+
+    try {
+      await this.chatService.removeParticipant(chatId, userId, req.user!.id);
+      this.sendSuccess(res, null, 'Participant removed successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to remove participant', 400);
+    }
+  });
+
+  /**
+   * Get unread message count for user
+   */
+  @Get('/unread-count')
+  @RequireAuth()
+  getUnreadCount = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Unread Count');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const result = await this.chatService.getUnreadMessageCount(req.user!.id);
+      this.sendSuccess(res, result, 'Unread count retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get unread count', 400);
+    }
+  });
+
+  /**
+   * Search messages in chats
+   */
+  @Get('/search/messages')
+  @RequireAuth()
+  @Validate({
+    query: { required: true, minLength: 1 }
+  })
+  searchMessages = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Search Messages');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { query, chatId } = req.query;
+    const { page, limit, offset } = this.getPaginationParams(req);
+
+    const validation = this.validateRequest(req.query, {
+      query: { required: true, minLength: 1 }
     });
+
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
+      return;
+    }
+
+    try {
+      const result = await this.chatService.searchMessages(req.user!.id, {
+        query: query as string,
+        chatId: chatId as string,
+        page,
+        limit,
+        offset
+      });
+      this.sendSuccess(res, result, 'Messages search completed successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to search messages', 400);
+    }
+  });
+
+  /**
+   * Archive/Unarchive chat
+   */
+  @Put('/:chatId/archive')
+  @RequireAuth()
+  @Validate({
+    isArchived: { required: true }
+  })
+  archiveChat = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Archive Chat');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const validation = this.validateRequest(req.body, {
+      isArchived: { required: true }
+    });
+
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
+      return;
+    }
+
+    const { chatId } = req.params;
+    const { isArchived } = req.body;
+
+    try {
+      const result = await this.chatService.archiveChat(chatId, req.user!.id, isArchived);
+      this.sendSuccess(res, result, `Chat ${isArchived ? 'archived' : 'unarchived'} successfully`);
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to archive chat', 400);
+    }
   });
 }

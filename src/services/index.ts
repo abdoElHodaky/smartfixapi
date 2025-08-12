@@ -22,8 +22,8 @@ export { AdminService } from './admin/AdminService.decorator';
 // Chat Services
 export { ChatService } from './chat/ChatService.decorator';
 
-// Service Registry for Decorator-based Services
-export { ServiceRegistry } from './ServiceRegistry.decorator';
+// Optimized Service Registry
+export { OptimizedServiceRegistry } from './ServiceRegistry.optimized';
 
 // Export service interfaces and types from decorator services
 export type {

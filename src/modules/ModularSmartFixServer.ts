@@ -14,6 +14,7 @@ import { connectDB } from '../config/database';
 import { errorHandler } from '../middleware/errorHandler';
 import { AppModule } from './AppModule';
 import { moduleManager } from '../decorators/module';
+import { createDevPerformanceMiddleware, createPerformanceDashboardMiddleware } from '../middleware/performance.middleware';
 
 export class ModularSmartFixServer {
   private app: Application;
@@ -35,6 +36,23 @@ export class ModularSmartFixServer {
 
     // Performance middleware
     this.app.use(compression());
+    
+    // Development performance monitoring (only in development)
+    if (process.env.NODE_ENV !== 'production') {
+      this.app.use(createDevPerformanceMiddleware({
+        enableInProduction: false,
+        trackPayloadSizes: true,
+        trackHeaders: false,
+        slowRequestThreshold: 1000,
+        logSlowRequests: true,
+        excludePaths: ['/health', '/dev/performance', '/favicon.ico']
+      }));
+      
+      // Development performance dashboard
+      this.app.use(createPerformanceDashboardMiddleware());
+      console.log('📊 Development performance monitoring enabled');
+      console.log('🔍 Performance dashboard available at /dev/performance');
+    }
 
     // Rate limiting
     const limiter = rateLimit({
@@ -118,4 +136,3 @@ export class ModularSmartFixServer {
     return this.app;
   }
 }
-

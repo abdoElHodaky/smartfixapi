@@ -1,204 +1,246 @@
+/**
+ * Modern AuthController
+ * 
+ * Updated implementation using the new BaseController pattern with:
+ * - Modern dependency injection
+ * - Standardized response formatting
+ * - Built-in validation and error handling
+ * - Decorator-based routing
+ */
+
+// External imports
 import { Request, Response } from 'express';
-import { serviceRegistry } from '../../container';
+
+// Internal imports
+import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
-import { asyncHandler } from '../../middleware/errorHandler';
 import { IAuthService } from '../../interfaces/services';
 
-export class AuthController {
+// DTO imports
+import { 
+  UserRegistrationDto, 
+  ServiceProviderRegistrationDto, 
+  LoginDto,
+  LoginResponseDto,
+  UserRegistrationResponseDto,
+  ServiceProviderRegistrationResponseDto,
+  ProviderUserRegistrationDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyEmailDto
+} from '../../dtos';
+
+// Decorator imports
+import { 
+  Controller, 
+  Post, 
+  Get, 
+  RequireAuth, 
+  Validate 
+} from '../../decorators';
+
+// Middleware imports
+import { validateBody } from '../../middleware';
+
+@Controller({ path: '/auth' })
+export class AuthController extends BaseController {
   private authService: IAuthService;
 
   constructor() {
-    this.authService = serviceRegistry.getService<IAuthService>('AuthService');
+    super();
+    this.authService = this.serviceRegistry.getAuthService();
   }
+
   /**
    * Register a new user
    */
-  register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const result = await this.authService.register(req.body);
-    
-    res.status(201).json(result);
-  });
+  @Post('/register')
+  register = [
+    validateBody(UserRegistrationDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'User Registration');
+
+      try {
+        const result = await this.authService.register(req.body as UserRegistrationDto);
+        this.sendSuccess<UserRegistrationResponseDto>(res, result, 'User registered successfully', 201);
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Registration failed', 400);
+      }
+    })
+  ];
 
   /**
    * Register a new service provider
    */
-  registerProvider = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { userData, providerData } = req.body;
-    
-    const result = await this.authService.registerProvider(userData, providerData);
-    
-    res.status(201).json(result);
-  });
+  @Post('/register-provider')
+  registerProvider = [
+    validateBody(ProviderUserRegistrationDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Provider Registration');
+
+      const { userData, providerData } = req.body;
+
+      try {
+        const result = await this.authService.registerProvider(
+          userData as UserRegistrationDto, 
+          providerData as ServiceProviderRegistrationDto
+        );
+        this.sendSuccess<ServiceProviderRegistrationResponseDto>(res, result, 'Provider registered successfully', 201);
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Provider registration failed', 400);
+      }
+    })
+  ];
 
   /**
    * Login user
    */
-  login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const result = await this.authService.login(req.body);
-    
-    res.status(200).json(result);
-  });
+  @Post('/login')
+  login = [
+    validateBody(LoginDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'User Login');
+
+      try {
+        const result = await this.authService.login(req.body as LoginDto);
+        this.sendSuccess<LoginResponseDto>(res, result, 'Login successful');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Login failed', 401);
+      }
+    })
+  ];
 
   /**
    * Get current user profile
    */
-  getProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Get('/profile')
+  @RequireAuth()
+  getProfile = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Profile');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
-    const profile = await this.authService.getUserProfile(req.user.id);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Profile retrieved successfully',
-      data: profile
-    });
+    try {
+      const result = await this.authService.getProfile(req.user!.id);
+      this.sendSuccess(res, result, 'Profile retrieved successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to get profile', 400);
+    }
   });
 
   /**
-   * Update user profile
+   * Refresh authentication token
    */
-  updateProfile = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Post('/refresh-token')
+  @RequireAuth()
+  refreshToken = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Refresh Token');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
-    // This would be implemented in UserController, but for now:
-    res.status(200).json({
-      success: true,
-      message: 'Profile update endpoint - to be implemented in UserController'
-    });
+    try {
+      const result = await this.authService.refreshToken(req.user!.id);
+      this.sendSuccess(res, result, 'Token refreshed successfully');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Token refresh failed', 401);
+    }
   });
 
   /**
-   * Change password
+   * Logout user
    */
-  changePassword = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+  @Post('/logout')
+  @RequireAuth()
+  logout = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'User Logout');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
-    const { currentPassword, newPassword } = req.body;
-    
-    const result = await this.authService.changePassword(req.user.id, currentPassword, newPassword);
-    
-    res.status(200).json(result);
+    try {
+      await this.authService.logout(req.user!.id);
+      this.sendSuccess(res, null, 'Logout successful');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Logout failed', 400);
+    }
   });
 
   /**
-   * Reset password
+   * Request password reset
    */
-  resetPassword = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { email, newPassword } = req.body;
-    
-    const result = await this.authService.resetPassword(email, newPassword);
-    
-    res.status(200).json(result);
-  });
+  @Post('/forgot-password')
+  forgotPassword = [
+    validateBody(ForgotPasswordDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Forgot Password');
+
+      try {
+        await this.authService.forgotPassword(req.body.email);
+        this.sendSuccess(res, null, 'Password reset email sent');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Failed to send reset email', 400);
+      }
+    })
+  ];
 
   /**
-   * Refresh JWT token
+   * Reset password with token
    */
-  refreshToken = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { token } = req.body;
-    
-    if (!token) {
-      res.status(400).json({
-        success: false,
-        message: 'Token is required'
-      });
+  @Post('/reset-password')
+  resetPassword = [
+    validateBody(ResetPasswordDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Reset Password');
+
+      try {
+        await this.authService.resetPassword(req.body.token, req.body.newPassword);
+        this.sendSuccess(res, null, 'Password reset successful');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Password reset failed', 400);
+      }
+    })
+  ];
+
+  /**
+   * Verify email address
+   */
+  @Post('/verify-email')
+  verifyEmail = [
+    validateBody(VerifyEmailDto),
+    this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      this.logRequest(req, 'Verify Email');
+
+      try {
+        await this.authService.verifyEmail(req.body.token);
+        this.sendSuccess(res, null, 'Email verified successfully');
+      } catch (error: any) {
+        this.sendError(res, error.message || 'Email verification failed', 400);
+      }
+    })
+  ];
+
+  /**
+   * Resend email verification
+   */
+  @Post('/resend-verification')
+  @RequireAuth()
+  resendVerification = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Resend Verification');
+
+    if (!this.requireAuth(req, res)) {
       return;
     }
 
-    const result = await this.authService.refreshToken(token);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Token refreshed successfully',
-      data: result
-    });
-  });
-
-  /**
-   * Verify email
-   */
-  verifyEmail = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
+    try {
+      await this.authService.resendVerificationEmail(req.user!.id);
+      this.sendSuccess(res, null, 'Verification email sent');
+    } catch (error: any) {
+      this.sendError(res, error.message || 'Failed to send verification email', 400);
     }
-
-    const result = await this.authService.verifyEmail(req.user.id);
-    
-    res.status(200).json(result);
-  });
-
-  /**
-   * Deactivate account
-   */
-  deactivateAccount = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-      return;
-    }
-
-    const result = await this.authService.deactivateAccount(req.user.id);
-    
-    res.status(200).json(result);
-  });
-
-  /**
-   * Logout (client-side token removal, but we can track it server-side if needed)
-   */
-  logout = asyncHandler(async (_req: AuthRequest, res: Response): Promise<void> => {
-    // In a more sophisticated implementation, we might maintain a blacklist of tokens
-    // For now, we just return success as the client will remove the token
-    
-    res.status(200).json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-  });
-
-  /**
-   * Verify token endpoint
-   */
-  verifyToken = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { token } = req.body;
-    
-    if (!token) {
-      res.status(400).json({
-        success: false,
-        message: 'Token is required'
-      });
-      return;
-    }
-
-    const result = await this.authService.verifyToken(token);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Token is valid',
-      data: result
-    });
   });
 }
