@@ -11,6 +11,7 @@ import { ServiceRequest } from '../../models/ServiceRequest';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { User } from '../../models/User';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { IServiceRequestService, IProviderService, IUserService, IReviewService } from '../../interfaces/services';
 import {
   CreateRequestDto,
@@ -170,8 +171,12 @@ export class ServiceRequestService implements IServiceRequestService {
       throw new NotFoundError('Service request not found');
     }
 
-    // Check if request can be deleted (not in progress)
-    if (serviceRequest.status === 'in_progress') {
+    // Optimized: Use ConditionalHelpers for status validation
+    const statusError = ConditionalHelpers.guardServiceRequestStatus(
+      serviceRequest.status, 
+      ['pending', 'cancelled', 'completed']
+    );
+    if (statusError) {
       throw new ValidationError('Cannot delete service request that is in progress');
     }
 

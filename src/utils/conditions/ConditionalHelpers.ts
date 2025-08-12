@@ -368,4 +368,189 @@ export class ConditionalHelpers {
       errors
     };
   }
+
+  /**
+   * Guard clause for parameter validation
+   */
+  static guardRequiredParams(params: Record<string, any>, requiredFields: string[]): string | null {
+    for (const field of requiredFields) {
+      if (!params[field]) {
+        return `${field} is required`;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Guard clause for user authentication
+   */
+  static guardAuthenticated(user: any): string | null {
+    if (!user) {
+      return 'Authentication required';
+    }
+    if (!user.isActive) {
+      return 'User account is inactive';
+    }
+    return null;
+  }
+
+  /**
+   * Guard clause for role authorization
+   */
+  static guardAuthorized(userRole: string, allowedRoles: string[]): string | null {
+    if (!allowedRoles.includes(userRole)) {
+      return `Access denied. Required role: ${allowedRoles.join(' or ')}`;
+    }
+    return null;
+  }
+
+  /**
+   * Guard clause for resource ownership
+   */
+  static guardResourceOwnership(currentUserId: string, resourceUserId: string, userRole: string): string | null {
+    if (!this.canAccessResource(currentUserId, resourceUserId, userRole)) {
+      return 'Access denied. You can only access your own resources';
+    }
+    return null;
+  }
+
+  /**
+   * Guard clause for service request status
+   */
+  static guardServiceRequestStatus(status: string, allowedStatuses: string[]): string | null {
+    if (!allowedStatuses.includes(status)) {
+      return `Invalid status. Allowed statuses: ${allowedStatuses.join(', ')}`;
+    }
+    return null;
+  }
+
+  /**
+   * Guard clause for business hours
+   */
+  static guardBusinessHours(date: Date = new Date()): string | null {
+    const hour = date.getHours();
+    const day = date.getDay();
+    
+    // Weekend check (0 = Sunday, 6 = Saturday)
+    if (day === 0 || day === 6) {
+      return 'Service not available on weekends';
+    }
+    
+    // Business hours check (9 AM to 6 PM)
+    if (hour < 9 || hour >= 18) {
+      return 'Service only available during business hours (9 AM - 6 PM)';
+    }
+    
+    return null;
+  }
+
+  /**
+   * Conditional execution helper
+   */
+  static executeIf<T>(condition: boolean, fn: () => T, defaultValue?: T): T | undefined {
+    return condition ? fn() : defaultValue;
+  }
+
+  /**
+   * Multiple condition checker with early return
+   */
+  static checkConditionsSequentially(conditions: Array<{ check: () => boolean; error: string }>): string | null {
+    for (const condition of conditions) {
+      if (!condition.check()) {
+        return condition.error;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Status transition validator
+   */
+  static validateStatusTransition(currentStatus: string, newStatus: string, allowedTransitions: Record<string, string[]>): ValidationResult {
+    const errors: string[] = [];
+    
+    if (!allowedTransitions[currentStatus]) {
+      errors.push(`Invalid current status: ${currentStatus}`);
+    } else if (!allowedTransitions[currentStatus].includes(newStatus)) {
+      errors.push(`Cannot transition from ${currentStatus} to ${newStatus}. Allowed: ${allowedTransitions[currentStatus].join(', ')}`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Complex permission checker
+   */
+  static hasComplexPermission(user: any, resource: any, action: string): boolean {
+    // Admin can do everything
+    if (this.isAdmin(user.role)) {
+      return true;
+    }
+
+    // Owner can modify their own resources
+    if (user.id === resource.userId || user.id === resource.ownerId) {
+      return ['read', 'update'].includes(action);
+    }
+
+    // Provider can read public resources
+    if (this.isProvider(user.role) && resource.isPublic) {
+      return action === 'read';
+    }
+
+    return false;
+  }
+
+  /**
+   * Batch validation helper
+   */
+  static validateBatch<T>(items: T[], validator: (item: T) => ValidationResult): ValidationResult {
+    const allErrors: string[] = [];
+    
+    items.forEach((item, index) => {
+      const result = validator(item);
+      if (!result.isValid) {
+        allErrors.push(...result.errors.map(error => `Item ${index + 1}: ${error}`));
+      }
+    });
+
+    return {
+      isValid: allErrors.length === 0,
+      errors: allErrors
+    };
+  }
+
+  /**
+   * Conditional chain builder
+   */
+  static createConditionalChain() {
+    const conditions: Array<{ condition: boolean; value: any }> = [];
+    
+    return {
+      when: (condition: boolean, value: any) => {
+        conditions.push({ condition, value });
+        return this;
+      },
+      otherwise: (defaultValue: any) => {
+        const match = conditions.find(c => c.condition);
+        return match ? match.value : defaultValue;
+      }
+    };
+  }
+
+  /**
+   * Type-safe property checker
+   */
+  static hasProperty<T extends object, K extends keyof T>(obj: T, prop: K): obj is T & Record<K, NonNullable<T[K]>> {
+    return obj != null && prop in obj && obj[prop] != null;
+  }
+
+  /**
+   * Null-safe operation executor
+   */
+  static safeExecute<T, R>(value: T | null | undefined, fn: (value: T) => R, defaultValue?: R): R | undefined {
+    return value != null ? fn(value) : defaultValue;
+  }
 }
