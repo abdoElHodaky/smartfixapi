@@ -100,7 +100,7 @@ class EnhancedServiceContainer {
         return this.optimizedContainer.getService<T>(serviceName);
       } catch (error) {
         if (containerMode.enableAutoFallback) {
-          console.warn(`⚠️ Falling back to legacy ${serviceName}:`, error.message);
+          console.warn(`⚠️ Falling back to legacy ${serviceName}:`, error instanceof Error ? error.message : String(error));
           return this.legacyServiceRegistry.getService<T>(serviceName);
         }
         throw error;
@@ -137,7 +137,7 @@ class EnhancedServiceContainer {
         return this.optimizedContainer.getAdminService();
       } catch (error) {
         if (containerMode.enableAutoFallback) {
-          console.warn('⚠️ Falling back to legacy AdminService:', error.message);
+          console.warn('⚠️ Falling back to legacy AdminService:', error instanceof Error ? error.message : String(error));
           return this.legacyServiceRegistry.getService<IAdminService>('AdminService');
         }
         throw error;
@@ -198,7 +198,7 @@ class EnhancedServiceContainer {
         const optimizedHealth = await this.optimizedContainer.healthCheck();
         return { ...health, optimizedServices: optimizedHealth };
       } catch (error) {
-        return { ...health, optimizedServices: { error: error.message } };
+        return { ...health, optimizedServices: { error: error instanceof Error ? error.message : String(error) } };
       }
     }
 

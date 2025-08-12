@@ -152,7 +152,7 @@ export class OptimizedContainer {
         return this.optimizedRegistry.getService<IAuthService>('AuthService');
       } catch (error) {
         if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy AuthService:', error.message);
+          console.warn('⚠️ Falling back to legacy AuthService:', error instanceof Error ? error.message : String(error));
           return legacyServiceRegistry.getService<IAuthService>('AuthService');
         }
         throw error;
@@ -170,7 +170,7 @@ export class OptimizedContainer {
         return this.optimizedRegistry.getService<IUserService>('UserService');
       } catch (error) {
         if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy UserService:', error.message);
+          console.warn('⚠️ Falling back to legacy UserService:', error instanceof Error ? error.message : String(error));
           return legacyServiceRegistry.getService<IUserService>('UserService');
         }
         throw error;
@@ -188,7 +188,7 @@ export class OptimizedContainer {
         return this.optimizedRegistry.getService<IProviderService>('ProviderService');
       } catch (error) {
         if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ProviderService:', error.message);
+          console.warn('⚠️ Falling back to legacy ProviderService:', error instanceof Error ? error.message : String(error));
           return legacyServiceRegistry.getService<IProviderService>('ProviderService');
         }
         throw error;
@@ -206,7 +206,7 @@ export class OptimizedContainer {
         return this.optimizedRegistry.getService<IServiceRequestService>('ServiceRequestService');
       } catch (error) {
         if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ServiceRequestService:', error.message);
+          console.warn('⚠️ Falling back to legacy ServiceRequestService:', error instanceof Error ? error.message : String(error));
           return legacyServiceRegistry.getService<IServiceRequestService>('ServiceRequestService');
         }
         throw error;
@@ -224,7 +224,7 @@ export class OptimizedContainer {
         return this.optimizedRegistry.getService<IReviewService>('ReviewService');
       } catch (error) {
         if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ReviewService:', error.message);
+          console.warn('⚠️ Falling back to legacy ReviewService:', error instanceof Error ? error.message : String(error));
           return legacyServiceRegistry.getService<IReviewService>('ReviewService');
         }
         throw error;
@@ -243,7 +243,7 @@ export class OptimizedContainer {
         return this.optimizedRegistry.getService<IAdminService>('AdminService');
       } catch (error) {
         if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy AdminService:', error.message);
+          console.warn('⚠️ Falling back to legacy AdminService:', error instanceof Error ? error.message : String(error));
           return legacyServiceRegistry.getService<IAdminService>('AdminService');
         }
         throw error;
@@ -261,7 +261,7 @@ export class OptimizedContainer {
         return this.optimizedRegistry.getService<IChatService>('ChatService');
       } catch (error) {
         if (this.config.fallbackToLegacy) {
-          console.warn('⚠️ Falling back to legacy ChatService:', error.message);
+          console.warn('⚠️ Falling back to legacy ChatService:', error instanceof Error ? error.message : String(error));
           return legacyServiceRegistry.getService<IChatService>('ChatService');
         }
         throw error;
@@ -360,7 +360,7 @@ export class OptimizedContainer {
     console.log('🔄 Switching to optimized services...');
     this.config.useOptimizedServices = true;
     
-    if (!this.optimizedRegistry) {
+    if (this.optimizedRegistry && typeof this.optimizedRegistry.initialize === 'function') {
       await this.optimizedRegistry.initialize();
     }
     
