@@ -34,8 +34,15 @@ import {
   Delete,
   RequireAuth, 
   RequireRoles,
+  UseMiddleware,
   Validate 
 } from '../../decorators';
+
+// Middleware imports
+import { validateBody, validateQuery, validateParams } from '../../middleware';
+
+// Utility imports
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 
 @Controller({ path: '/providers' })
 export class ProviderController extends BaseController {
