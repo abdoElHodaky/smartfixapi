@@ -16,7 +16,7 @@ import { UserModule } from '../user/UserModule';
 import { ProviderService } from '../../services/provider/ProviderService.decorator';
 
 // Import controllers
-import { ProviderController } from '../../controllers/provider/ProviderController.modern';
+import { ProviderController } from '../../controllers/provider/ProviderController.decorator';
 
 @Module({
   imports: [
@@ -77,3 +77,4 @@ export class ProviderModule {
     };
   }
 }
+

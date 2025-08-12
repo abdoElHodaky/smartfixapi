@@ -12,7 +12,7 @@ import { Module } from '../../decorators/module';
 import { AuthService } from '../../services/auth/AuthService.decorator';
 
 // Import controllers
-import { AuthController } from '../../controllers/auth/AuthController.modern';
+import { AuthController } from '../../controllers/auth/AuthController.decorator';
 
 @Module({
   providers: [
@@ -67,3 +67,4 @@ export class AuthModule {
     };
   }
 }
+

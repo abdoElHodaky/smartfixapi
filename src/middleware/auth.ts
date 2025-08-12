@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../types';
 import { User } from '../models/User';
-import { ConditionalHelpers } from '../utils/conditions/ConditionalHelpers';
 
 export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -22,14 +21,11 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
     
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findById(decoded.id).select('-password');
-    
-    // Optimized: Use ConditionalHelpers for user validation
-    const authError = ConditionalHelpers.guardAuthenticated(user);
-    if (authError) {
+    if (!user || !user.isActive) {
       res.status(401).json({ 
         success: false, 
         message: 'Invalid token',
-        error: authError
+        error: 'User not found or inactive'
       });
       return;
     }
@@ -150,3 +146,4 @@ export const requireProviderVerification = (req: AuthRequest, res: Response, nex
   // Additional provider verification logic can be added here
   next();
 };
+

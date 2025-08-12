@@ -4,6 +4,15 @@
 
 import { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
 import { moduleManager } from '../decorators/module';
+import { 
+  IAuthService, 
+  IUserService, 
+  IProviderService, 
+  IServiceRequestService, 
+  IReviewService, 
+  IAdminService, 
+  IChatService 
+} from '../interfaces/services';
 
 // NEW MODULAR SYSTEM
 export { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
@@ -26,32 +35,32 @@ class LegacyServiceContainer {
   }
 
   // Legacy methods for backward compatibility
-  getServiceRequestService() {
-    return this.serviceRegistry.getService('ServiceRequestService');
+  getServiceRequestService(): IServiceRequestService {
+    return this.serviceRegistry.getService<IServiceRequestService>('ServiceRequestService');
   }
 
-  getUserService() {
-    return this.serviceRegistry.getService('UserService');
+  getUserService(): IUserService {
+    return this.serviceRegistry.getService<IUserService>('UserService');
   }
 
-  getProviderService() {
-    return this.serviceRegistry.getService('ProviderService');
+  getProviderService(): IProviderService {
+    return this.serviceRegistry.getService<IProviderService>('ProviderService');
   }
 
-  getReviewService() {
-    return this.serviceRegistry.getService('ReviewService');
+  getReviewService(): IReviewService {
+    return this.serviceRegistry.getService<IReviewService>('ReviewService');
   }
 
-  getAuthService() {
-    return this.serviceRegistry.getService('AuthService');
+  getAuthService(): IAuthService {
+    return this.serviceRegistry.getService<IAuthService>('AuthService');
   }
 
-  getAdminService() {
-    return this.serviceRegistry.getService('AdminService');
+  getAdminService(): IAdminService {
+    return this.serviceRegistry.getService<IAdminService>('AdminService');
   }
 
-  getChatService() {
-    return this.serviceRegistry.getService('ChatService');
+  getChatService(): IChatService {
+    return this.serviceRegistry.getService<IChatService>('ChatService');
   }
 }
 

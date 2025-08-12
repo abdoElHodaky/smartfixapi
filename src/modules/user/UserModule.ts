@@ -15,7 +15,7 @@ import { AuthModule } from '../auth/AuthModule';
 import { UserService } from '../../services/user/UserService.decorator';
 
 // Import controllers
-import { UserController } from '../../controllers/user/UserController.modern';
+import { UserController } from '../../controllers/user/UserController.decorator';
 
 @Module({
   imports: [
@@ -74,3 +74,4 @@ export class UserModule {
     };
   }
 }
+

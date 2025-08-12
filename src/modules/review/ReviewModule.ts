@@ -17,8 +17,8 @@ import { ServiceRequestModule } from '../request/ServiceRequestModule';
 // Import services
 import { ReviewService } from '../../services/review/ReviewService.decorator';
 
-// Import controllers
-import { ReviewController } from '../../controllers/review/ReviewController.modern';
+// Import controllers (to be created)
+// import { ReviewController } from '../../controllers/review/ReviewController.decorator';
 
 @Module({
   imports: [
@@ -31,7 +31,7 @@ import { ReviewController } from '../../controllers/review/ReviewController.mode
     ReviewService
   ],
   controllers: [
-    ReviewController
+    // ReviewController // To be added when controller is created
   ],
   exports: [
     ReviewService
@@ -66,7 +66,7 @@ export class ReviewModule {
       description: 'Review and rating management module',
       dependencies: ['AuthModule', 'UserModule', 'ProviderModule', 'ServiceRequestModule'],
       services: ['ReviewService'],
-      controllers: ['ReviewController'],
+      controllers: [], // To be updated when controller is added
       features: [
         'Review creation and management',
         'Rating system (1-5 stars)',
@@ -81,3 +81,4 @@ export class ReviewModule {
     };
   }
 }
+

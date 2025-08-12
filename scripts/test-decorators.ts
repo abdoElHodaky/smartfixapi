@@ -6,9 +6,9 @@
  */
 
 import 'reflect-metadata';
-import { AuthController } from '../src/controllers/auth/AuthController.modern';
-import { UserController } from '../src/controllers/user/UserController.modern';
-import { ProviderController } from '../src/controllers/provider/ProviderController.modern';
+import { AuthController } from '../src/controllers/auth/AuthController.decorator';
+import { UserController } from '../src/controllers/user/UserController.decorator';
+import { ProviderController } from '../src/controllers/provider/ProviderController.decorator';
 
 console.log('🧪 Testing Decorator-Based Controllers');
 console.log('=====================================');
@@ -73,3 +73,4 @@ console.log('  2. Test endpoints with curl or Postman');
 console.log('  3. Compare with traditional routing');
 
 export {};
+
