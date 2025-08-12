@@ -145,7 +145,7 @@ export function Cached(ttlOrConfig: number | CacheConfig): MethodDecorator {
       // Cache the result
       cache.set(cacheKey, {
         value: result,
-        expiry: now + config.ttl
+        expiry: now + config.ttl,
       });
 
       console.log(`💾 Cached result for ${cacheKey} (TTL: ${config.ttl}ms)`);
@@ -227,7 +227,7 @@ export function Log(messageOrConfig?: string | LogConfig): MethodDecorator {
       // Log method entry
       console.log(`📝 ${message}`);
       if (config.includeArgs) {
-        console.log(`📝 Arguments:`, args);
+        console.log('📝 Arguments:', args);
       }
 
       try {
@@ -242,7 +242,7 @@ export function Log(messageOrConfig?: string | LogConfig): MethodDecorator {
         }
         
         if (config.includeResult) {
-          console.log(`📤 Result:`, result);
+          console.log('📤 Result:', result);
         }
 
         return result;
@@ -410,6 +410,6 @@ export default {
   PostConstruct,
   PreDestroy,
   ConfigValue,
-  ServiceUtils
+  ServiceUtils,
 };
 

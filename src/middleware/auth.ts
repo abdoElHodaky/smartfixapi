@@ -12,7 +12,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       res.status(401).json({ 
         success: false, 
         message: 'Access token required',
-        error: 'No token provided'
+        error: 'No token provided',
       });
       return;
     }
@@ -25,7 +25,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       res.status(401).json({ 
         success: false, 
         message: 'Invalid token',
-        error: 'User not found or inactive'
+        error: 'User not found or inactive',
       });
       return;
     }
@@ -33,7 +33,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
     req.user = {
       id: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
     };
 
     next();
@@ -42,13 +42,13 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       res.status(403).json({ 
         success: false, 
         message: 'Invalid token',
-        error: error.message
+        error: error.message,
       });
     } else {
       res.status(500).json({ 
         success: false, 
         message: 'Token verification failed',
-        error: 'Internal server error'
+        error: 'Internal server error',
       });
     }
   }
@@ -60,7 +60,7 @@ export const authorizeRole = (...roles: string[]) => {
       res.status(401).json({ 
         success: false, 
         message: 'Authentication required',
-        error: 'No user found in request'
+        error: 'No user found in request',
       });
       return;
     }
@@ -69,7 +69,7 @@ export const authorizeRole = (...roles: string[]) => {
       res.status(403).json({ 
         success: false, 
         message: 'Access denied',
-        error: `Required roles: ${roles.join(', ')}. Your role: ${req.user.role}`
+        error: `Required roles: ${roles.join(', ')}. Your role: ${req.user.role}`,
       });
       return;
     }
@@ -96,7 +96,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
       req.user = {
         id: user._id.toString(),
         email: user.email,
-        role: user.role
+        role: user.role,
       };
     }
 
@@ -111,7 +111,7 @@ export const requireEmailVerification = (req: AuthRequest, res: Response, next: 
   if (!req.user) {
     res.status(401).json({ 
       success: false, 
-      message: 'Authentication required' 
+      message: 'Authentication required', 
     });
     return;
   }
@@ -121,7 +121,7 @@ export const requireEmailVerification = (req: AuthRequest, res: Response, next: 
       res.status(403).json({ 
         success: false, 
         message: 'Email verification required',
-        error: 'Please verify your email address to access this resource'
+        error: 'Please verify your email address to access this resource',
       });
       return;
     }
@@ -129,7 +129,7 @@ export const requireEmailVerification = (req: AuthRequest, res: Response, next: 
   }).catch(() => {
     res.status(500).json({ 
       success: false, 
-      message: 'Verification check failed' 
+      message: 'Verification check failed', 
     });
   });
 };
@@ -138,7 +138,7 @@ export const requireProviderVerification = (req: AuthRequest, res: Response, nex
   if (!req.user || req.user.role !== 'provider') {
     res.status(403).json({ 
       success: false, 
-      message: 'Provider access required' 
+      message: 'Provider access required', 
     });
     return;
   }

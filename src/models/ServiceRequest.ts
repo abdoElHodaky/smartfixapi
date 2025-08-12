@@ -60,50 +60,50 @@ const serviceRequestSchema = new Schema<IServiceRequest>({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'User ID is required']
+    required: [true, 'User ID is required'],
   },
   providerId: {
     type: Schema.Types.ObjectId,
     ref: 'ServiceProvider',
-    default: null
+    default: null,
   },
   title: {
     type: String,
     required: [true, 'Service title is required'],
     trim: true,
-    maxlength: [200, 'Title cannot exceed 200 characters']
+    maxlength: [200, 'Title cannot exceed 200 characters'],
   },
   description: {
     type: String,
     required: [true, 'Service description is required'],
     trim: true,
-    maxlength: [2000, 'Description cannot exceed 2000 characters']
+    maxlength: [2000, 'Description cannot exceed 2000 characters'],
   },
   category: {
     type: String,
     required: [true, 'Service category is required'],
-    trim: true
+    trim: true,
   },
   serviceType: {
     type: String,
     required: [true, 'Service type is required'],
-    trim: true
+    trim: true,
   },
   location: {
     type: {
       type: String,
       enum: ['Point'],
-      default: 'Point'
+      default: 'Point',
     },
     coordinates: {
       type: [Number],
-      required: [true, 'Location coordinates are required']
+      required: [true, 'Location coordinates are required'],
     },
     address: {
       type: String,
       required: [true, 'Address is required'],
-      trim: true
-    }
+      trim: true,
+    },
   },
   scheduledDate: {
     type: Date,
@@ -112,36 +112,36 @@ const serviceRequestSchema = new Schema<IServiceRequest>({
       validator: function(date: Date) {
         return date > new Date();
       },
-      message: 'Scheduled date must be in the future'
-    }
+      message: 'Scheduled date must be in the future',
+    },
   },
   scheduledTime: {
     type: String,
     required: [true, 'Scheduled time is required'],
-    match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please enter a valid time format (HH:MM)']
+    match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please enter a valid time format (HH:MM)'],
   },
   estimatedDuration: {
     type: Number,
     required: [true, 'Estimated duration is required'],
     min: [0.5, 'Duration must be at least 0.5 hours'],
-    max: [24, 'Duration cannot exceed 24 hours']
+    max: [24, 'Duration cannot exceed 24 hours'],
   },
   budget: {
     min: {
       type: Number,
       required: [true, 'Minimum budget is required'],
-      min: [0, 'Budget cannot be negative']
+      min: [0, 'Budget cannot be negative'],
     },
     max: {
       type: Number,
       required: [true, 'Maximum budget is required'],
-      min: [0, 'Budget cannot be negative']
+      min: [0, 'Budget cannot be negative'],
     },
     currency: {
       type: String,
       default: 'USD',
-      enum: ['USD', 'EUR', 'GBP']
-    }
+      enum: ['USD', 'EUR', 'GBP'],
+    },
   },
   images: [{
     type: String,
@@ -149,126 +149,126 @@ const serviceRequestSchema = new Schema<IServiceRequest>({
       validator: function(url: string) {
         return /^https?:\/\/.+\.(jpg|jpeg|png|gif)$/i.test(url);
       },
-      message: 'Please provide a valid image URL'
-    }
+      message: 'Please provide a valid image URL',
+    },
   }],
   status: {
     type: String,
     enum: ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'],
-    default: 'pending'
+    default: 'pending',
   },
   priority: {
     type: String,
     enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium'
+    default: 'medium',
   },
   requirements: [{
     type: String,
-    trim: true
+    trim: true,
   }],
   proposals: [{
     providerId: {
       type: Schema.Types.ObjectId,
       ref: 'ServiceProvider',
-      required: true
+      required: true,
     },
     message: {
       type: String,
       required: true,
       trim: true,
-      maxlength: [1000, 'Proposal message cannot exceed 1000 characters']
+      maxlength: [1000, 'Proposal message cannot exceed 1000 characters'],
     },
     quotedPrice: {
       type: Number,
       required: true,
-      min: [0, 'Quoted price cannot be negative']
+      min: [0, 'Quoted price cannot be negative'],
     },
     estimatedDuration: {
       type: Number,
       required: true,
-      min: [0.5, 'Duration must be at least 0.5 hours']
+      min: [0.5, 'Duration must be at least 0.5 hours'],
     },
     proposedDate: {
       type: Date,
-      required: true
+      required: true,
     },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'rejected'],
-      default: 'pending'
+      default: 'pending',
     },
     submittedAt: {
       type: Date,
-      default: Date.now
-    }
+      default: Date.now,
+    },
   }],
   acceptedProposal: {
     type: Schema.Types.ObjectId,
-    default: null
+    default: null,
   },
   payment: {
     amount: {
       type: Number,
       default: 0,
-      min: [0, 'Payment amount cannot be negative']
+      min: [0, 'Payment amount cannot be negative'],
     },
     method: {
       type: String,
       enum: ['credit_card', 'debit_card', 'paypal', 'bank_transfer', 'cash'],
-      default: 'credit_card'
+      default: 'credit_card',
     },
     status: {
       type: String,
       enum: ['pending', 'paid', 'refunded'],
-      default: 'pending'
+      default: 'pending',
     },
     transactionId: {
       type: String,
-      default: null
+      default: null,
     },
     paidAt: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   completion: {
     completedAt: {
       type: Date,
-      default: null
+      default: null,
     },
     completionNotes: {
       type: String,
       trim: true,
-      maxlength: [1000, 'Completion notes cannot exceed 1000 characters']
+      maxlength: [1000, 'Completion notes cannot exceed 1000 characters'],
     },
     completionImages: [{
-      type: String
+      type: String,
     }],
     customerApproval: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   cancellation: {
     cancelledBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
     reason: {
       type: String,
       trim: true,
-      maxlength: [500, 'Cancellation reason cannot exceed 500 characters']
+      maxlength: [500, 'Cancellation reason cannot exceed 500 characters'],
     },
     cancelledAt: {
       type: Date,
-      default: null
-    }
-  }
+      default: null,
+    },
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
 });
 
 // Indexes
@@ -286,7 +286,7 @@ serviceRequestSchema.virtual('user', {
   ref: 'User',
   localField: 'userId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Virtual to populate provider details
@@ -294,7 +294,7 @@ serviceRequestSchema.virtual('provider', {
   ref: 'ServiceProvider',
   localField: 'providerId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Validation to ensure max budget is greater than min budget
@@ -310,7 +310,7 @@ serviceRequestSchema.pre('save', function(next) {
 serviceRequestSchema.methods.addProposal = function(proposal: any) {
   // Check if provider already submitted a proposal
   const existingProposal = this.proposals.find(
-    (p: any) => p.providerId.toString() === proposal.providerId.toString()
+    (p: any) => p.providerId.toString() === proposal.providerId.toString(),
   );
   
   if (existingProposal) {
@@ -351,7 +351,7 @@ serviceRequestSchema.methods.completeService = function(completionData: any) {
   this.completion = {
     ...this.completion,
     ...completionData,
-    completedAt: new Date()
+    completedAt: new Date(),
   };
   return this.save();
 };
@@ -362,7 +362,7 @@ serviceRequestSchema.methods.cancelService = function(cancelledBy: string, reaso
   this.cancellation = {
     cancelledBy,
     reason,
-    cancelledAt: new Date()
+    cancelledAt: new Date(),
   };
   return this.save();
 };

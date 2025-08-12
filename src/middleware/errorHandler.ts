@@ -13,7 +13,7 @@ export const errorHandler = (
   err: CustomError,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   let error = { ...err };
   error.message = err.message;
@@ -67,7 +67,7 @@ export const errorHandler = (
   res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };
 
@@ -88,7 +88,7 @@ export const rateLimitHandler = (req: Request, res: Response): void => {
   res.status(429).json({
     success: false,
     message: 'Too many requests, please try again later',
-    error: 'Rate limit exceeded'
+    error: 'Rate limit exceeded',
   });
 };
 
@@ -97,7 +97,7 @@ export const corsErrorHandler = (req: Request, res: Response): void => {
   res.status(403).json({
     success: false,
     message: 'CORS policy violation',
-    error: 'Origin not allowed'
+    error: 'Origin not allowed',
   });
 };
 
@@ -120,7 +120,7 @@ export const formatValidationError = (errors: any[]): any[] => {
     field: error.param || error.path,
     message: error.msg || error.message,
     value: error.value,
-    location: error.location
+    location: error.location,
   }));
 };
 
@@ -179,13 +179,13 @@ export const sendErrorResponse = (
   res: Response,
   statusCode: number,
   message: string,
-  error?: string
+  error?: string,
 ): void => {
   res.status(statusCode).json({
     success: false,
     message,
     ...(error && { error }),
-    ...(process.env.NODE_ENV === 'development' && { timestamp: new Date().toISOString() })
+    ...(process.env.NODE_ENV === 'development' && { timestamp: new Date().toISOString() }),
   });
 };
 

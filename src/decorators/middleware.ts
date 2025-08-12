@@ -46,8 +46,8 @@ export function RateLimit(windowMs: number = 15 * 60 * 1000, max: number = 100) 
       max,
       message: {
         success: false,
-        message: 'Too many requests from this IP, please try again later.'
-      }
+        message: 'Too many requests from this IP, please try again later.',
+      },
     });
     
     attachMiddleware(target, propertyKey, limiter);
@@ -87,7 +87,7 @@ export function Validate(validationRules: any[]) {
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors.array()
+          errors: errors.array(),
         });
       }
       next();
@@ -111,7 +111,7 @@ export function AsyncHandler() {
         if (res) {
           res.status(500).json({
             success: false,
-            message: error instanceof Error ? error.message : 'Internal server error'
+            message: error instanceof Error ? error.message : 'Internal server error',
           });
         }
       }

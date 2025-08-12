@@ -44,7 +44,7 @@ export function Controller(options: ControllerOptions = {}) {
     Reflect.defineMetadata(CONTROLLER_METADATA, {
       path: options.path || '',
       middleware: options.middleware || [],
-      version: options.version || 'v1'
+      version: options.version || 'v1',
     }, target);
     
     return target;
@@ -87,7 +87,7 @@ export function Route(options: RouteOptions) {
       handler: propertyKey,
       middleware: options.middleware || [],
       validation: options.validation,
-      roles: options.roles || []
+      roles: options.roles || [],
     });
     
     Reflect.defineMetadata(ROUTE_METADATA, existingRoutes, target.constructor);
@@ -196,10 +196,10 @@ export function extractRoutes(controllerClass: any): RegisteredRoute[] {
     handler: route.handler,
     middleware: [
       ...(controllerMetadata?.middleware || []),
-      ...(route.middleware || [])
+      ...(route.middleware || []),
     ],
     validation: route.validation,
-    roles: route.roles || []
+    roles: route.roles || [],
   }));
 }
 

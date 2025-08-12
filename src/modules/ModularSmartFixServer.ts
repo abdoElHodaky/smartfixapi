@@ -31,7 +31,7 @@ export class ModularSmartFixServer {
     this.app.use(helmet());
     this.app.use(cors({
       origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      credentials: true
+      credentials: true,
     }));
 
     // Performance middleware
@@ -45,7 +45,7 @@ export class ModularSmartFixServer {
         trackHeaders: false,
         slowRequestThreshold: 1000,
         logSlowRequests: true,
-        excludePaths: ['/health', '/dev/performance', '/favicon.ico']
+        excludePaths: ['/health', '/dev/performance', '/favicon.ico'],
       }));
       
       // Development performance dashboard
@@ -58,7 +58,7 @@ export class ModularSmartFixServer {
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 100, // limit each IP to 100 requests per windowMs
-      message: 'Too many requests from this IP, please try again later.'
+      message: 'Too many requests from this IP, please try again later.',
     });
     this.app.use(limiter);
 
@@ -72,7 +72,7 @@ export class ModularSmartFixServer {
         status: 'OK',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
       });
     });
   }
@@ -101,7 +101,7 @@ export class ModularSmartFixServer {
     this.app.use('*', (req, res) => {
       res.status(404).json({
         success: false,
-        message: `Route ${req.originalUrl} not found`
+        message: `Route ${req.originalUrl} not found`,
       });
     });
   }

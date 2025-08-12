@@ -14,7 +14,7 @@ import {
   IServiceRequestService, 
   IReviewService, 
   IAdminService, 
-  IChatService 
+  IChatService, 
 } from '../interfaces/services';
 
 // Export optimized systems only
@@ -119,7 +119,7 @@ class UnifiedServiceContainer {
   async getHealthStatus() {
     const health = {
       initialized: this.initialized,
-      containerType: 'unified-optimized'
+      containerType: 'unified-optimized',
     };
 
     try {
@@ -166,5 +166,5 @@ export const containerUtils = {
    */
   serviceSupportsFeature(serviceName: string, feature: 'strategy' | 'commands' | 'aggregation'): boolean {
     return serviceContainer.serviceSupportsFeature(serviceName, feature);
-  }
+  },
 };

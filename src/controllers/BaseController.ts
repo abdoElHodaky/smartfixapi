@@ -29,12 +29,12 @@ export abstract class BaseController {
     res: Response, 
     data: T, 
     message: string = 'Success', 
-    statusCode: number = 200
+    statusCode: number = 200,
   ): void {
     const response: ApiResponseDto<T> = {
       success: true,
       message,
-      data
+      data,
     };
     res.status(statusCode).json(response);
   }
@@ -46,13 +46,13 @@ export abstract class BaseController {
     res: Response, 
     message: string, 
     statusCode: number = 400, 
-    error?: string
+    error?: string,
   ): void {
     const response: ApiResponseDto<null> = {
       success: false,
       message,
       data: null,
-      ...(error && { error })
+      ...(error && { error }),
     };
     res.status(statusCode).json(response);
   }
@@ -130,7 +130,7 @@ export abstract class BaseController {
     const validSortBy = allowedFields.includes(sortBy) ? sortBy : undefined;
     return {
       ...(validSortBy && { sortBy: validSortBy }),
-      sortOrder
+      sortOrder,
     };
   }
 

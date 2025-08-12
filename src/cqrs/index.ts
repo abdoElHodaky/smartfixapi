@@ -23,7 +23,7 @@ export * from './command/index';
 export {
   EnhancedCommandBus as CommandBus,
   EnhancedQueryBus as QueryBus,
-  EnhancedEventBus as EventBus
+  EnhancedEventBus as EventBus,
 } from './core';
 
 /**
@@ -40,7 +40,7 @@ export class CQRSSystemFactory {
   static createDevelopmentSystem() {
     return CQRSFactory.createFullCQRSSystem({
       enableCache: true,
-      enableEventStore: true
+      enableEventStore: true,
     });
   }
 
@@ -50,7 +50,7 @@ export class CQRSSystemFactory {
   static createProductionSystem() {
     return CQRSFactory.createFullCQRSSystem({
       enableCache: true,
-      enableEventStore: false // Disable in-memory event store for production
+      enableEventStore: false, // Disable in-memory event store for production
     });
   }
 
@@ -60,7 +60,7 @@ export class CQRSSystemFactory {
   static createTestingSystem() {
     return CQRSFactory.createFullCQRSSystem({
       enableCache: false,
-      enableEventStore: true
+      enableEventStore: true,
     });
   }
 }
@@ -79,7 +79,7 @@ export class CQRSMiddleware {
       console.log(`[CQRS] Executing command: ${command.type}`, {
         id: command.id,
         timestamp: command.timestamp,
-        userId: command.metadata?.userId
+        userId: command.metadata?.userId,
       });
       
       const startTime = Date.now();
@@ -89,7 +89,7 @@ export class CQRSMiddleware {
         
         console.log(`[CQRS] Command completed: ${command.type}`, {
           success: result.success,
-          duration: `${duration}ms`
+          duration: `${duration}ms`,
         });
         
         return result;
@@ -97,7 +97,7 @@ export class CQRSMiddleware {
         const duration = Date.now() - startTime;
         console.error(`[CQRS] Command failed: ${command.type}`, {
           error: error.message,
-          duration: `${duration}ms`
+          duration: `${duration}ms`,
         });
         throw error;
       }
