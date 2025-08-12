@@ -14,7 +14,7 @@ import {
   Status
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
-import { serviceRegistry } from '../../container';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { AuthorizationError } from '../../middleware/errorHandler';
 import { Auth, RateLimit, AsyncHandler } from '../../decorators/middleware';
@@ -29,7 +29,7 @@ export class RequestController {
   private serviceRequestService: IServiceRequestService;
 
   constructor() {
-    this.serviceRequestService = serviceRegistry.getService('serviceRequest') as IServiceRequestService;
+    this.serviceRequestService = serviceContainer.getServiceRequestService();
   }
 
   /**
@@ -293,4 +293,3 @@ export class RequestController {
     }
   }
 }
-

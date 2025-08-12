@@ -61,10 +61,9 @@ src/
 ├── 🗄️ models/           # Mongoose models
 ├── 🛤️ routes/            # Legacy routes (compatibility)
 ├── 📝 types/            # TypeScript type definitions
-├── app.ts              # Main application entry (NEW MODULAR)
+├── app.ts              # Main application entry (UNIFIED)
 ├── app.modular.ts      # Modular server implementation
-├── app.legacy.ts       # Legacy implementation backup
-└── server.ts           # Legacy server entry point
+└── server.ts           # Server entry point
 ```
 
 ## 🛠️ Installation
@@ -341,16 +340,15 @@ For support and questions:
 
 ## 🔄 Migration & Backward Compatibility
 
-### 🆕 **New Modular Architecture (Current)**
-The platform now uses a **modular architecture** as the default implementation:
-- **Entry Point**: `src/app.ts` (uses modular system)
-- **Services**: Decorator-based with advanced features
-- **Modules**: Self-contained with dependency injection
-- **Monitoring**: Built-in health checking and service discovery
+### 🆕 **Unified Optimized Architecture (Current)**
+The platform now uses a **unified optimized architecture** as the default implementation:
+- **Entry Point**: `src/app.ts` (uses unified optimized system)
+- **Services**: Optimized with performance tracking and enterprise features
+- **Container**: Unified OptimizedContainer with advanced metrics
+- **Performance**: Built-in development metrics and optimization tracking
 
 ### 🔙 **Legacy Support**
 For backward compatibility, legacy implementations are preserved:
-- **Legacy Entry**: `src/app.legacy.ts` (original implementation)
 - **Legacy Routes**: Traditional Express routes still available
 - **Legacy Services**: Original service implementations maintained
 - **Legacy Container**: Original DI container accessible

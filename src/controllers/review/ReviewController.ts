@@ -14,7 +14,7 @@ import {
   Status
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
-import { serviceRegistry } from '../../container';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { AuthorizationError } from '../../middleware/errorHandler';
 import { Auth, RateLimit, AsyncHandler } from '../../decorators/middleware';
@@ -29,7 +29,7 @@ export class ReviewController {
   private reviewService: IReviewService;
 
   constructor() {
-    this.reviewService = serviceRegistry.getService('review') as IReviewService;
+    this.reviewService = serviceContainer.getReviewService();
   }
 
   /**
@@ -248,4 +248,3 @@ export class ReviewController {
     }
   }
 }
-

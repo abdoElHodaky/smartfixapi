@@ -13,7 +13,7 @@ import {
   Status
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
-import { serviceRegistry } from '../../container';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { IProviderService } from '../../interfaces/services';
 
@@ -27,7 +27,7 @@ export class ProviderController {
   private providerService: IProviderService;
 
   constructor() {
-    this.providerService = serviceRegistry.getService('provider') as IProviderService;
+    this.providerService = serviceContainer.getProviderService();
   }
 
   /**

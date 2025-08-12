@@ -18,7 +18,7 @@ import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { ServiceRequest } from '../../models/ServiceRequest';
 import { Review } from '../../models/Review';
-import { serviceRegistry } from '../../container';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { NotFoundError, AuthorizationError } from '../../middleware/errorHandler';
 import { Auth, AdminOnly, RateLimit, AsyncHandler } from '../../decorators/middleware';
@@ -33,7 +33,7 @@ export class AdminController {
   private adminService: IAdminService;
 
   constructor() {
-    this.adminService = serviceRegistry.getService('admin') as IAdminService;
+    this.adminService = serviceContainer.getAdminService();
   }
 
   /**
@@ -378,4 +378,3 @@ export class AdminController {
     }
   }
 }
-

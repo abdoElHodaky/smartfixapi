@@ -16,7 +16,7 @@ import {
 import { Injectable } from '@decorators/di';
 import { Chat } from '../../models/Chat';
 import { ServiceRequest } from '../../models/ServiceRequest';
-import { serviceRegistry } from '../../container';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { NotFoundError, ValidationError, AuthorizationError } from '../../middleware/errorHandler';
 import { Auth, RateLimit, AsyncHandler } from '../../decorators/middleware';
@@ -31,7 +31,7 @@ export class ChatController {
   private chatService: IChatService;
 
   constructor() {
-    this.chatService = serviceRegistry.getService('chat') as IChatService;
+    this.chatService = serviceContainer.getChatService();
   }
 
   /**
@@ -378,4 +378,3 @@ export class ChatController {
     }
   }
 }
-

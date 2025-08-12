@@ -11,13 +11,13 @@ import {
   Status
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
-import { serviceRegistry } from '../../container';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { IAuthService } from '../../interfaces/services';
 import { Auth, ValidateUserRegistration, ValidateUserLogin, RateLimit, AsyncHandler } from '../../decorators/middleware';
 
 /**
- * Authentication Controller using decorators
+ * Authentication Controller using optimized services
  * Handles user registration, login, profile management, and token operations
  */
 @Injectable()
@@ -26,7 +26,7 @@ export class AuthController {
   private authService: IAuthService;
 
   constructor() {
-    this.authService = serviceRegistry.getService('auth') as IAuthService;
+    this.authService = serviceContainer.getAuthService();
   }
 
   /**

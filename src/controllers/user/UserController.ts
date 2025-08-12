@@ -14,12 +14,12 @@ import {
   Status
 } from '@decorators/express';
 import { Injectable } from '@decorators/di';
-import { serviceRegistry } from '../../container';
+import { serviceContainer } from '../../container';
 import { AuthRequest } from '../../types';
 import { IUserService } from '../../interfaces/services';
 
 /**
- * User Controller using decorators
+ * User Controller using optimized services
  * Handles user profile management, service requests, and account operations
  */
 @Injectable()
@@ -28,7 +28,7 @@ export class UserController {
   private userService: IUserService;
 
   constructor() {
-    this.userService = serviceRegistry.getService('user') as IUserService;
+    this.userService = serviceContainer.getUserService();
   }
 
   /**
