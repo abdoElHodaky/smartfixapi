@@ -12,26 +12,12 @@ import { User } from '../../models/User';
 import { ServiceRequest } from '../../models/ServiceRequest';
 import { Review } from '../../models/Review';
 
-// Strategy input interfaces
-export interface ProviderActionInput {
-  providerId: string;
-  adminId: string;
-  reason?: string;
-  metadata?: Record<string, any>;
-}
-
-export interface ReportGenerationInput {
-  type: string;
-  dateRange?: { from: Date; to: Date };
-  filters?: Record<string, any>;
-  adminId: string;
-}
-
-export interface DashboardDataInput {
-  adminId: string;
-  dateRange?: { from: Date; to: Date };
-  includeDetails?: boolean;
-}
+// Import strategy interfaces from centralized location
+import {
+  ProviderActionInput,
+  ReportGenerationInput,
+  DashboardDataInput
+} from '../interfaces/ServiceStrategy';
 
 // Provider action strategies
 export class ApproveProviderStrategy implements AsyncStrategy<ProviderActionInput, CommandResult> {
