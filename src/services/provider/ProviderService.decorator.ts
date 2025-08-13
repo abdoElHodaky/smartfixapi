@@ -20,6 +20,9 @@ import {
   PortfolioItemDto
 } from '../../dtos';
 
+// Import optimization utilities
+import { AggregationBuilder, ConditionalHelpers, ErrorHandlers } from '../../utils';
+
 // Import service decorators
 import {
   Singleton,
@@ -154,7 +157,7 @@ export class ProviderService implements IProviderService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get provider service requests');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get provider service requests');
     }
   }
 
@@ -191,7 +194,7 @@ export class ProviderService implements IProviderService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get available service requests');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get available service requests');
     }
   }
 
@@ -229,7 +232,7 @@ export class ProviderService implements IProviderService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to submit proposal');
+      return ErrorHandlers.handleServiceError(error, 'Failed to submit proposal');
     }
   }
 
@@ -281,7 +284,7 @@ export class ProviderService implements IProviderService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get dashboard data');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get dashboard data');
     }
   }
 
@@ -291,24 +294,28 @@ export class ProviderService implements IProviderService {
   @Log('Updating provider availability')
   @Retryable(2)
   async updateAvailability(providerId: string, availability: any): Promise<ApiResponseDto> {
-    const provider = await ServiceProvider.findByIdAndUpdate(
-      providerId,
-      { 
-        availability,
-        updatedAt: new Date()
-      },
-      { new: true }
-    ).populate('userId', '-password');
-
-    if (!provider) {
-      throw new NotFoundError('Provider not found');
+    try {
+      const provider = await ServiceProvider.findByIdAndUpdate(
+        providerId,
+        { 
+          availability,
+          updatedAt: new Date()
+        },
+        { new: true }
+      ).populate('userId', '-password');
+  
+      if (!provider) {
+        throw new NotFoundError('Provider not found');
+      }
+  
+      return {
+        success: true,
+        message: 'Availability updated successfully',
+        data: { provider }
+      };
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to update provider availability');
     }
-
-    return {
-      success: true,
-      message: 'Availability updated successfully',
-      data: { provider }
-    };
   }
 
   /**
@@ -359,65 +366,109 @@ export class ProviderService implements IProviderService {
 
   /**
    * Search providers with advanced filtering and caching
+   * @deprecated Use searchProvidersAdvanced instead which follows AdminService.strategy pattern
    */
   @Log('Searching providers')
   @Cached(1 * 60 * 1000) // Cache for 1 minute
   @Retryable(2)
   async searchProviders(filters: ProviderFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto> {
+    // Delegate to the optimized implementation
+    return this.searchProvidersAdvanced(filters, page, limit);
+  }
+  
+  /**
+   * Search providers with advanced filtering - OPTIMIZED with AggregationBuilder following AdminService strategy
+   */
+  @Log('Advanced provider search with aggregation')
+  @Cached(2 * 60 * 1000) // Cache for 2 minutes
+  @Retryable({
+    attempts: 2,
+    delay: 1000
+  })
+  async searchProvidersAdvanced(filters: ProviderFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto> {
     try {
       const skip = (page - 1) * limit;
-      let query: any = { status: 'active' };
+      
+      // Build aggregation pipeline using AggregationBuilder following AdminService strategy
+      let aggregationBuilder = AggregationBuilder.create()
+        .match({ status: 'active' });
 
-      // Apply filters
+      // Apply filters using AggregationBuilder
       if (filters.services && filters.services.length > 0) {
-        query.services = { $in: filters.services };
+        aggregationBuilder = aggregationBuilder.match({
+          services: { $in: filters.services }
+        });
       }
 
       if (filters.location && filters.radius) {
-        query.serviceArea = {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [filters.location.longitude, filters.location.latitude]
-            },
-            $maxDistance: filters.radius * 1000 // Convert km to meters
+        aggregationBuilder = aggregationBuilder.match({
+          serviceArea: {
+            $near: {
+              $geometry: {
+                type: 'Point',
+                coordinates: [filters.location.longitude, filters.location.latitude]
+              },
+              $maxDistance: filters.radius * 1000 // Convert km to meters
+            }
           }
-        };
+        });
       }
 
       if (filters.minRating) {
-        query.averageRating = { $gte: filters.minRating };
+        aggregationBuilder = aggregationBuilder.match({
+          averageRating: { $gte: filters.minRating }
+        });
       }
 
       if (filters.maxHourlyRate) {
-        query.hourlyRate = { $lte: filters.maxHourlyRate };
+        aggregationBuilder = aggregationBuilder.match({
+          hourlyRate: { $lte: filters.maxHourlyRate }
+        });
       }
 
       if (filters.minHourlyRate) {
-        query.hourlyRate = { ...query.hourlyRate, $gte: filters.minHourlyRate };
+        aggregationBuilder = aggregationBuilder.match({
+          hourlyRate: { $gte: filters.minHourlyRate }
+        });
       }
 
       if (filters.searchTerm) {
-        query.$or = [
-          { businessName: { $regex: filters.searchTerm, $options: 'i' } },
-          { description: { $regex: filters.searchTerm, $options: 'i' } },
-          { services: { $regex: filters.searchTerm, $options: 'i' } }
-        ];
+        aggregationBuilder = aggregationBuilder.match({
+          $or: [
+            { businessName: { $regex: filters.searchTerm, $options: 'i' } },
+            { description: { $regex: filters.searchTerm, $options: 'i' } },
+            { services: { $regex: filters.searchTerm, $options: 'i' } }
+          ]
+        });
       }
 
-      // Execute query
-      const [providers, total] = await Promise.all([
-        ServiceProvider.find(query)
-          .populate('userId', '-password')
+      // Execute aggregation with pagination using AdminService strategy
+      const [providers, totalCount] = await Promise.all([
+        aggregationBuilder
+          .lookup({
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          })
+          .unwind('$user')
+          .project({
+            'user.password': 0
+          })
+          .sort({ averageRating: -1, createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .sort({ averageRating: -1, createdAt: -1 }),
-        ServiceProvider.countDocuments(query)
+          .execute(ServiceProvider),
+        aggregationBuilder
+          .group({ _id: null, count: { $sum: 1 } })
+          .execute(ServiceProvider)
       ]);
+
+      const total = totalCount[0]?.count || 0;
 
       return {
         success: true,
-        message: 'Providers retrieved successfully',
+        message: 'Providers retrieved successfully with advanced filtering',
         data: providers,
         pagination: {
           currentPage: page,
@@ -427,7 +478,7 @@ export class ProviderService implements IProviderService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to search providers');
+      return ErrorHandlers.handleServiceError(error, 'Failed to search providers with advanced filtering');
     }
   }
 
@@ -456,7 +507,7 @@ export class ProviderService implements IProviderService {
 
       return statistics;
     } catch (error) {
-      throw new ValidationError('Failed to get provider statistics');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get provider statistics');
     }
   }
 
@@ -466,28 +517,32 @@ export class ProviderService implements IProviderService {
   @Log('Updating provider services')
   @Retryable(2)
   async updateProviderServices(providerId: string, services: string[]): Promise<ApiResponseDto> {
-    if (!services || services.length === 0) {
-      throw new ValidationError('At least one service must be specified');
+    try {
+      if (!services || services.length === 0) {
+        throw new ValidationError('At least one service must be specified');
+      }
+  
+      const provider = await ServiceProvider.findByIdAndUpdate(
+        providerId,
+        { 
+          services,
+          updatedAt: new Date()
+        },
+        { new: true }
+      ).populate('userId', '-password');
+  
+      if (!provider) {
+        throw new NotFoundError('Provider not found');
+      }
+  
+      return {
+        success: true,
+        message: 'Services updated successfully',
+        data: { provider }
+      };
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to update provider services');
     }
-
-    const provider = await ServiceProvider.findByIdAndUpdate(
-      providerId,
-      { 
-        services,
-        updatedAt: new Date()
-      },
-      { new: true }
-    ).populate('userId', '-password');
-
-    if (!provider) {
-      throw new NotFoundError('Provider not found');
-    }
-
-    return {
-      success: true,
-      message: 'Services updated successfully',
-      data: { provider }
-    };
   }
 
   /**
@@ -521,7 +576,7 @@ export class ProviderService implements IProviderService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get provider reviews');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get provider reviews');
     }
   }
 
@@ -535,37 +590,40 @@ export class ProviderService implements IProviderService {
     location: { latitude: number; longitude: number; address?: string },
     serviceRadius: number = 25
   ): Promise<ApiResponseDto> {
-    // Validate coordinates
-    if (location.latitude < -90 || location.latitude > 90) {
-      throw new ValidationError('Invalid latitude value');
-    }
-    if (location.longitude < -180 || location.longitude > 180) {
-      throw new ValidationError('Invalid longitude value');
-    }
-
-    const provider = await ServiceProvider.findByIdAndUpdate(
-      providerId,
-      { 
-        serviceArea: {
-          type: 'Point',
-          coordinates: [location.longitude, location.latitude]
+    try {
+      // Validate coordinates
+      if (location.latitude < -90 || location.latitude > 90) {
+        throw new ValidationError('Invalid latitude value');
+      }
+      if (location.longitude < -180 || location.longitude > 180) {
+        throw new ValidationError('Invalid longitude value');
+      }
+  
+      const provider = await ServiceProvider.findByIdAndUpdate(
+        providerId,
+        { 
+          serviceArea: {
+            type: 'Point',
+            coordinates: [location.longitude, location.latitude]
+          },
+          serviceRadius,
+          address: location.address,
+          updatedAt: new Date()
         },
-        serviceRadius,
-        address: location.address,
-        updatedAt: new Date()
-      },
-      { new: true }
-    ).populate('userId', '-password');
-
-    if (!provider) {
-      throw new NotFoundError('Provider not found');
+        { new: true }
+      ).populate('userId', '-password');
+  
+      if (!provider) {
+        throw new NotFoundError('Provider not found');
+      }
+  
+      return {
+        success: true,
+        message: 'Location updated successfully',
+        data: { provider }
+      };
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to update provider location');
     }
-
-    return {
-      success: true,
-      message: 'Location updated successfully',
-      data: { provider }
-    };
   }
 }
-
