@@ -205,7 +205,7 @@ export class UserService implements IUserService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get user reviews');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get user reviews');
     }
   }
 
@@ -254,7 +254,7 @@ export class UserService implements IUserService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get dashboard data');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get dashboard data');
     }
   }
 
@@ -264,36 +264,40 @@ export class UserService implements IUserService {
   @Log('Updating user location')
   @Retryable(2)
   async updateUserLocation(userId: string, location: { latitude: number; longitude: number; address?: string }): Promise<ApiResponseDto> {
-    // Validate coordinates
-    if (location.latitude < -90 || location.latitude > 90) {
-      throw new ValidationError('Invalid latitude value');
-    }
-    if (location.longitude < -180 || location.longitude > 180) {
-      throw new ValidationError('Invalid longitude value');
-    }
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { 
-        location: {
-          type: 'Point',
-          coordinates: [location.longitude, location.latitude]
+    try {
+      // Validate coordinates
+      if (location.latitude < -90 || location.latitude > 90) {
+        throw new ValidationError('Invalid latitude value');
+      }
+      if (location.longitude < -180 || location.longitude > 180) {
+        throw new ValidationError('Invalid longitude value');
+      }
+  
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { 
+          location: {
+            type: 'Point',
+            coordinates: [location.longitude, location.latitude]
+          },
+          address: location.address,
+          updatedAt: new Date()
         },
-        address: location.address,
-        updatedAt: new Date()
-      },
-      { new: true }
-    ).select('-password');
-
-    if (!user) {
-      throw new NotFoundError('User not found');
+        { new: true }
+      ).select('-password');
+  
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+  
+      return {
+        success: true,
+        message: 'Location updated successfully',
+        data: { user }
+      };
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to update user location');
     }
-
-    return {
-      success: true,
-      message: 'Location updated successfully',
-      data: { user }
-    };
   }
 
   /**
@@ -334,70 +338,20 @@ export class UserService implements IUserService {
         data: null
       };
     } catch (error) {
-      throw new ValidationError('Failed to delete account');
+      return ErrorHandlers.handleServiceError(error, 'Failed to delete account');
     }
   }
 
   /**
    * Search users with advanced filtering and caching
+   * @deprecated Use searchUsersAdvanced instead which follows AdminService.strategy pattern
    */
   @Log('Searching users')
   @Cached(1 * 60 * 1000) // Cache for 1 minute
   @Retryable(2)
   async searchUsers(filters: UserFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto> {
-    try {
-      const skip = (page - 1) * limit;
-      let query: any = { status: 'active' };
-
-      // Apply filters
-      if (filters.role) {
-        query.role = filters.role;
-      }
-
-      if (filters.location && filters.radius) {
-        query.location = {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [filters.location.longitude, filters.location.latitude]
-            },
-            $maxDistance: filters.radius * 1000 // Convert km to meters
-          }
-        };
-      }
-
-      if (filters.searchTerm) {
-        query.$or = [
-          { firstName: { $regex: filters.searchTerm, $options: 'i' } },
-          { lastName: { $regex: filters.searchTerm, $options: 'i' } },
-          { email: { $regex: filters.searchTerm, $options: 'i' } }
-        ];
-      }
-
-      // Execute query
-      const [users, total] = await Promise.all([
-        User.find(query)
-          .select('-password')
-          .skip(skip)
-          .limit(limit)
-          .sort({ createdAt: -1 }),
-        User.countDocuments(query)
-      ]);
-
-      return {
-        success: true,
-        message: 'Users retrieved successfully',
-        data: users,
-        pagination: {
-          currentPage: page,
-          totalPages: Math.ceil(total / limit),
-          totalItems: total,
-          itemsPerPage: limit
-        }
-      };
-    } catch (error) {
-      throw new ValidationError('Failed to search users');
-    }
+    // Delegate to the optimized implementation
+    return this.searchUsersAdvanced(filters, page, limit);
   }
 
   /**
@@ -585,7 +539,7 @@ export class UserService implements IUserService {
         generatedAt: new Date()
       };
     } catch (error) {
-      throw new ValidationError('Failed to get user service request statistics');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get user service request statistics');
     }
   }
 
@@ -649,7 +603,7 @@ export class UserService implements IUserService {
         generatedAt: new Date()
       };
     } catch (error) {
-      throw new ValidationError('Failed to get user review statistics');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get user review statistics');
     }
   }
 
@@ -726,7 +680,7 @@ export class UserService implements IUserService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to search users with advanced filtering');
+      return ErrorHandlers.handleServiceError(error, 'Failed to search users with advanced filtering');
     }
   }
 }

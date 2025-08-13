@@ -26,8 +26,14 @@ export interface IUserService {
 
   /**
    * Search users with filters
+   * @deprecated Use searchUsersAdvanced instead
    */
-  searchUsers(filters: UserFiltersDto): Promise<PaginatedResponseDto<any>>;
+  searchUsers(filters: UserFiltersDto, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+  
+  /**
+   * Search users with advanced filtering using AggregationBuilder
+   */
+  searchUsersAdvanced(filters: UserFiltersDto, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
 
   /**
    * Get user's service requests
