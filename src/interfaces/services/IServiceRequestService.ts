@@ -32,8 +32,14 @@ export interface IServiceRequestService {
 
   /**
    * Search service requests with filters
+   * @deprecated Use searchServiceRequestsAdvanced instead
    */
-  searchServiceRequests(filters: RequestFiltersDto): Promise<PaginatedResponseDto<any>>;
+  searchServiceRequests(filters: RequestFiltersDto, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+  
+  /**
+   * Search service requests with advanced filtering using AggregationBuilder
+   */
+  searchServiceRequestsAdvanced(filters: RequestFiltersDto, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
 
   /**
    * Find matching providers for a request

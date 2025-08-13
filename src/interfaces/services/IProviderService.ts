@@ -32,8 +32,14 @@ export interface IProviderService {
 
   /**
    * Search providers with filters
+   * @deprecated Use searchProvidersAdvanced instead
    */
-  searchProviders(filters: ProviderFiltersDto): Promise<PaginatedResponseDto<any>>;
+  searchProviders(filters: ProviderFiltersDto, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+  
+  /**
+   * Search providers with advanced filtering using AggregationBuilder
+   */
+  searchProvidersAdvanced(filters: ProviderFiltersDto, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
 
   /**
    * Add portfolio item
