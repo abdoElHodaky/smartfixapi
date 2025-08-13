@@ -50,7 +50,7 @@ jobs:
       run: |
         echo "console.log('Server started on port 3000');" > mock-server.js
         node mock-server.js &
-        sleep 5 || true
+        echo "Mock server started"
     
     - name: Mock performance tests
       run: |
