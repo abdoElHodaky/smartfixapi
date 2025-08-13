@@ -14,10 +14,10 @@ import { UserModule } from '../user/UserModule';
 import { ProviderModule } from '../provider/ProviderModule';
 
 // Import services
-import { ServiceRequestService } from '../../services/request/ServiceRequestService.decorator';
+import { ServiceRequestServiceStrategy } from '../../services/request/ServiceRequestService.strategy';
 
 // Import controllers (to be created)
-// import { ServiceRequestController } from '../../controllers/request/ServiceRequestController.decorator';
+// import { ServiceRequestController } from '../../controllers/request/ServiceRequestController';
 
 @Module({
   imports: [
@@ -26,13 +26,13 @@ import { ServiceRequestService } from '../../services/request/ServiceRequestServ
     ProviderModule  // Import ProviderModule for provider management
   ],
   providers: [
-    ServiceRequestService
+    { provide: 'ServiceRequestService', useClass: ServiceRequestServiceStrategy }
   ],
   controllers: [
     // ServiceRequestController // To be added when controller is created
   ],
   exports: [
-    ServiceRequestService
+    'ServiceRequestService'
   ]
 })
 export class ServiceRequestModule {

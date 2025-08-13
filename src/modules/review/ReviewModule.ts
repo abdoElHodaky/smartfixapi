@@ -15,10 +15,10 @@ import { ProviderModule } from '../provider/ProviderModule';
 import { ServiceRequestModule } from '../request/ServiceRequestModule';
 
 // Import services
-import { ReviewService } from '../../services/review/ReviewService.decorator';
+import { ReviewServiceStrategy } from '../../services/review/ReviewService.strategy';
 
 // Import controllers (to be created)
-// import { ReviewController } from '../../controllers/review/ReviewController.decorator';
+// import { ReviewController } from '../../controllers/review/ReviewController';
 
 @Module({
   imports: [
@@ -28,13 +28,13 @@ import { ReviewService } from '../../services/review/ReviewService.decorator';
     ServiceRequestModule  // Import ServiceRequestModule for service request validation
   ],
   providers: [
-    ReviewService
+    { provide: 'ReviewService', useClass: ReviewServiceStrategy }
   ],
   controllers: [
     // ReviewController // To be added when controller is created
   ],
   exports: [
-    ReviewService
+    'ReviewService'
   ]
 })
 export class ReviewModule {

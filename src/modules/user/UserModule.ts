@@ -12,23 +12,23 @@ import { Module } from '../../decorators/module';
 import { AuthModule } from '../auth/AuthModule';
 
 // Import services
-import { UserService } from '../../services/user/UserService.decorator';
+import { UserServiceStrategy } from '../../services/user/UserService.strategy';
 
 // Import controllers
-import { UserController } from '../../controllers/user/UserController.decorator';
+import { UserController } from '../../controllers/user/UserController';
 
 @Module({
   imports: [
     AuthModule // Import AuthModule to access AuthService
   ],
   providers: [
-    UserService
+    { provide: 'UserService', useClass: UserServiceStrategy }
   ],
   controllers: [
     UserController
   ],
   exports: [
-    UserService
+    'UserService'
   ]
 })
 export class UserModule {
