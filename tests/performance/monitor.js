@@ -1,114 +1,76 @@
 /**
- * Performance Monitoring Script
+ * Monitoring Script for SmartFix API
  * 
- * This script monitors CPU and memory usage during performance tests
- * and writes the results to a JSON file.
+ * This script performs continuous monitoring of the API to detect performance issues.
  */
 
-const fs = require('fs');
-const os = require('os');
+const http = require('k6/http');
+const { check, sleep } = require('k6');
 
-// Configuration
-const SAMPLE_INTERVAL = 1000; // 1 second
-const OUTPUT_FILE = 'monitoring-data.json';
-
-// Initialize monitoring data
-const monitoringData = {
-  startTime: new Date().toISOString(),
-  endTime: null,
-  samples: [],
-  summary: {
-    cpu: {
-      min: 100,
-      max: 0,
-      avg: 0
+// Test configuration
+export const options = {
+  // Run continuously
+  scenarios: {
+    constant_monitoring: {
+      executor: 'constant-arrival-rate',
+      rate: 5,                // 5 iterations per second
+      timeUnit: '1s',         // 1 second
+      duration: '24h',        // Run for 24 hours
+      preAllocatedVUs: 5,     // Allocate 5 VUs
+      maxVUs: 10,             // Maximum 10 VUs
     },
-    memory: {
-      min: Infinity,
-      max: 0,
-      avg: 0
-    }
-  }
+  },
+  thresholds: {
+    http_req_duration: ['p(95)<500'], // 95% of requests should be below 500ms
+    http_req_failed: ['rate<0.01'],   // Less than 1% of requests should fail
+  },
 };
 
-// Function to get CPU usage
-function getCpuUsage() {
-  const cpus = os.cpus();
-  let totalIdle = 0;
-  let totalTick = 0;
+// Main test function
+export default function() {
+  // Health check endpoint
+  const healthRes = http.get('http://localhost:3000/health');
+  check(healthRes, {
+    'health status is 200': (r) => r.status === 200,
+    'health response time < 200ms': (r) => r.timings.duration < 200,
+  });
   
-  for (const cpu of cpus) {
-    for (const type in cpu.times) {
-      totalTick += cpu.times[type];
-    }
-    totalIdle += cpu.times.idle;
-  }
+  // Root endpoint
+  const rootRes = http.get('http://localhost:3000/');
+  check(rootRes, {
+    'root status is 200': (r) => r.status === 200,
+    'root response time < 300ms': (r) => r.timings.duration < 300,
+  });
   
-  return 100 - (totalIdle / totalTick * 100);
+  // Readiness check endpoint
+  const readyRes = http.get('http://localhost:3000/health/ready');
+  check(readyRes, {
+    'ready status is 200': (r) => r.status === 200,
+    'ready response time < 100ms': (r) => r.timings.duration < 100,
+  });
+  
+  // Liveness check endpoint
+  const liveRes = http.get('http://localhost:3000/health/live');
+  check(liveRes, {
+    'live status is 200': (r) => r.status === 200,
+    'live response time < 100ms': (r) => r.timings.duration < 100,
+  });
+  
+  // Simulate interval between checks
+  sleep(10);
 }
 
-// Function to get memory usage
-function getMemoryUsage() {
-  const totalMem = os.totalmem();
-  const freeMem = os.freemem();
-  const usedMem = totalMem - freeMem;
+// Output test results
+export function handleSummary(data) {
+  console.log('Monitoring Summary:');
+  console.log(`Total requests: ${data.metrics.http_reqs.values.count}`);
+  console.log(`Failed requests: ${data.metrics.http_req_failed.values.passes}`);
+  console.log(`Average response time: ${data.metrics.http_req_duration.values.avg}ms`);
+  console.log(`95th percentile response time: ${data.metrics.http_req_duration.values.p(95)}ms`);
   
   return {
-    total: totalMem,
-    free: freeMem,
-    used: usedMem,
-    percentUsed: (usedMem / totalMem) * 100
+    'stdout': JSON.stringify(data),
+    './monitoring-results.json': JSON.stringify(data),
   };
-}
-
-// Start monitoring
-console.log('Starting performance monitoring...');
-
-const intervalId = setInterval(() => {
-  const cpuUsage = getCpuUsage();
-  const memoryUsage = getMemoryUsage();
-  
-  const sample = {
-    timestamp: new Date().toISOString(),
-    cpu: cpuUsage,
-    memory: memoryUsage
-  };
-  
-  monitoringData.samples.push(sample);
-  
-  // Update summary statistics
-  monitoringData.summary.cpu.min = Math.min(monitoringData.summary.cpu.min, cpuUsage);
-  monitoringData.summary.cpu.max = Math.max(monitoringData.summary.cpu.max, cpuUsage);
-  monitoringData.summary.memory.min = Math.min(monitoringData.summary.memory.min, memoryUsage.percentUsed);
-  monitoringData.summary.memory.max = Math.max(monitoringData.summary.memory.max, memoryUsage.percentUsed);
-  
-}, SAMPLE_INTERVAL);
-
-// Handle process termination
-process.on('SIGINT', () => {
-  clearInterval(intervalId);
-  finalize();
-  process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-  clearInterval(intervalId);
-  finalize();
-  process.exit(0);
-});
-
-// Finalize monitoring and save data
-function finalize() {
-  monitoringData.endTime = new Date().toISOString();
-  
-  // Calculate averages
-  if (monitoringData.samples.length > 0) {
-    monitoringData.summary.cpu.avg = monitoringData.samples.reduce((sum, sample) => sum + sample.cpu, 0) / monitoringData.samples.length;
-    monitoringData.summary.memory.avg = monitoringData.samples.reduce((sum, sample) => sum + sample.memory.percentUsed, 0) / monitoringData.samples.length;
-  }
-  
-  // Save to file
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(monitoringData, null, 2));
-  console.log(`Performance monitoring data saved to ${OUTPUT_FILE}`);
 }
 
