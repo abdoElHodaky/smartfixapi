@@ -14,10 +14,10 @@ import { UserModule } from '../user/UserModule';
 import { ServiceRequestModule } from '../request/ServiceRequestModule';
 
 // Import services
-import { ChatService } from '../../services/chat/ChatService.decorator';
+import { ChatServiceStrategy } from '../../services/chat/ChatService.strategy';
 
 // Import controllers (to be created)
-// import { ChatController } from '../../controllers/chat/ChatController.decorator';
+// import { ChatController } from '../../controllers/chat/ChatController';
 
 @Module({
   imports: [
@@ -26,13 +26,13 @@ import { ChatService } from '../../services/chat/ChatService.decorator';
     ServiceRequestModule  // Import ServiceRequestModule for service request context
   ],
   providers: [
-    ChatService
+    { provide: 'ChatService', useClass: ChatServiceStrategy }
   ],
   controllers: [
     // ChatController // To be added when controller is created
   ],
   exports: [
-    ChatService
+    'ChatService'
   ]
 })
 export class ChatModule {
