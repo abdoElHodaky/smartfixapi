@@ -51,7 +51,7 @@ export function Module(config: ModuleConfig = {}): ClassDecorator {
       config,
       container: new Container(),
       initialized: false,
-      dependencies: []
+      dependencies: [],
     }, target);
 
     // Store individual metadata for easier access
@@ -215,7 +215,7 @@ export class ModuleManager {
         
         module.container.provide([{
           provide: serviceName,
-          useValue: serviceInstance
+          useValue: serviceInstance,
         }]);
       }
 
@@ -254,7 +254,7 @@ export class ModuleManager {
     for (const controller of controllers) {
       module.container.provide([{
         provide: controller.name,
-        useClass: controller
+        useClass: controller,
       }]);
     }
 
@@ -299,7 +299,7 @@ export class ModuleManager {
       if (module.config.global) {
         this.globalContainer.provide([{
           provide: serviceName,
-          useValue: serviceInstance
+          useValue: serviceInstance,
         }]);
       }
     }
@@ -480,6 +480,6 @@ export const moduleManager = new ModuleManager();
 export default {
   Module,
   ModuleManager,
-  moduleManager
+  moduleManager,
 };
 

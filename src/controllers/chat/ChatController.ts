@@ -16,6 +16,9 @@ import { BaseController } from '../BaseController';
 import { AuthRequest } from '../../types';
 import { IChatService } from '../../interfaces/services';
 
+// Utility imports
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+
 // DTO imports
 import { 
   ChatDto,
@@ -34,11 +37,8 @@ import {
   Put, 
   Delete,
   RequireAuth, 
-  UseMiddleware 
+  Validate 
 } from '../../decorators';
-
-// Middleware imports
-import { validateBody, validateParams, validateQuery } from '../../middleware';
 
 @Controller({ path: '/chats' })
 export class ChatController extends BaseController {
@@ -58,12 +58,20 @@ export class ChatController extends BaseController {
     try {
       this.logRequest(req, 'Get Chat By Service Request');
 
-      if (!this.requireAuth(req, res)) {
+      // Optimized: Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
+      const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['serviceRequestId']);
+      if (paramError) {
+        this.sendError(res, paramError, 400);
         return;
       }
 
       const { serviceRequestId } = req.params;
-
       const result = await this.chatService.getChatByServiceRequest(serviceRequestId, req.user!.id);
       this.sendSuccess<ChatDto>(res, result, 'Chat retrieved successfully');
     } catch (error: any) {
@@ -76,12 +84,23 @@ export class ChatController extends BaseController {
    */
   @Post('/service-request/:serviceRequestId')
   @RequireAuth()
-  @UseMiddleware(validateBody(ChatCreationDto))
+  @Validate({
+    initialMessage: { required: false, maxLength: 1000 }
+  })
   async createChatForServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
       this.logRequest(req, 'Create Chat For Service Request');
 
-      if (!this.requireAuth(req, res)) {
+      // Optimized: Use ConditionalHelpers for guard clauses
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
+        return;
+      }
+
+      const paramError = ConditionalHelpers.guardRequiredParams(req.params, ['serviceRequestId']);
+      if (paramError) {
+        this.sendError(res, paramError, 400);
         return;
       }
 
@@ -108,7 +127,10 @@ export class ChatController extends BaseController {
     try {
       this.logRequest(req, 'Get My Chats');
 
-      if (!this.requireAuth(req, res)) {
+      // Optimized: Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
         return;
       }
 
@@ -135,40 +157,52 @@ export class ChatController extends BaseController {
    */
   @Get('/:chatId')
   @RequireAuth()
-  async getChatById(req: AuthRequest, res: Response): Promise<void> {
+  getChatById = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Chat By ID');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { chatId } = req.params;
+
     try {
-      this.logRequest(req, 'Get Chat By ID');
-
-      if (!this.requireAuth(req, res)) {
-        return;
-      }
-
-      const { chatId } = req.params;
-
       const result = await this.chatService.getChatById(chatId, req.user!.id);
       this.sendSuccess<ChatDto>(res, result, 'Chat retrieved successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get chat', 400);
     }
-  }
+  });
 
   /**
    * Send a message in a chat
    */
   @Post('/:chatId/messages')
   @RequireAuth()
-  @UseMiddleware(validateBody(MessageCreationDto))
-  async sendMessage(req: AuthRequest, res: Response): Promise<void> {
+  @Validate({
+    content: { required: true, minLength: 1, maxLength: 1000 },
+    messageType: { required: false }
+  })
+  sendMessage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Send Message');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const validation = this.validateRequest(req.body, {
+      content: { required: true, minLength: 1, maxLength: 1000 }
+    });
+
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
+      return;
+    }
+
+    const { chatId } = req.params;
+    const { content, messageType, attachments } = req.body;
+
     try {
-      this.logRequest(req, 'Send Message');
-
-      if (!this.requireAuth(req, res)) {
-        return;
-      }
-
-      const { chatId } = req.params;
-      const { content, messageType, attachments } = req.body;
-
       const result = await this.chatService.sendMessage({
         chatId,
         senderId: req.user!.id,
@@ -180,26 +214,26 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to send message', 400);
     }
-  }
+  });
 
   /**
    * Get messages for a chat
    */
   @Get('/:chatId/messages')
   @RequireAuth()
-  async getMessages(req: AuthRequest, res: Response): Promise<void> {
+  getMessages = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Get Messages');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { chatId } = req.params;
+    const { page, limit, offset } = this.getPaginationParams(req);
+    const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt']);
+    const { before, after } = req.query; // For cursor-based pagination
+
     try {
-      this.logRequest(req, 'Get Messages');
-
-      if (!this.requireAuth(req, res)) {
-        return;
-      }
-
-      const { chatId } = req.params;
-      const { page, limit, offset } = this.getPaginationParams(req);
-      const { sortBy, sortOrder } = this.getSortParams(req, ['createdAt']);
-      const { before, after } = req.query; // For cursor-based pagination
-
       const result = await this.chatService.getChatMessages(chatId, req.user!.id, {
         page,
         limit,
@@ -213,54 +247,68 @@ export class ChatController extends BaseController {
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to get messages', 400);
     }
-  }
+  });
 
   /**
    * Mark messages as read
    */
   @Put('/:chatId/messages/read')
   @RequireAuth()
-  async markMessagesAsRead(req: AuthRequest, res: Response): Promise<void> {
+  @Validate({
+    messageIds: { required: false }
+  })
+  markMessagesAsRead = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Mark Messages As Read');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const { chatId } = req.params;
+    const { messageIds } = req.body; // If not provided, mark all unread messages as read
+
     try {
-      this.logRequest(req, 'Mark Messages As Read');
-
-      if (!this.requireAuth(req, res)) {
-        return;
-      }
-
-      const { chatId } = req.params;
-      const { messageIds } = req.body; // If not provided, mark all unread messages as read
-
       const result = await this.chatService.markMessagesAsRead(chatId, req.user!.id, messageIds);
       this.sendSuccess(res, result, 'Messages marked as read successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to mark messages as read', 400);
     }
-  }
+  });
 
   /**
    * Update message (edit)
    */
   @Put('/:chatId/messages/:messageId')
   @RequireAuth()
-  @UseMiddleware(validateBody(MessageUpdateDto))
-  async updateMessage(req: AuthRequest, res: Response): Promise<void> {
+  @Validate({
+    content: { required: true, minLength: 1, maxLength: 1000 }
+  })
+  updateMessage = this.asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    this.logRequest(req, 'Update Message');
+
+    if (!this.requireAuth(req, res)) {
+      return;
+    }
+
+    const validation = this.validateRequest(req.body, {
+      content: { required: true, minLength: 1, maxLength: 1000 }
+    });
+
+    if (!validation.isValid) {
+      this.sendError(res, 'Validation failed', 400, validation.errors);
+      return;
+    }
+
+    const { chatId, messageId } = req.params;
+    const { content } = req.body;
+
     try {
-      this.logRequest(req, 'Update Message');
-
-      if (!this.requireAuth(req, res)) {
-        return;
-      }
-
-      const { chatId, messageId } = req.params;
-      const { content } = req.body;
-
       const result = await this.chatService.updateMessage(messageId, req.user!.id, { content });
       this.sendSuccess<MessageDto>(res, result, 'Message updated successfully');
     } catch (error: any) {
       this.sendError(res, error.message || 'Failed to update message', 400);
     }
-  }
+  });
 
   /**
    * Delete message

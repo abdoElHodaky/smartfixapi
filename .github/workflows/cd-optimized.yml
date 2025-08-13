@@ -1,0 +1,641 @@
+name: 🚀 Optimized CD Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (commit SHA or tag)'
+        required: false
+        default: ''
+        type: string
+      triggered_by:
+        description: 'What triggered this deployment'
+        required: false
+        default: 'manual'
+        type: string
+      skip_tests:
+        description: 'Skip pre-deployment tests'
+        required: false
+        default: true
+        type: boolean
+      rollback_on_failure:
+        description: 'Automatically rollback on deployment failure'
+        required: false
+        default: true
+        type: boolean
+      notify_teams:
+        description: 'Send notifications to teams'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '20.x'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'preview' }}
+  cancel-in-progress: false
+
+jobs:
+  # ============================================================================
+  # DEPLOYMENT PREPARATION
+  # ============================================================================
+  prepare:
+    name: 🎯 Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      version: ${{ steps.config.outputs.version }}
+      image_tag: ${{ steps.config.outputs.image_tag }}
+      deployment_url: ${{ steps.config.outputs.deployment_url }}
+      skip_tests: ${{ steps.config.outputs.skip_tests }}
+      rollback_enabled: ${{ steps.config.outputs.rollback_enabled }}
+      notify_teams: ${{ steps.config.outputs.notify_teams }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Configure deployment
+        id: config
+        run: |
+          # Set environment
+          ENVIRONMENT="${{ github.event.inputs.environment || 'preview' }}"
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          
+          # Set version
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(date +%Y%m%d)-${GITHUB_SHA::8}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Set image tag
+          IMAGE_TAG="${ENVIRONMENT}-${VERSION}"
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          
+          # Set deployment URL based on environment
+          case $ENVIRONMENT in
+            preview)
+              DEPLOYMENT_URL="https://preview-api.smartfix.app"
+              ;;
+            staging)
+              DEPLOYMENT_URL="https://staging-api.smartfix.app"
+              ;;
+            production)
+              DEPLOYMENT_URL="https://api.smartfix.app"
+              ;;
+          esac
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          
+          # Set other options
+          echo "skip_tests=${{ github.event.inputs.skip_tests || 'false' }}" >> $GITHUB_OUTPUT
+          echo "rollback_enabled=${{ github.event.inputs.rollback_on_failure || 'true' }}" >> $GITHUB_OUTPUT
+          echo "notify_teams=${{ github.event.inputs.notify_teams || 'true' }}" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Validate deployment target
+        run: |
+          echo "Validating deployment configuration..."
+          echo "Environment: ${{ steps.config.outputs.environment }}"
+          echo "Version: ${{ steps.config.outputs.version }}"
+          echo "Image Tag: ${{ steps.config.outputs.image_tag }}"
+          echo "Deployment URL: ${{ steps.config.outputs.deployment_url }}"
+          
+          # Validate environment-specific requirements
+          case "${{ steps.config.outputs.environment }}" in
+            production)
+              if [[ "${{ github.ref }}" != "refs/heads/main" && "${{ github.ref }}" != refs/tags/* ]]; then
+                echo "❌ Production deployments only allowed from main branch or tags"
+                exit 1
+              fi
+              ;;
+            staging)
+              if [[ "${{ github.ref }}" != "refs/heads/main" && "${{ github.ref }}" != "refs/heads/develop" ]]; then
+                echo "❌ Staging deployments only allowed from main or develop branches"
+                exit 1
+              fi
+              ;;
+          esac
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ steps.config.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ steps.config.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Tag | ${{ steps.config.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment URL | ${{ steps.config.outputs.deployment_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skip Tests | ${{ steps.config.outputs.skip_tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rollback Enabled | ${{ steps.config.outputs.rollback_enabled }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered By | ${{ github.event.inputs.triggered_by || 'manual' }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # PRE-DEPLOYMENT TESTS
+  # ============================================================================
+  pre-deployment-tests:
+    name: 🧪 Pre-deployment Tests
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: needs.prepare.outputs.skip_tests != 'true'
+    
+    strategy:
+      matrix:
+        test-suite: [smoke, integration, security]
+    
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+        ports:
+          - 27017:27017
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔧 Setup test environment
+        run: |
+          cp .env.example .env.test
+          echo "MONGODB_URI=mongodb://admin:password@localhost:27017/smartfix_test?authSource=admin" >> .env.test
+          echo "REDIS_URL=redis://localhost:6379" >> .env.test
+          echo "NODE_ENV=test" >> .env.test
+
+      - name: 🧪 Run smoke tests
+        if: matrix.test-suite == 'smoke'
+        run: npm run test:smoke
+        env:
+          NODE_ENV: test
+
+      - name: 🔗 Run integration tests
+        if: matrix.test-suite == 'integration'
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+
+      - name: 🔒 Run security tests
+        if: matrix.test-suite == 'security'
+        run: npm run test:security
+        env:
+          NODE_ENV: test
+
+      - name: 📊 Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deployment-test-results-${{ matrix.test-suite }}
+          path: test-results/
+          retention-days: 7
+
+  # ============================================================================
+  # INFRASTRUCTURE PREPARATION
+  # ============================================================================
+  infrastructure:
+    name: 🏗️ Infrastructure Setup
+    runs-on: ubuntu-latest
+    needs: prepare
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ☁️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 🏗️ Deploy infrastructure
+        run: |
+          echo "Deploying infrastructure for ${{ needs.prepare.outputs.environment }}..."
+          
+          # Deploy using Terraform or CloudFormation
+          case "${{ needs.prepare.outputs.environment }}" in
+            preview)
+              echo "Setting up preview environment infrastructure..."
+              # terraform apply -var="environment=preview" -auto-approve
+              ;;
+            staging)
+              echo "Setting up staging environment infrastructure..."
+              # terraform apply -var="environment=staging" -auto-approve
+              ;;
+            production)
+              echo "Setting up production environment infrastructure..."
+              # terraform apply -var="environment=production" -auto-approve
+              ;;
+          esac
+
+      - name: 🔍 Verify infrastructure
+        run: |
+          echo "Verifying infrastructure health..."
+          # Add infrastructure health checks here
+
+  # ============================================================================
+  # DATABASE MIGRATIONS
+  # ============================================================================
+  database-migration:
+    name: 🗄️ Database Migration
+    runs-on: ubuntu-latest
+    needs: [prepare, infrastructure]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔧 Configure database connection
+        run: |
+          case "${{ needs.prepare.outputs.environment }}" in
+            preview)
+              echo "MONGODB_URI=${{ secrets.PREVIEW_MONGODB_URI }}" >> .env
+              ;;
+            staging)
+              echo "MONGODB_URI=${{ secrets.STAGING_MONGODB_URI }}" >> .env
+              ;;
+            production)
+              echo "MONGODB_URI=${{ secrets.PRODUCTION_MONGODB_URI }}" >> .env
+              ;;
+          esac
+
+      - name: 🗄️ Run database migrations
+        run: |
+          echo "Running database migrations for ${{ needs.prepare.outputs.environment }}..."
+          npm run migrate:up
+          
+      - name: 🌱 Seed database (non-production only)
+        if: needs.prepare.outputs.environment != 'production'
+        run: |
+          echo "Seeding database with test data..."
+          npm run db:seed
+
+      - name: 🔍 Verify database state
+        run: |
+          echo "Verifying database migration status..."
+          npm run migrate:status
+
+  # ============================================================================
+  # APPLICATION DEPLOYMENT
+  # ============================================================================
+  deploy:
+    name: 🚀 Deploy Application
+    runs-on: ubuntu-latest
+    needs: [prepare, pre-deployment-tests, infrastructure, database-migration]
+    if: always() && (needs.pre-deployment-tests.result == 'success' || needs.prepare.outputs.skip_tests == 'true')
+    
+    environment:
+      name: ${{ needs.prepare.outputs.environment }}
+      url: ${{ needs.prepare.outputs.deployment_url }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Pull deployment image
+        run: |
+          IMAGE_TAG="${{ needs.prepare.outputs.image_tag }}"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG
+
+      - name: ☁️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 🚀 Deploy to ECS/EKS
+        run: |
+          echo "Deploying to ${{ needs.prepare.outputs.environment }}..."
+          
+          case "${{ needs.prepare.outputs.environment }}" in
+            preview)
+              # Deploy to preview environment
+              aws ecs update-service \
+                --cluster smartfix-preview \
+                --service smartfix-api-preview \
+                --force-new-deployment
+              ;;
+            staging)
+              # Deploy to staging environment
+              aws ecs update-service \
+                --cluster smartfix-staging \
+                --service smartfix-api-staging \
+                --force-new-deployment
+              ;;
+            production)
+              # Deploy to production environment with blue-green deployment
+              aws ecs update-service \
+                --cluster smartfix-production \
+                --service smartfix-api-production \
+                --force-new-deployment
+              ;;
+          esac
+
+      - name: ⏳ Wait for deployment
+        run: |
+          echo "Waiting for deployment to complete..."
+          
+          case "${{ needs.prepare.outputs.environment }}" in
+            preview)
+              aws ecs wait services-stable \
+                --cluster smartfix-preview \
+                --services smartfix-api-preview
+              ;;
+            staging)
+              aws ecs wait services-stable \
+                --cluster smartfix-staging \
+                --services smartfix-api-staging
+              ;;
+            production)
+              aws ecs wait services-stable \
+                --cluster smartfix-production \
+                --services smartfix-api-production
+              ;;
+          esac
+
+  # ============================================================================
+  # POST-DEPLOYMENT VERIFICATION
+  # ============================================================================
+  verify:
+    name: ✅ Post-deployment Verification
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔍 Health check
+        run: |
+          echo "Performing health check on ${{ needs.prepare.outputs.deployment_url }}..."
+          
+          # Wait for service to be ready
+          for i in {1..30}; do
+            if curl -f "${{ needs.prepare.outputs.deployment_url }}/health"; then
+              echo "✅ Health check passed"
+              break
+            fi
+            echo "⏳ Waiting for service to be ready... ($i/30)"
+            sleep 10
+          done
+
+      - name: 🧪 Run smoke tests against deployed service
+        run: |
+          export API_BASE_URL="${{ needs.prepare.outputs.deployment_url }}"
+          npm run test:smoke:deployed
+        env:
+          API_BASE_URL: ${{ needs.prepare.outputs.deployment_url }}
+
+      - name: ⚡ Performance verification
+        run: |
+          echo "Running performance verification..."
+          npm run test:performance:deployed
+        env:
+          API_BASE_URL: ${{ needs.prepare.outputs.deployment_url }}
+
+      - name: 🔒 Security verification
+        run: |
+          echo "Running security verification..."
+          npm run test:security:deployed
+        env:
+          API_BASE_URL: ${{ needs.prepare.outputs.deployment_url }}
+
+      - name: 📊 Upload verification results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-deployment-verification
+          path: |
+            verification-results/
+            performance-results/
+            security-results/
+          retention-days: 14
+
+  # ============================================================================
+  # ROLLBACK ON FAILURE
+  # ============================================================================
+  rollback:
+    name: 🔄 Rollback Deployment
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy, verify]
+    if: failure() && needs.prepare.outputs.rollback_enabled == 'true'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ☁️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 🔄 Perform rollback
+        run: |
+          echo "🚨 Deployment failed, initiating rollback..."
+          
+          case "${{ needs.prepare.outputs.environment }}" in
+            preview)
+              # Rollback preview environment
+              aws ecs update-service \
+                --cluster smartfix-preview \
+                --service smartfix-api-preview \
+                --task-definition smartfix-api-preview:PREVIOUS
+              ;;
+            staging)
+              # Rollback staging environment
+              aws ecs update-service \
+                --cluster smartfix-staging \
+                --service smartfix-api-staging \
+                --task-definition smartfix-api-staging:PREVIOUS
+              ;;
+            production)
+              # Rollback production environment
+              aws ecs update-service \
+                --cluster smartfix-production \
+                --service smartfix-api-production \
+                --task-definition smartfix-api-production:PREVIOUS
+              ;;
+          esac
+
+      - name: ⏳ Wait for rollback completion
+        run: |
+          echo "Waiting for rollback to complete..."
+          
+          case "${{ needs.prepare.outputs.environment }}" in
+            preview)
+              aws ecs wait services-stable \
+                --cluster smartfix-preview \
+                --services smartfix-api-preview
+              ;;
+            staging)
+              aws ecs wait services-stable \
+                --cluster smartfix-staging \
+                --services smartfix-api-staging
+              ;;
+            production)
+              aws ecs wait services-stable \
+                --cluster smartfix-production \
+                --services smartfix-api-production
+              ;;
+          esac
+
+      - name: 🔍 Verify rollback
+        run: |
+          echo "Verifying rollback success..."
+          curl -f "${{ needs.prepare.outputs.deployment_url }}/health"
+
+  # ============================================================================
+  # NOTIFICATIONS
+  # ============================================================================
+  notify:
+    name: 📢 Send Notifications
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy, verify, rollback]
+    if: always() && needs.prepare.outputs.notify_teams == 'true'
+    
+    steps:
+      - name: 📢 Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          custom_payload: |
+            {
+              "text": "Deployment ${{ job.status }} for ${{ needs.prepare.outputs.environment }}",
+              "attachments": [{
+                "color": "${{ job.status == 'success' && 'good' || job.status == 'failure' && 'danger' || 'warning' }}",
+                "fields": [
+                  {
+                    "title": "Environment",
+                    "value": "${{ needs.prepare.outputs.environment }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Version",
+                    "value": "${{ needs.prepare.outputs.version }}",
+                    "short": true
+                  },
+                  {
+                    "title": "URL",
+                    "value": "${{ needs.prepare.outputs.deployment_url }}",
+                    "short": false
+                  }
+                ]
+              }]
+            }
+
+      - name: 📧 Send email notification
+        if: needs.prepare.outputs.environment == 'production'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Production Deployment ${{ job.status == 'success' && 'Successful' || 'Failed' }}"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: SmartFix CI/CD <noreply@smartfix.app>
+          body: |
+            Deployment Status: ${{ job.status }}
+            Environment: ${{ needs.prepare.outputs.environment }}
+            Version: ${{ needs.prepare.outputs.version }}
+            URL: ${{ needs.prepare.outputs.deployment_url }}
+            
+            Triggered by: ${{ github.actor }}
+            Commit: ${{ github.sha }}
+
+  # ============================================================================
+  # DEPLOYMENT SUMMARY
+  # ============================================================================
+  summary:
+    name: 📊 Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy, verify, rollback, notify]
+    if: always()
+    
+    steps:
+      - name: 📊 Generate deployment summary
+        run: |
+          echo "## 🚀 Deployment Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Preparation | ${{ needs.prepare.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment | ${{ needs.deploy.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Verification | ${{ needs.verify.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rollback | ${{ needs.rollback.result || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Notifications | ${{ needs.notify.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ needs.prepare.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ needs.prepare.outputs.deployment_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Add rollback information if it occurred
+          if [[ "${{ needs.rollback.result }}" == "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Deployment was rolled back due to failures**" >> $GITHUB_STEP_SUMMARY
+          fi

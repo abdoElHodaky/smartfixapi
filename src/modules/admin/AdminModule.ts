@@ -18,8 +18,8 @@ import { ReviewModule } from '../review/ReviewModule';
 // Import services
 import { AdminService } from '../../services/admin/AdminService.decorator';
 
-// Import controllers
-import { AdminController } from '../../controllers/admin/AdminController.modern';
+// Import controllers (to be created)
+// import { AdminController } from '../../controllers/admin/AdminController.decorator';
 
 @Module({
   imports: [
@@ -33,7 +33,7 @@ import { AdminController } from '../../controllers/admin/AdminController.modern'
     AdminService
   ],
   controllers: [
-    AdminController
+    // AdminController // To be added when controller is created
   ],
   exports: [
     AdminService
@@ -68,7 +68,7 @@ export class AdminModule {
       description: 'Administrative management module',
       dependencies: ['AuthModule', 'UserModule', 'ProviderModule', 'ServiceRequestModule', 'ReviewModule'],
       services: ['AdminService'],
-      controllers: ['AdminController'],
+      controllers: [], // To be updated when controller is added
       features: [
         'Admin dashboard and analytics',
         'User management and moderation',
@@ -83,3 +83,4 @@ export class AdminModule {
     };
   }
 }
+

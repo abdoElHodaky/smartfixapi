@@ -11,8 +11,8 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
       errors: errors.array().map(error => ({
         field: error.param,
         message: error.msg,
-        value: error.value
-      }))
+        value: error.value,
+      })),
     });
     return;
   }
@@ -55,7 +55,7 @@ export const validateUserRegistration = [
     .isIn(['user', 'provider'])
     .withMessage('Role must be either user or provider'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 export const validateUserLogin = [
@@ -68,7 +68,7 @@ export const validateUserLogin = [
     .notEmpty()
     .withMessage('Password is required'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 export const validateUserUpdate = [
@@ -113,7 +113,7 @@ export const validateUserUpdate = [
     .matches(/^\d{5}(-\d{4})?$/)
     .withMessage('Please provide a valid ZIP code'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Service Provider validation rules
@@ -154,7 +154,7 @@ export const validateServiceProviderRegistration = [
     .isFloat({ min: 0 })
     .withMessage('Hourly rate must be a positive number'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Service Request validation rules
@@ -225,7 +225,7 @@ export const validateServiceRequest = [
     .isIn(['low', 'medium', 'high', 'urgent'])
     .withMessage('Priority must be one of: low, medium, high, urgent'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Review validation rules
@@ -244,7 +244,7 @@ export const validateReview = [
     .isLength({ min: 10, max: 1000 })
     .withMessage('Comment must be between 10 and 1000 characters'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Chat validation rules
@@ -259,7 +259,7 @@ export const validateMessage = [
     .isIn(['text', 'image', 'file', 'location'])
     .withMessage('Message type must be one of: text, image, file, location'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Parameter validation rules
@@ -268,7 +268,7 @@ export const validateObjectId = (paramName: string) => [
     .isMongoId()
     .withMessage(`${paramName} must be a valid MongoDB ObjectId`),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Query validation rules
@@ -293,7 +293,7 @@ export const validatePagination = [
     .isIn(['asc', 'desc'])
     .withMessage('Order must be either asc or desc'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 export const validateSearch = [
@@ -319,6 +319,6 @@ export const validateSearch = [
     .isFloat({ min: 1, max: 100 })
     .withMessage('Radius must be between 1 and 100 kilometers'),
   
-  handleValidationErrors
+  handleValidationErrors,
 ];
 

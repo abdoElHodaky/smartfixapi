@@ -27,7 +27,7 @@ export function validateBody<T extends object>(dtoClass: ClassConstructor<T>) {
         whitelist: true, // Strip properties that don't have decorators
         forbidNonWhitelisted: true, // Throw error if non-whitelisted properties are present
         transform: true, // Enable transformation
-        validateCustomDecorators: true
+        validateCustomDecorators: true,
       });
 
       if (errors.length > 0) {
@@ -36,7 +36,7 @@ export function validateBody<T extends object>(dtoClass: ClassConstructor<T>) {
           success: false,
           message: 'Validation failed',
           data: null,
-          error: errorMessages.join(', ')
+          error: errorMessages.join(', '),
         };
         
         res.status(400).json(response);
@@ -51,7 +51,7 @@ export function validateBody<T extends object>(dtoClass: ClassConstructor<T>) {
         success: false,
         message: 'Validation error',
         data: null,
-        error: 'Invalid request format'
+        error: 'Invalid request format',
       };
       
       res.status(400).json(response);
@@ -73,7 +73,7 @@ export function validateQuery<T extends object>(dtoClass: ClassConstructor<T>) {
         whitelist: true,
         forbidNonWhitelisted: false, // More lenient for query params
         transform: true,
-        validateCustomDecorators: true
+        validateCustomDecorators: true,
       });
 
       if (errors.length > 0) {
@@ -82,7 +82,7 @@ export function validateQuery<T extends object>(dtoClass: ClassConstructor<T>) {
           success: false,
           message: 'Query validation failed',
           data: null,
-          error: errorMessages.join(', ')
+          error: errorMessages.join(', '),
         };
         
         res.status(400).json(response);
@@ -97,7 +97,7 @@ export function validateQuery<T extends object>(dtoClass: ClassConstructor<T>) {
         success: false,
         message: 'Query validation error',
         data: null,
-        error: 'Invalid query format'
+        error: 'Invalid query format',
       };
       
       res.status(400).json(response);
@@ -119,7 +119,7 @@ export function validateParams<T extends object>(dtoClass: ClassConstructor<T>) 
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-        validateCustomDecorators: true
+        validateCustomDecorators: true,
       });
 
       if (errors.length > 0) {
@@ -128,7 +128,7 @@ export function validateParams<T extends object>(dtoClass: ClassConstructor<T>) 
           success: false,
           message: 'Parameter validation failed',
           data: null,
-          error: errorMessages.join(', ')
+          error: errorMessages.join(', '),
         };
         
         res.status(400).json(response);
@@ -143,7 +143,7 @@ export function validateParams<T extends object>(dtoClass: ClassConstructor<T>) 
         success: false,
         message: 'Parameter validation error',
         data: null,
-        error: 'Invalid parameter format'
+        error: 'Invalid parameter format',
       };
       
       res.status(400).json(response);
@@ -178,7 +178,7 @@ function formatValidationErrors(errors: ValidationError[]): string[] {
  */
 export async function validateDto<T extends object>(
   dtoClass: ClassConstructor<T>, 
-  data: any
+  data: any,
 ): Promise<{ isValid: boolean; errors?: string[]; dto?: T }> {
   try {
     const dto = plainToClass(dtoClass, data);
@@ -186,24 +186,24 @@ export async function validateDto<T extends object>(
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      validateCustomDecorators: true
+      validateCustomDecorators: true,
     });
 
     if (errors.length > 0) {
       return {
         isValid: false,
-        errors: formatValidationErrors(errors)
+        errors: formatValidationErrors(errors),
       };
     }
 
     return {
       isValid: true,
-      dto
+      dto,
     };
   } catch (error) {
     return {
       isValid: false,
-      errors: ['Invalid data format']
+      errors: ['Invalid data format'],
     };
   }
 }

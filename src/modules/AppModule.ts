@@ -25,7 +25,7 @@ import { ChatModule } from './chat/ChatModule';
     ServiceRequestModule, // Service request management
     ReviewModule,         // Review and rating system
     AdminModule,          // Administrative functions
-    ChatModule            // Chat and messaging
+    ChatModule,            // Chat and messaging
   ],
   providers: [
     // Global providers can be added here
@@ -35,7 +35,7 @@ import { ChatModule } from './chat/ChatModule';
   ],
   exports: [
     // Services to export globally
-  ]
+  ],
 })
 export class AppModule {
   constructor() {
@@ -92,7 +92,7 @@ export class AppModule {
         'ServiceRequestModule',
         'ReviewModule',
         'AdminModule',
-        'ChatModule'
+        'ChatModule',
       ],
       features: [
         'Decorator-based services and controllers',
@@ -104,7 +104,7 @@ export class AppModule {
         'Real-time chat and messaging',
         'Review and rating system',
         'Administrative dashboard',
-        'Location-based service matching'
+        'Location-based service matching',
       ],
       technologies: [
         'TypeScript',
@@ -115,8 +115,8 @@ export class AppModule {
         '@decorators/server',
         'JWT Authentication',
         'bcryptjs for password hashing',
-        'Comprehensive error handling'
-      ]
+        'Comprehensive error handling',
+      ],
     };
   }
 
@@ -133,38 +133,38 @@ export class AppModule {
           'ServiceRequestModule',
           'ReviewModule',
           'AdminModule',
-          'ChatModule'
-        ]
+          'ChatModule',
+        ],
       },
       AuthModule: {
         imports: [],
         exports: ['AuthService'],
-        global: true
+        global: true,
       },
       UserModule: {
         imports: ['AuthModule'],
-        exports: ['UserService']
+        exports: ['UserService'],
       },
       ProviderModule: {
         imports: ['AuthModule', 'UserModule'],
-        exports: ['ProviderService']
+        exports: ['ProviderService'],
       },
       ServiceRequestModule: {
         imports: ['AuthModule', 'UserModule', 'ProviderModule'],
-        exports: ['ServiceRequestService']
+        exports: ['ServiceRequestService'],
       },
       ReviewModule: {
         imports: ['AuthModule', 'UserModule', 'ProviderModule', 'ServiceRequestModule'],
-        exports: ['ReviewService']
+        exports: ['ReviewService'],
       },
       AdminModule: {
         imports: ['AuthModule', 'UserModule', 'ProviderModule', 'ServiceRequestModule', 'ReviewModule'],
-        exports: ['AdminService']
+        exports: ['AdminService'],
       },
       ChatModule: {
         imports: ['AuthModule', 'UserModule', 'ServiceRequestModule'],
-        exports: ['ChatService']
-      }
+        exports: ['ChatService'],
+      },
     };
   }
 
@@ -183,8 +183,8 @@ export class AppModule {
         ServiceRequestModule: 'healthy',
         ReviewModule: 'healthy',
         AdminModule: 'healthy',
-        ChatModule: 'healthy'
-      }
+        ChatModule: 'healthy',
+      },
     };
   }
 }

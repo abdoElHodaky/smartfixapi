@@ -26,17 +26,17 @@ const reviewSchema = new Schema<IReview>({
     type: Schema.Types.ObjectId,
     ref: 'ServiceRequest',
     required: [true, 'Service request ID is required'],
-    unique: true
+    unique: true,
   },
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'User ID is required']
+    required: [true, 'User ID is required'],
   },
   providerId: {
     type: Schema.Types.ObjectId,
     ref: 'ServiceProvider',
-    required: [true, 'Provider ID is required']
+    required: [true, 'Provider ID is required'],
   },
   rating: {
     type: Number,
@@ -47,20 +47,20 @@ const reviewSchema = new Schema<IReview>({
       validator: function(rating: number) {
         return Number.isInteger(rating);
       },
-      message: 'Rating must be a whole number'
-    }
+      message: 'Rating must be a whole number',
+    },
   },
   title: {
     type: String,
     required: [true, 'Review title is required'],
     trim: true,
-    maxlength: [100, 'Title cannot exceed 100 characters']
+    maxlength: [100, 'Title cannot exceed 100 characters'],
   },
   comment: {
     type: String,
     required: [true, 'Review comment is required'],
     trim: true,
-    maxlength: [1000, 'Comment cannot exceed 1000 characters']
+    maxlength: [1000, 'Comment cannot exceed 1000 characters'],
   },
   images: [{
     type: String,
@@ -68,40 +68,40 @@ const reviewSchema = new Schema<IReview>({
       validator: function(url: string) {
         return /^https?:\/\/.+\.(jpg|jpeg|png|gif)$/i.test(url);
       },
-      message: 'Please provide a valid image URL'
-    }
+      message: 'Please provide a valid image URL',
+    },
   }],
   response: {
     message: {
       type: String,
       trim: true,
-      maxlength: [500, 'Response cannot exceed 500 characters']
+      maxlength: [500, 'Response cannot exceed 500 characters'],
     },
     respondedAt: {
       type: Date,
-      default: Date.now
-    }
+      default: Date.now,
+    },
   },
   isVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isHelpful: {
     yes: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
     no: {
       type: Number,
       default: 0,
-      min: 0
-    }
-  }
+      min: 0,
+    },
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
 });
 
 // Indexes
@@ -121,7 +121,7 @@ reviewSchema.virtual('user', {
   ref: 'User',
   localField: 'userId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Virtual to populate provider details
@@ -129,7 +129,7 @@ reviewSchema.virtual('provider', {
   ref: 'ServiceProvider',
   localField: 'providerId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Virtual to populate service request details
@@ -137,7 +137,7 @@ reviewSchema.virtual('serviceRequest', {
   ref: 'ServiceRequest',
   localField: 'serviceRequestId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Virtual for helpfulness ratio
@@ -151,7 +151,7 @@ reviewSchema.virtual('helpfulnessRatio').get(function() {
 reviewSchema.methods.addResponse = function(message: string) {
   this.response = {
     message,
-    respondedAt: new Date()
+    respondedAt: new Date(),
   };
   return this.save();
 };
@@ -176,17 +176,17 @@ reviewSchema.statics.getProviderAverageRating = async function(providerId: strin
         averageRating: { $avg: '$rating' },
         totalReviews: { $sum: 1 },
         ratingDistribution: {
-          $push: '$rating'
-        }
-      }
-    }
+          $push: '$rating',
+        },
+      },
+    },
   ]);
 
   if (result.length === 0) {
     return {
       averageRating: 0,
       totalReviews: 0,
-      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     };
   }
 
@@ -200,7 +200,7 @@ reviewSchema.statics.getProviderAverageRating = async function(providerId: strin
   return {
     averageRating: Math.round(data.averageRating * 10) / 10,
     totalReviews: data.totalReviews,
-    ratingDistribution: distribution
+    ratingDistribution: distribution,
   };
 };
 

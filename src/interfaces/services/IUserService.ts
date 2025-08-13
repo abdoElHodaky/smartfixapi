@@ -76,6 +76,11 @@ export interface IUserService {
   getAllUsers(filters: UserFiltersDto): Promise<PaginatedResponseDto<any>>;
 
   /**
+   * Delete user (admin function)
+   */
+  deleteUser(userId: string): Promise<void>;
+
+  /**
    * Get user reviews by delegating to ReviewService
    */
   getUserReviews(userId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;

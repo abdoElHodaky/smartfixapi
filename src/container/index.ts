@@ -1,63 +1,170 @@
-// LEGACY COMPATIBILITY LAYER
-// Note: Original container files were removed during cleanup
-// This provides compatibility for any remaining legacy code
+/**
+ * Unified Container Index - Optimized Service Registry Only
+ * 
+ * Provides unified service access through the OptimizedContainer.
+ * Legacy service registries have been removed for consistency.
+ */
 
-import { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
+import { OptimizedContainer, optimizedContainer } from './OptimizedContainer';
 import { moduleManager } from '../decorators/module';
+import { 
+  IAuthService, 
+  IUserService, 
+  IProviderService, 
+  IServiceRequestService, 
+  IReviewService, 
+  IAdminService, 
+  IChatService, 
+} from '../interfaces/services';
 
-// NEW MODULAR SYSTEM
-export { ServiceRegistry as DecoratorServiceRegistry } from '../services/ServiceRegistry.decorator';
+// Export optimized systems only
+export { OptimizedServiceRegistry, optimizedServiceRegistry } from '../services/ServiceRegistry.optimized';
+export { OptimizedContainer, optimizedContainer } from './OptimizedContainer';
 export { moduleManager } from '../decorators/module';
 
-// Legacy compatibility - create minimal service container interface
-class LegacyServiceContainer {
-  private static instance: LegacyServiceContainer;
-  private serviceRegistry: DecoratorServiceRegistry;
+/**
+ * Unified Service Container - Direct OptimizedContainer Access
+ */
+class UnifiedServiceContainer {
+  private static instance: UnifiedServiceContainer;
+  private optimizedContainer: OptimizedContainer;
+  private initialized: boolean = false;
 
   constructor() {
-    this.serviceRegistry = new DecoratorServiceRegistry();
+    this.optimizedContainer = optimizedContainer;
   }
 
-  static getInstance(): LegacyServiceContainer {
-    if (!LegacyServiceContainer.instance) {
-      LegacyServiceContainer.instance = new LegacyServiceContainer();
+  static getInstance(): UnifiedServiceContainer {
+    if (!UnifiedServiceContainer.instance) {
+      UnifiedServiceContainer.instance = new UnifiedServiceContainer();
     }
-    return LegacyServiceContainer.instance;
+    return UnifiedServiceContainer.instance;
   }
 
-  // Legacy methods for backward compatibility
-  getServiceRequestService() {
-    return this.serviceRegistry.getService('ServiceRequestService');
+  /**
+   * Initialize the unified container
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    console.log('🚀 Initializing Unified Service Container...');
+    
+    try {
+      await this.optimizedContainer.initialize();
+      console.log('✅ Optimized services initialized');
+      
+      this.initialized = true;
+      console.log('✅ Unified Service Container initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize Unified Service Container:', error);
+      throw error;
+    }
   }
 
-  getUserService() {
-    return this.serviceRegistry.getService('UserService');
+  // Direct service getter methods using optimized container
+  getServiceRequestService(): IServiceRequestService {
+    return this.optimizedContainer.getServiceRequestService();
   }
 
-  getProviderService() {
-    return this.serviceRegistry.getService('ProviderService');
+  getUserService(): IUserService {
+    return this.optimizedContainer.getUserService();
   }
 
-  getReviewService() {
-    return this.serviceRegistry.getService('ReviewService');
+  getProviderService(): IProviderService {
+    return this.optimizedContainer.getProviderService();
   }
 
-  getAuthService() {
-    return this.serviceRegistry.getService('AuthService');
+  getReviewService(): IReviewService {
+    return this.optimizedContainer.getReviewService();
   }
 
-  getAdminService() {
-    return this.serviceRegistry.getService('AdminService');
+  getAuthService(): IAuthService {
+    return this.optimizedContainer.getAuthService();
   }
 
-  getChatService() {
-    return this.serviceRegistry.getService('ChatService');
+  getAdminService(): IAdminService {
+    return this.optimizedContainer.getAdminService();
+  }
+
+  getChatService(): IChatService {
+    return this.optimizedContainer.getChatService();
+  }
+
+  /**
+   * Get optimized service with full feature access
+   */
+  getOptimizedService<T>(serviceName: string) {
+    return this.optimizedContainer.getOptimizedService<T>(serviceName);
+  }
+
+  /**
+   * Get service performance metrics
+   */
+  getServiceMetrics(serviceName?: string) {
+    return this.optimizedContainer.getServiceMetrics(serviceName);
+  }
+
+  /**
+   * Check if service supports optimization features
+   */
+  serviceSupportsFeature(serviceName: string, feature: 'strategy' | 'commands' | 'aggregation'): boolean {
+    return this.optimizedContainer.serviceSupportsFeature(serviceName, feature);
+  }
+
+  /**
+   * Get container health status
+   */
+  async getHealthStatus() {
+    const health = {
+      initialized: this.initialized,
+      containerType: 'unified-optimized',
+    };
+
+    try {
+      const optimizedHealth = await this.optimizedContainer.healthCheck();
+      return { ...health, services: optimizedHealth };
+    } catch (error) {
+      return { ...health, error: error instanceof Error ? error.message : String(error) };
+    }
   }
 }
 
-// Export legacy compatibility instances
-export const serviceContainer = LegacyServiceContainer.getInstance();
-export const serviceRegistry = new DecoratorServiceRegistry();
+// Export unified container instance
+export const serviceContainer = UnifiedServiceContainer.getInstance();
+export const serviceRegistry = serviceContainer; // Alias for backward compatibility
 
 // NEW: Module manager instance for the modular architecture
 export { moduleManager as globalModuleManager };
+
+// Utility functions for container management
+export const containerUtils = {
+  /**
+   * Initialize the container system
+   */
+  async initialize(): Promise<void> {
+    await serviceContainer.initialize();
+  },
+
+  /**
+   * Get container health status
+   */
+  async getHealthStatus() {
+    return await serviceContainer.getHealthStatus();
+  },
+
+  /**
+   * Get service metrics
+   */
+  getServiceMetrics(serviceName?: string) {
+    return serviceContainer.getServiceMetrics(serviceName);
+  },
+
+  /**
+   * Check if service supports optimization features
+   */
+  serviceSupportsFeature(serviceName: string, feature: 'strategy' | 'commands' | 'aggregation'): boolean {
+    return serviceContainer.serviceSupportsFeature(serviceName, feature);
+  },
+};

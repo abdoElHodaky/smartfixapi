@@ -40,7 +40,7 @@ export class AdminController extends BaseController {
 
   constructor() {
     super();
-    this.adminService = this.serviceRegistry.getService('adminService') as IAdminService;
+    this.adminService = this.serviceRegistry.getAdminService();
   }
 
   /**

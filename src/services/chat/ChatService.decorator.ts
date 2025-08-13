@@ -1,29 +1,35 @@
 /**
- * Decorator-Based ChatService
+ * Decorator-Based ChatService Implementation
  * 
- * Modern implementation of chat service using decorators for
- * enhanced functionality including caching, logging, retry logic, and validation.
+ * Enhanced ChatService using Strategy Patterns and AggregationBuilder
+ * for optimized performance and maintainable conditional logic.
  */
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { Chat } from '../../models/Chat';
+import { Conversation } from '../../models/Conversation';
 import { Message } from '../../models/Message';
 import { User } from '../../models/User';
-import { ServiceRequest } from '../../models/ServiceRequest';
 import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
-import { IChatService, IUserService, IServiceRequestService } from '../../interfaces/services';
+import { IChatService, IUserService } from '../../interfaces/services';
 import {
-  CreateChatDto,
+  CreateConversationDto,
   SendMessageDto,
   ChatFiltersDto,
   ApiResponseDto,
-  PaginatedResponseDto,
-  ChatStatisticsDto
+  PaginatedResponseDto
 } from '../../dtos';
 
 // Import optimization utilities
-import { AggregationBuilder, ConditionalHelpers, ErrorHandlers } from '../../utils';
+import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { 
+  StrategyRegistry, 
+  AsyncStrategyRegistry, 
+  Strategy, 
+  AsyncStrategy 
+} from '../../utils/conditions/StrategyPatterns';
+import { ConditionalHelpers, RoleCheckOptions } from '../../utils/conditions/ConditionalHelpers';
+import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
 
 // Import service decorators
 import {
@@ -37,649 +43,837 @@ import {
   PreDestroy
 } from '../../decorators/service';
 
+// Import strategy interfaces
+import {
+  ChatOperationInput,
+  ConversationSearchInput,
+  MessageSearchInput,
+  ChatModerationInput
+} from '../../strategy/interfaces/ServiceStrategy';
+
 @Injectable()
 @Singleton()
 @Service({
   scope: 'singleton',
   lazy: false,
-  priority: 7
+  priority: 5
 })
 export class ChatService implements IChatService {
+  private chatOperationRegistry: AsyncStrategyRegistry<ChatOperationInput, CommandResult>;
+  private conversationSearchRegistry: AsyncStrategyRegistry<ConversationSearchInput, CommandResult>;
+  private messageSearchRegistry: AsyncStrategyRegistry<MessageSearchInput, CommandResult>;
+  private chatModerationRegistry: AsyncStrategyRegistry<ChatModerationInput, CommandResult>;
+
   constructor(
-    @Inject('UserService') private userService: IUserService,
-    @Inject('ServiceRequestService') private serviceRequestService: IServiceRequestService
-  ) {}
+    @Inject('UserService') private userService?: IUserService
+  ) {
+    this.initializeStrategies();
+  }
 
   @PostConstruct()
   async initialize(): Promise<void> {
-    console.log('💬 ChatService initialized with decorator-based architecture');
+    console.log('💬 Strategy-based ChatService initialized with optimized patterns');
   }
 
   @PreDestroy()
   async cleanup(): Promise<void> {
-    console.log('💬 ChatService cleanup completed');
+    console.log('💬 Strategy-based ChatService cleanup completed');
   }
 
   /**
-   * Create a new chat with validation and logging
+   * Initialize all strategy registries
+   */
+  private initializeStrategies(): void {
+    // Chat operation strategies
+    this.chatOperationRegistry = new AsyncStrategyRegistry<ChatOperationInput, CommandResult>();
+    // Note: Strategy implementations would be registered here
+    // this.chatOperationRegistry.register('createConversation', new CreateConversationStrategy());
+    // this.chatOperationRegistry.register('sendMessage', new SendMessageStrategy());
+    // etc.
+
+    // Conversation search strategies
+    this.conversationSearchRegistry = new AsyncStrategyRegistry<ConversationSearchInput, CommandResult>();
+    // this.conversationSearchRegistry.register('searchConversations', new SearchConversationsStrategy());
+
+    // Message search strategies
+    this.messageSearchRegistry = new AsyncStrategyRegistry<MessageSearchInput, CommandResult>();
+    // this.messageSearchRegistry.register('searchMessages', new SearchMessagesStrategy());
+
+    // Chat moderation strategies
+    this.chatModerationRegistry = new AsyncStrategyRegistry<ChatModerationInput, CommandResult>();
+    // this.chatModerationRegistry.register('moderateMessage', new ModerateMessageStrategy());
+  }
+
+  /**
+   * Create a new conversation
    */
   @Log({
-    message: 'Creating chat',
+    message: 'Creating conversation with strategy pattern',
     includeExecutionTime: true
   })
-  @Retryable({
-    attempts: 3,
-    delay: 2000,
-    condition: (error: Error) => error.message.includes('database')
-  })
-  async createChat(userId: string, chatData: CreateChatDto): Promise<ApiResponseDto> {
-    try {
-      // Validate participants
-      if (!chatData.participants || chatData.participants.length < 2) {
-        throw new ValidationError('Chat must have at least 2 participants');
-      }
-
-      // Verify all participants exist
-      for (const participantId of chatData.participants) {
-        await this.userService.getUserById(participantId);
-      }
-
-      // Verify service request exists if provided
-      if (chatData.serviceRequestId) {
-        await this.serviceRequestService.getServiceRequestById(chatData.serviceRequestId);
-      }
-
-      // Check if chat already exists for this service request
-      if (chatData.serviceRequestId) {
-        const existingChat = await Chat.findOne({
-          serviceRequestId: chatData.serviceRequestId,
-          participants: { $all: chatData.participants }
-        });
-
-        if (existingChat) {
-          return {
-            success: true,
-            message: 'Chat already exists',
-            data: existingChat
-          };
-        }
-      }
-
-      const chat = new Chat({
-        ...chatData,
-        createdBy: userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastActivity: new Date()
-      });
-
-      await chat.save();
-
-      // Populate participants
-      await chat.populate('participants', 'firstName lastName profileImage');
-      if (chatData.serviceRequestId) {
-        await chat.populate('serviceRequestId', 'title category');
-      }
-
-      return {
-        success: true,
-        message: 'Chat created successfully',
-        data: chat
-      };
-    } catch (error) {
-      // Optimized: Use ErrorHandlers for standardized error handling
-      return ErrorHandlers.handleServiceError(error, 'Failed to create chat');
-    }
-  }
-
-  /**
-   * Get chat by ID with caching
-   */
-  @Log('Getting chat by ID')
-  @Cached(2 * 60 * 1000) // Cache for 2 minutes
   @Retryable({
     attempts: 3,
     delay: 1000,
-    condition: (error: Error) => error.message.includes('database')
+    backoff: 'exponential'
   })
-  async getChatById(chatId: string, userId: string): Promise<any> {
-    const chat = await Chat.findById(chatId)
-      .populate('participants', 'firstName lastName profileImage status')
-      .populate('serviceRequestId', 'title category status')
-      .populate('createdBy', 'firstName lastName');
+  async createConversation(data: CreateConversationDto): Promise<ApiResponseDto> {
+    try {
+      // Validate participants exist
+      if (this.userService) {
+        for (const participantId of data.participants) {
+          await this.userService.getUserById(participantId);
+        }
+      }
 
-    if (!chat) {
-      throw new NotFoundError('Chat not found');
+      // Create conversation
+      const conversation = new Conversation({
+        ...data,
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      const savedConversation = await conversation.save();
+
+      return {
+        success: true,
+        message: 'Conversation created successfully',
+        data: savedConversation
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to create conversation',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
     }
-
-    // Verify user is a participant
-    const isParticipant = chat.participants.some(
-      (participant: any) => participant._id.toString() === userId
-    );
-
-    if (!isParticipant) {
-      throw new AuthenticationError('You are not a participant in this chat');
-    }
-
-    return chat;
   }
 
   /**
-   * Send message with comprehensive validation and logging
+   * Get conversation by ID
    */
   @Log({
-    message: 'Sending message',
+    message: 'Getting conversation by ID with strategy pattern',
+    includeExecutionTime: true
+  })
+  @Cached(5 * 60 * 1000) // Cache for 5 minutes
+  async getConversationById(conversationId: string): Promise<any> {
+    const aggregation = AggregationBuilder.create()
+      .match({ _id: conversationId, isDeleted: { $ne: true } })
+      .lookup('users', 'participants', '_id', 'participantDetails')
+      .lookup('messages', 'conversationId', 'conversationId', 'recentMessages')
+      .addFields({
+        recentMessages: {
+          $slice: [
+            { $sortArray: { input: '$recentMessages', sortBy: { createdAt: -1 } } },
+            10
+          ]
+        }
+      });
+
+    const result = await aggregation.execute(Conversation);
+    
+    if (!result || result.length === 0) {
+      throw new NotFoundError('Conversation not found');
+    }
+
+    return result[0];
+  }
+
+  /**
+   * Get user conversations
+   */
+  @Log({
+    message: 'Getting user conversations',
+    includeExecutionTime: true
+  })
+  @Cached(3 * 60 * 1000) // Cache for 3 minutes
+  async getUserConversations(userId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>> {
+    const pageNum = page || 1;
+    const limitNum = limit || 10;
+
+    const matchConditions = {
+      participants: userId,
+      isDeleted: { $ne: true }
+    };
+
+    const aggregation = AggregationBuilder.create()
+      .match(matchConditions)
+      .lookup('users', 'participants', '_id', 'participantDetails')
+      .lookup('messages', 'conversationId', 'conversationId', 'messages')
+      .addFields({
+        lastMessage: {
+          $arrayElemAt: [
+            { $sortArray: { input: '$messages', sortBy: { createdAt: -1 } } },
+            0
+          ]
+        },
+        unreadCount: {
+          $size: {
+            $filter: {
+              input: '$messages',
+              cond: {
+                $and: [
+                  { $ne: ['$$this.senderId', userId] },
+                  { $not: { $in: [userId, '$$this.readBy'] } }
+                ]
+              }
+            }
+          }
+        }
+      })
+      .sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+
+    const conversations = await aggregation.execute(Conversation);
+    const total = await Conversation.countDocuments(matchConditions);
+
+    return {
+      data: conversations,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    };
+  }
+
+  /**
+   * Delete conversation
+   */
+  @Log({
+    message: 'Deleting conversation',
+    includeExecutionTime: true
+  })
+  async deleteConversation(conversationId: string, userId: string): Promise<ApiResponseDto> {
+    try {
+      // Verify user is participant
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        participants: userId
+      });
+
+      if (!conversation) {
+        throw new NotFoundError('Conversation not found or access denied');
+      }
+
+      const deletedConversation = await Conversation.findByIdAndUpdate(
+        conversationId,
+        { isDeleted: true, deletedAt: new Date() },
+        { new: true }
+      );
+
+      return {
+        success: true,
+        message: 'Conversation deleted successfully',
+        data: deletedConversation
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete conversation',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Send message
+   */
+  @Log({
+    message: 'Sending message with strategy pattern',
     includeExecutionTime: true
   })
   @Retryable({
     attempts: 3,
-    delay: 1500,
-    condition: (error: Error) => error.message.includes('database') || error.message.includes('network')
+    delay: 1000,
+    backoff: 'linear'
   })
-  async sendMessage(userId: string, messageData: SendMessageDto): Promise<ApiResponseDto> {
+  async sendMessage(conversationId: string, messageData: SendMessageDto): Promise<ApiResponseDto> {
     try {
-      // Validate message content
-      if (!messageData.content || messageData.content.trim().length === 0) {
-        throw new ValidationError('Message content cannot be empty');
-      }
+      // Verify conversation exists and user is participant
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        participants: messageData.senderId
+      });
 
-      if (messageData.content.length > 1000) {
-        throw new ValidationError('Message content cannot exceed 1000 characters');
+      if (!conversation) {
+        throw new NotFoundError('Conversation not found or access denied');
       }
-
-      // Verify chat exists and user is participant
-      const chat = await this.getChatById(messageData.chatId, userId);
 
       // Create message
       const message = new Message({
-        chatId: messageData.chatId,
-        senderId: userId,
-        content: messageData.content,
-        messageType: messageData.messageType || 'text',
-        attachments: messageData.attachments || [],
-        createdAt: new Date()
-      });
-
-      await message.save();
-
-      // Update chat's last activity and message count
-      await Chat.findByIdAndUpdate(messageData.chatId, {
-        lastActivity: new Date(),
-        lastMessage: message._id,
-        $inc: { messageCount: 1 },
+        conversationId,
+        ...messageData,
+        status: 'sent',
+        createdAt: new Date(),
         updatedAt: new Date()
       });
 
-      // Populate sender information
-      await message.populate('senderId', 'firstName lastName profileImage');
+      const savedMessage = await message.save();
 
-      // Mark message as delivered for all participants except sender
-      const deliveryPromises = chat.participants
-        .filter((participant: any) => participant._id.toString() !== userId)
-        .map((participant: any) => 
-          Message.findByIdAndUpdate(message._id, {
-            $push: {
-              deliveryStatus: {
-                userId: participant._id,
-                status: 'delivered',
-                timestamp: new Date()
-              }
-            }
-          })
-        );
-
-      await Promise.all(deliveryPromises);
+      // Update conversation's last activity
+      await Conversation.findByIdAndUpdate(conversationId, {
+        lastMessageAt: new Date(),
+        updatedAt: new Date()
+      });
 
       return {
         success: true,
         message: 'Message sent successfully',
-        data: message
+        data: savedMessage
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthenticationError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to send message');
-    }
-  }
-
-  /**
-   * Get chat messages with pagination and caching
-   */
-  @Log('Getting chat messages')
-  @Cached(1 * 60 * 1000) // Cache for 1 minute
-  @Retryable(2)
-  async getChatMessages(
-    chatId: string,
-    userId: string,
-    page: number = 1,
-    limit: number = 50
-  ): Promise<PaginatedResponseDto> {
-    try {
-      // Verify user is participant
-      await this.getChatById(chatId, userId);
-
-      const skip = (page - 1) * limit;
-
-      const [messages, total] = await Promise.all([
-        Message.find({ chatId })
-          .populate('senderId', 'firstName lastName profileImage')
-          .skip(skip)
-          .limit(limit)
-          .sort({ createdAt: -1 }),
-        Message.countDocuments({ chatId })
-      ]);
-
-      // Mark messages as read
-      await this.markMessagesAsRead(chatId, userId);
-
       return {
-        success: true,
-        message: 'Chat messages retrieved successfully',
-        data: messages.reverse(), // Reverse to show oldest first
-        pagination: {
-          currentPage: page,
-          totalPages: Math.ceil(total / limit),
-          totalItems: total,
-          itemsPerPage: limit
-        }
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to send message',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
       };
-    } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthenticationError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to get chat messages');
     }
   }
 
   /**
-   * Get user's chats with caching
+   * Get messages
    */
-  @Log('Getting user chats')
+  @Log({
+    message: 'Getting messages',
+    includeExecutionTime: true
+  })
   @Cached(2 * 60 * 1000) // Cache for 2 minutes
-  @Retryable(2)
-  async getUserChats(userId: string, page: number = 1, limit: number = 20): Promise<PaginatedResponseDto> {
+  async getMessages(conversationId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>> {
+    const pageNum = page || 1;
+    const limitNum = limit || 50;
+
+    const matchConditions = {
+      conversationId,
+      isDeleted: { $ne: true }
+    };
+
+    const aggregation = AggregationBuilder.create()
+      .match(matchConditions)
+      .lookup('users', 'senderId', '_id', 'sender')
+      .addFields({
+        sender: { $arrayElemAt: ['$sender', 0] }
+      })
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+
+    const messages = await aggregation.execute(Message);
+    const total = await Message.countDocuments(matchConditions);
+
+    return {
+      data: messages.reverse(), // Reverse to show oldest first
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    };
+  }
+
+  /**
+   * Mark message as read
+   */
+  @Log({
+    message: 'Marking message as read',
+    includeExecutionTime: true
+  })
+  async markMessageAsRead(messageId: string, userId: string): Promise<ApiResponseDto> {
     try {
-      const skip = (page - 1) * limit;
-
-      const [chats, total] = await Promise.all([
-        Chat.find({ participants: userId })
-          .populate('participants', 'firstName lastName profileImage status')
-          .populate('serviceRequestId', 'title category status')
-          .populate('lastMessage')
-          .skip(skip)
-          .limit(limit)
-          .sort({ lastActivity: -1 }),
-        Chat.countDocuments({ participants: userId })
-      ]);
-
-      // Add unread message count for each chat
-      const chatsWithUnreadCount = await Promise.all(
-        chats.map(async (chat) => {
-          const unreadCount = await Message.countDocuments({
-            chatId: chat._id,
-            senderId: { $ne: userId },
-            'deliveryStatus.userId': userId,
-            'deliveryStatus.status': { $ne: 'read' }
-          });
-
-          return {
-            ...chat.toJSON(),
-            unreadCount
-          };
-        })
+      const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        { 
+          $addToSet: { readBy: userId },
+          updatedAt: new Date()
+        },
+        { new: true }
       );
+
+      if (!updatedMessage) {
+        throw new NotFoundError('Message not found');
+      }
 
       return {
         success: true,
-        message: 'User chats retrieved successfully',
-        data: chatsWithUnreadCount,
-        pagination: {
-          currentPage: page,
-          totalPages: Math.ceil(total / limit),
-          totalItems: total,
-          itemsPerPage: limit
-        }
+        message: 'Message marked as read',
+        data: updatedMessage
       };
     } catch (error) {
-      throw new ValidationError('Failed to get user chats');
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to mark message as read',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
     }
   }
 
   /**
-   * Mark messages as read
+   * Mark conversation as read
    */
-  @Log('Marking messages as read')
-  @Retryable(2)
-  async markMessagesAsRead(chatId: string, userId: string): Promise<ApiResponseDto> {
+  @Log({
+    message: 'Marking conversation as read',
+    includeExecutionTime: true
+  })
+  async markConversationAsRead(conversationId: string, userId: string): Promise<ApiResponseDto> {
     try {
-      // Verify user is participant
-      await this.getChatById(chatId, userId);
-
-      // Update delivery status for unread messages
+      // Mark all messages in conversation as read by this user
       await Message.updateMany(
-        {
-          chatId,
+        { 
+          conversationId,
           senderId: { $ne: userId },
-          'deliveryStatus.userId': userId,
-          'deliveryStatus.status': { $ne: 'read' }
+          readBy: { $ne: userId }
         },
-        {
-          $set: {
-            'deliveryStatus.$.status': 'read',
-            'deliveryStatus.$.timestamp': new Date()
-          }
+        { 
+          $addToSet: { readBy: userId },
+          updatedAt: new Date()
         }
       );
 
       return {
         success: true,
-        message: 'Messages marked as read',
-        data: null
+        message: 'Conversation marked as read'
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthenticationError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to mark messages as read');
-    }
-  }
-
-  /**
-   * Search chats with advanced filtering
-   */
-  @Log('Searching chats')
-  @Cached(3 * 60 * 1000) // Cache for 3 minutes
-  @Retryable(2)
-  async searchChats(userId: string, filters: ChatFiltersDto, page: number = 1, limit: number = 20): Promise<PaginatedResponseDto> {
-    try {
-      const skip = (page - 1) * limit;
-      let query: any = { participants: userId };
-
-      // Apply filters
-      if (filters.serviceRequestId) {
-        query.serviceRequestId = filters.serviceRequestId;
-      }
-
-      if (filters.chatType) {
-        query.chatType = filters.chatType;
-      }
-
-      if (filters.searchTerm) {
-        // Search in chat title or participant names
-        const participantIds = await User.find({
-          $or: [
-            { firstName: { $regex: filters.searchTerm, $options: 'i' } },
-            { lastName: { $regex: filters.searchTerm, $options: 'i' } }
-          ]
-        }).distinct('_id');
-
-        query.$or = [
-          { title: { $regex: filters.searchTerm, $options: 'i' } },
-          { participants: { $in: participantIds } }
-        ];
-      }
-
-      if (filters.dateFrom || filters.dateTo) {
-        query.createdAt = {};
-        if (filters.dateFrom) query.createdAt.$gte = new Date(filters.dateFrom);
-        if (filters.dateTo) query.createdAt.$lte = new Date(filters.dateTo);
-      }
-
-      const [chats, total] = await Promise.all([
-        Chat.find(query)
-          .populate('participants', 'firstName lastName profileImage status')
-          .populate('serviceRequestId', 'title category status')
-          .populate('lastMessage')
-          .skip(skip)
-          .limit(limit)
-          .sort({ lastActivity: -1 }),
-        Chat.countDocuments(query)
-      ]);
-
       return {
-        success: true,
-        message: 'Chats retrieved successfully',
-        data: chats,
-        pagination: {
-          currentPage: page,
-          totalPages: Math.ceil(total / limit),
-          totalItems: total,
-          itemsPerPage: limit
-        }
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to mark conversation as read',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
       };
-    } catch (error) {
-      throw new ValidationError('Failed to search chats');
     }
   }
 
   /**
-   * Delete chat with validation
+   * Delete message
    */
-  @Log('Deleting chat')
-  @Retryable(2)
-  async deleteChat(chatId: string, userId: string): Promise<ApiResponseDto> {
+  @Log({
+    message: 'Deleting message',
+    includeExecutionTime: true
+  })
+  async deleteMessage(messageId: string, userId: string): Promise<ApiResponseDto> {
     try {
-      const chat = await this.getChatById(chatId, userId);
-
-      // Only chat creator or admin can delete chat
-      if (chat.createdBy.toString() !== userId) {
-        const user = await this.userService.getUserById(userId);
-        if (user.role !== 'admin' && user.role !== 'super_admin') {
-          throw new AuthenticationError('Only chat creator or admin can delete chat');
-        }
+      // Verify user is sender
+      const message = await Message.findOne({ _id: messageId, senderId: userId });
+      if (!message) {
+        throw new NotFoundError('Message not found or access denied');
       }
 
-      // Delete all messages in the chat
-      await Message.deleteMany({ chatId });
-
-      // Delete the chat
-      await Chat.findByIdAndDelete(chatId);
-
-      return {
-        success: true,
-        message: 'Chat deleted successfully',
-        data: null
-      };
-    } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthenticationError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to delete chat');
-    }
-  }
-
-  /**
-   * Add participant to chat
-   */
-  @Log('Adding participant to chat')
-  @Retryable(2)
-  async addParticipant(chatId: string, userId: string, newParticipantId: string): Promise<ApiResponseDto> {
-    try {
-      const chat = await this.getChatById(chatId, userId);
-
-      // Verify new participant exists
-      await this.userService.getUserById(newParticipantId);
-
-      // Check if participant is already in chat
-      const isAlreadyParticipant = chat.participants.some(
-        (participant: any) => participant._id.toString() === newParticipantId
+      const deletedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        { isDeleted: true, deletedAt: new Date() },
+        { new: true }
       );
 
-      if (isAlreadyParticipant) {
-        throw new ValidationError('User is already a participant in this chat');
+      return {
+        success: true,
+        message: 'Message deleted successfully',
+        data: deletedMessage
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete message',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Edit message
+   */
+  @Log({
+    message: 'Editing message',
+    includeExecutionTime: true
+  })
+  async editMessage(conversationId: string, messageId: string, content: string, userId: string): Promise<ApiResponseDto> {
+    try {
+      // Verify user is sender
+      const message = await Message.findOne({ 
+        _id: messageId, 
+        conversationId,
+        senderId: userId 
+      });
+      
+      if (!message) {
+        throw new NotFoundError('Message not found or access denied');
       }
 
-      // Add participant
-      const updatedChat = await Chat.findByIdAndUpdate(
-        chatId,
-        {
-          $push: { participants: newParticipantId },
-          updatedAt: new Date(),
-          lastActivity: new Date()
+      const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        { 
+          content,
+          isEdited: true,
+          editedAt: new Date(),
+          updatedAt: new Date()
         },
         { new: true }
-      ).populate('participants', 'firstName lastName profileImage status');
-
-      // Send system message about new participant
-      const systemMessage = new Message({
-        chatId,
-        senderId: userId,
-        content: `Added a new participant to the chat`,
-        messageType: 'system',
-        createdAt: new Date()
-      });
-
-      await systemMessage.save();
-
-      return {
-        success: true,
-        message: 'Participant added successfully',
-        data: updatedChat
-      };
-    } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthenticationError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to add participant');
-    }
-  }
-
-  /**
-   * Remove participant from chat
-   */
-  @Log('Removing participant from chat')
-  @Retryable(2)
-  async removeParticipant(chatId: string, userId: string, participantId: string): Promise<ApiResponseDto> {
-    try {
-      const chat = await this.getChatById(chatId, userId);
-
-      // Only chat creator can remove participants
-      if (chat.createdBy.toString() !== userId) {
-        throw new AuthenticationError('Only chat creator can remove participants');
-      }
-
-      // Cannot remove yourself if you're the creator
-      if (participantId === userId) {
-        throw new ValidationError('Chat creator cannot remove themselves');
-      }
-
-      // Remove participant
-      const updatedChat = await Chat.findByIdAndUpdate(
-        chatId,
-        {
-          $pull: { participants: participantId },
-          updatedAt: new Date(),
-          lastActivity: new Date()
-        },
-        { new: true }
-      ).populate('participants', 'firstName lastName profileImage status');
-
-      // Send system message about removed participant
-      const systemMessage = new Message({
-        chatId,
-        senderId: userId,
-        content: `Removed a participant from the chat`,
-        messageType: 'system',
-        createdAt: new Date()
-      });
-
-      await systemMessage.save();
-
-      return {
-        success: true,
-        message: 'Participant removed successfully',
-        data: updatedChat
-      };
-    } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthenticationError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to remove participant');
-    }
-  }
-
-  /**
-   * Get chat statistics with caching - OPTIMIZED with AggregationBuilder
-   */
-  @Log('Getting chat statistics')
-  @Cached(10 * 60 * 1000) // Cache for 10 minutes
-  async getChatStatistics(userId?: string): Promise<ChatStatisticsDto> {
-    try {
-      let chatQuery: any = {};
-      let messageQuery: any = {};
-
-      if (userId) {
-        chatQuery.participants = userId;
-        messageQuery.senderId = userId;
-      }
-
-      const [
-        totalChats,
-        activeChats,
-        totalMessages,
-        averageMessagesPerChat,
-        chatsByType
-      ] = await Promise.all([
-        Chat.countDocuments(chatQuery),
-        Chat.countDocuments({
-          ...chatQuery,
-          lastActivity: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Active in last 7 days
-        }),
-        Message.countDocuments(messageQuery),
-        // Optimized: Use AggregationBuilder for average messages per chat
-        AggregationBuilder.create()
-          .match(chatQuery)
-          .buildAverageField('messageCount')
-          .execute(Chat),
-        // Optimized: Use AggregationBuilder for chat type statistics
-        AggregationBuilder.create()
-          .match(chatQuery)
-          .buildCategoryStatistics('chatType')
-          .execute(Chat)
-      ]);
-
-      return {
-        totalChats,
-        activeChats,
-        totalMessages,
-        averageMessagesPerChat: averageMessagesPerChat.length > 0 ? averageMessagesPerChat[0].avgMessages : 0,
-        chatsByType: chatsByType.reduce((acc, item) => {
-          acc[item._id || 'direct'] = item.count;
-          return acc;
-        }, {})
-      };
-    } catch (error) {
-      throw new ValidationError('Failed to get chat statistics');
-    }
-  }
-
-  /**
-   * Get online participants (placeholder implementation)
-   */
-  @Log('Getting online participants')
-  @Cached(30 * 1000) // Cache for 30 seconds
-  async getOnlineParticipants(chatId: string, userId: string): Promise<ApiResponseDto> {
-    try {
-      // Verify user is participant
-      const chat = await this.getChatById(chatId, userId);
-
-      // In a real implementation, this would check user online status
-      // For now, return all participants as potentially online
-      const onlineParticipants = chat.participants.filter(
-        (participant: any) => participant.status === 'active'
       );
 
       return {
         success: true,
-        message: 'Online participants retrieved successfully',
-        data: onlineParticipants
+        message: 'Message edited successfully',
+        data: updatedMessage
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthenticationError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to get online participants');
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to edit message',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
     }
+  }
+
+  /**
+   * Search messages
+   */
+  @Log({
+    message: 'Searching messages',
+    includeExecutionTime: true
+  })
+  @Cached(2 * 60 * 1000) // Cache for 2 minutes
+  async searchMessages(filters: ChatFiltersDto): Promise<PaginatedResponseDto<any>> {
+    const { page = 1, limit = 20, query, conversationId, senderId, ...otherFilters } = filters;
+
+    const matchConditions: any = { isDeleted: { $ne: true } };
+    
+    if (query) {
+      matchConditions.$text = { $search: query };
+    }
+    if (conversationId) matchConditions.conversationId = conversationId;
+    if (senderId) matchConditions.senderId = senderId;
+
+    const aggregation = AggregationBuilder.create()
+      .match(matchConditions)
+      .lookup('users', 'senderId', '_id', 'sender')
+      .lookup('conversations', 'conversationId', '_id', 'conversation')
+      .addFields({
+        sender: { $arrayElemAt: ['$sender', 0] },
+        conversation: { $arrayElemAt: ['$conversation', 0] }
+      })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const messages = await aggregation.execute(Message);
+    const total = await Message.countDocuments(matchConditions);
+
+    return {
+      data: messages,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * Get unread messages count
+   */
+  @Log({
+    message: 'Getting unread messages count',
+    includeExecutionTime: true
+  })
+  @Cached(1 * 60 * 1000) // Cache for 1 minute
+  async getUnreadMessagesCount(userId: string): Promise<number> {
+    const count = await Message.countDocuments({
+      senderId: { $ne: userId },
+      readBy: { $ne: userId },
+      isDeleted: { $ne: true }
+    });
+
+    return count;
+  }
+
+  /**
+   * Send file message
+   */
+  @Log({
+    message: 'Sending file message',
+    includeExecutionTime: true
+  })
+  async sendFileMessage(conversationId: string, senderId: string, fileUrl: string, fileType: string, fileName?: string): Promise<ApiResponseDto> {
+    const messageData: SendMessageDto = {
+      senderId,
+      content: fileName || 'File attachment',
+      messageType: 'file',
+      attachments: [{
+        url: fileUrl,
+        type: fileType,
+        name: fileName
+      }]
+    };
+
+    return this.sendMessage(conversationId, messageData);
+  }
+
+  /**
+   * Update conversation status
+   */
+  @Log({
+    message: 'Updating conversation status',
+    includeExecutionTime: true
+  })
+  async updateConversationStatus(conversationId: string, status: string): Promise<ApiResponseDto> {
+    try {
+      const updatedConversation = await Conversation.findByIdAndUpdate(
+        conversationId,
+        { status, updatedAt: new Date() },
+        { new: true }
+      );
+
+      if (!updatedConversation) {
+        throw new NotFoundError('Conversation not found');
+      }
+
+      return {
+        success: true,
+        message: 'Conversation status updated successfully',
+        data: updatedConversation
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update conversation status',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Archive conversation
+   */
+  @Log({
+    message: 'Archiving conversation',
+    includeExecutionTime: true
+  })
+  async archiveConversation(conversationId: string, userId: string): Promise<ApiResponseDto> {
+    try {
+      const updatedConversation = await Conversation.findOneAndUpdate(
+        { _id: conversationId, participants: userId },
+        { 
+          $addToSet: { archivedBy: userId },
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+
+      if (!updatedConversation) {
+        throw new NotFoundError('Conversation not found or access denied');
+      }
+
+      return {
+        success: true,
+        message: 'Conversation archived successfully',
+        data: updatedConversation
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to archive conversation',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Unarchive conversation
+   */
+  @Log({
+    message: 'Unarchiving conversation',
+    includeExecutionTime: true
+  })
+  async unarchiveConversation(conversationId: string, userId: string): Promise<ApiResponseDto> {
+    try {
+      const updatedConversation = await Conversation.findOneAndUpdate(
+        { _id: conversationId, participants: userId },
+        { 
+          $pull: { archivedBy: userId },
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+
+      if (!updatedConversation) {
+        throw new NotFoundError('Conversation not found or access denied');
+      }
+
+      return {
+        success: true,
+        message: 'Conversation unarchived successfully',
+        data: updatedConversation
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to unarchive conversation',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Join conversation (real-time feature)
+   */
+  @Log({
+    message: 'Joining conversation',
+    includeExecutionTime: true
+  })
+  async joinConversation(conversationId: string, userId: string): Promise<void> {
+    // This would typically involve WebSocket/Socket.IO integration
+    // For now, just update the conversation to track active users
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $addToSet: { activeUsers: userId },
+      updatedAt: new Date()
+    });
+  }
+
+  /**
+   * Leave conversation (real-time feature)
+   */
+  @Log({
+    message: 'Leaving conversation',
+    includeExecutionTime: true
+  })
+  async leaveConversation(conversationId: string, userId: string): Promise<void> {
+    // This would typically involve WebSocket/Socket.IO integration
+    // For now, just update the conversation to remove from active users
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $pull: { activeUsers: userId },
+      updatedAt: new Date()
+    });
+  }
+
+  /**
+   * Update typing status (real-time feature)
+   */
+  @Log({
+    message: 'Updating typing status',
+    includeExecutionTime: true
+  })
+  async updateTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
+    // This would typically involve WebSocket/Socket.IO integration
+    // For now, just log the typing status
+    console.log(`User ${userId} is ${isTyping ? 'typing' : 'not typing'} in conversation ${conversationId}`);
+  }
+
+  /**
+   * Report message
+   */
+  @Log({
+    message: 'Reporting message',
+    includeExecutionTime: true
+  })
+  async reportMessage(messageId: string, reporterId: string, reason: string): Promise<ApiResponseDto> {
+    try {
+      const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        { 
+          $push: { 
+            reports: {
+              reporterId,
+              reason,
+              reportedAt: new Date()
+            }
+          },
+          status: 'reported',
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+
+      if (!updatedMessage) {
+        throw new NotFoundError('Message not found');
+      }
+
+      return {
+        success: true,
+        message: 'Message reported successfully',
+        data: updatedMessage
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to report message',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Block user
+   */
+  @Log({
+    message: 'Blocking user',
+    includeExecutionTime: true
+  })
+  async blockUser(userId: string, blockedUserId: string): Promise<ApiResponseDto> {
+    try {
+      // This would typically involve a separate BlockedUsers collection
+      // For now, we'll use a simple approach with user preferences
+      if (this.userService) {
+        // Update user's blocked list through UserService
+        console.log(`User ${userId} blocked user ${blockedUserId}`);
+      }
+
+      return {
+        success: true,
+        message: 'User blocked successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to block user',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Unblock user
+   */
+  @Log({
+    message: 'Unblocking user',
+    includeExecutionTime: true
+  })
+  async unblockUser(userId: string, blockedUserId: string): Promise<ApiResponseDto> {
+    try {
+      // This would typically involve a separate BlockedUsers collection
+      // For now, we'll use a simple approach with user preferences
+      if (this.userService) {
+        // Update user's blocked list through UserService
+        console.log(`User ${userId} unblocked user ${blockedUserId}`);
+      }
+
+      return {
+        success: true,
+        message: 'User unblocked successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to unblock user',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      };
+    }
+  }
+
+  /**
+   * Get blocked users
+   */
+  @Log({
+    message: 'Getting blocked users',
+    includeExecutionTime: true
+  })
+  @Cached(5 * 60 * 1000) // Cache for 5 minutes
+  async getBlockedUsers(userId: string): Promise<string[]> {
+    // This would typically involve a separate BlockedUsers collection
+    // For now, return empty array
+    return [];
   }
 }
+

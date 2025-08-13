@@ -6,7 +6,7 @@
  */
 
 import 'reflect-metadata';
-import { serviceRegistry } from '../src/services/ServiceRegistry.decorator';
+import { optimizedContainer } from '../src/container';
 import { AuthService } from '../src/services/auth/AuthService.decorator';
 import { UserService } from '../src/services/user/UserService.decorator';
 import { ProviderService } from '../src/services/provider/ProviderService.decorator';
@@ -123,4 +123,3 @@ testServices().then(() => {
 });
 
 export {};
-

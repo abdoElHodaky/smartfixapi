@@ -14,6 +14,7 @@ import { connectDB } from '../config/database';
 import { errorHandler } from '../middleware/errorHandler';
 import { AppModule } from './AppModule';
 import { moduleManager } from '../decorators/module';
+import { createDevPerformanceMiddleware, createPerformanceDashboardMiddleware } from '../middleware/performance.middleware';
 
 export class ModularSmartFixServer {
   private app: Application;
@@ -30,17 +31,34 @@ export class ModularSmartFixServer {
     this.app.use(helmet());
     this.app.use(cors({
       origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      credentials: true
+      credentials: true,
     }));
 
     // Performance middleware
     this.app.use(compression());
+    
+    // Development performance monitoring (only in development)
+    if (process.env.NODE_ENV !== 'production') {
+      this.app.use(createDevPerformanceMiddleware({
+        enableInProduction: false,
+        trackPayloadSizes: true,
+        trackHeaders: false,
+        slowRequestThreshold: 1000,
+        logSlowRequests: true,
+        excludePaths: ['/health', '/dev/performance', '/favicon.ico'],
+      }));
+      
+      // Development performance dashboard
+      this.app.use(createPerformanceDashboardMiddleware());
+      console.log('📊 Development performance monitoring enabled');
+      console.log('🔍 Performance dashboard available at /dev/performance');
+    }
 
     // Rate limiting
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 100, // limit each IP to 100 requests per windowMs
-      message: 'Too many requests from this IP, please try again later.'
+      message: 'Too many requests from this IP, please try again later.',
     });
     this.app.use(limiter);
 
@@ -54,7 +72,7 @@ export class ModularSmartFixServer {
         status: 'OK',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
       });
     });
   }
@@ -83,7 +101,7 @@ export class ModularSmartFixServer {
     this.app.use('*', (req, res) => {
       res.status(404).json({
         success: false,
-        message: `Route ${req.originalUrl} not found`
+        message: `Route ${req.originalUrl} not found`,
       });
     });
   }
@@ -118,4 +136,3 @@ export class ModularSmartFixServer {
     return this.app;
   }
 }
-

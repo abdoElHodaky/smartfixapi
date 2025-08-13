@@ -1,0 +1,591 @@
+name: 🧪 Optimized CI Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - staging
+          - production
+      run_tests:
+        description: 'Run test suite'
+        required: false
+        default: false
+        type: boolean
+      run_security_scan:
+        description: 'Run security scan'
+        required: false
+        default: true
+        type: boolean
+      run_performance_tests:
+        description: 'Run performance tests'
+        required: false
+        default: false
+        type: boolean
+      deploy_after_success:
+        description: 'Deploy after successful CI'
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+    branches: [ main, develop ]
+    types: [ opened, synchronize, reopened ]
+
+env:
+  NODE_VERSION: '20.x'
+  MONGODB_VERSION: '7.0'
+  CACHE_VERSION: 'v2'
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event.inputs.environment || 'preview' }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # SETUP AND VALIDATION
+  # ============================================================================
+  setup:
+    name: 🎯 Setup & Validation
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      run_tests: ${{ steps.config.outputs.run_tests }}
+      run_security: ${{ steps.config.outputs.run_security }}
+      run_performance: ${{ steps.config.outputs.run_performance }}
+      should_deploy: ${{ steps.config.outputs.should_deploy }}
+      cache_key: ${{ steps.cache.outputs.cache_key }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Configure pipeline
+        id: config
+        run: |
+          # Set defaults based on trigger type
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "run_tests=${{ github.event.inputs.run_tests }}" >> $GITHUB_OUTPUT
+            echo "run_security=${{ github.event.inputs.run_security_scan }}" >> $GITHUB_OUTPUT
+            echo "run_performance=${{ github.event.inputs.run_performance_tests }}" >> $GITHUB_OUTPUT
+            echo "should_deploy=${{ github.event.inputs.deploy_after_success }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=preview" >> $GITHUB_OUTPUT
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+            echo "run_security=true" >> $GITHUB_OUTPUT
+            echo "run_performance=false" >> $GITHUB_OUTPUT
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔑 Generate cache key
+        id: cache
+        run: |
+          CACHE_KEY="deps-${{ env.CACHE_VERSION }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}"
+          echo "cache_key=$CACHE_KEY" >> $GITHUB_OUTPUT
+
+      - name: 📊 Pipeline Summary
+        run: |
+          echo "## 🎯 Pipeline Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ steps.config.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run Tests | ${{ steps.config.outputs.run_tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ steps.config.outputs.run_security }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ steps.config.outputs.run_performance }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy After Success | ${{ steps.config.outputs.should_deploy }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # DEPENDENCY INSTALLATION
+  # ============================================================================
+  dependencies:
+    name: 📦 Install Dependencies
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v4
+        id: cache-deps
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ needs.setup.outputs.cache_key }}
+          restore-keys: |
+            deps-${{ env.CACHE_VERSION }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-
+
+      - name: 📦 Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          npm ci --prefer-offline --no-audit
+          npm ls --depth=0
+
+      - name: 🔍 Verify installation
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Dependencies installed: $(npm ls --depth=0 | grep -c '├──\|└──')"
+
+  # ============================================================================
+  # CODE QUALITY CHECKS
+  # ============================================================================
+  quality:
+    name: 🔍 Code Quality
+    runs-on: ubuntu-latest
+    needs: [setup, dependencies]
+    
+    strategy:
+      matrix:
+        check: [lint, format, typecheck]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ needs.setup.outputs.cache_key }}
+
+      - name: 🔍 Run ESLint
+        if: matrix.check == 'lint'
+        run: |
+          npm run lint -- --format=json --output-file=eslint-report.json || true
+          npm run lint
+
+      - name: 💅 Check Prettier formatting
+        if: matrix.check == 'format'
+        run: npm run format:check
+
+      - name: 📝 TypeScript type check
+        if: matrix.check == 'typecheck'
+        run: npm run type-check
+
+      - name: 📊 Upload lint results
+        if: matrix.check == 'lint' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-report.json
+          retention-days: 7
+
+  # ============================================================================
+  # TESTING SUITE
+  # ============================================================================
+  test:
+    name: 🧪 Test Suite
+    runs-on: ubuntu-latest
+    needs: [setup, dependencies]
+    if: needs.setup.outputs.run_tests == 'true'
+    
+    strategy:
+      matrix:
+        test-type: [unit, integration, e2e]
+        include:
+          - test-type: unit
+            command: 'test:unit'
+            coverage: true
+          - test-type: integration
+            command: 'test:integration'
+            coverage: true
+          - test-type: e2e
+            command: 'test:e2e'
+            coverage: false
+    
+    services:
+      mongodb:
+        image: mongo:${{ env.MONGODB_VERSION }}
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ needs.setup.outputs.cache_key }}
+
+      - name: 🔧 Setup test environment
+        run: |
+          cp .env.example .env.test
+          echo "MONGODB_URI=mongodb://admin:password@localhost:27017/smartfix_test?authSource=admin" >> .env.test
+          echo "REDIS_URL=redis://localhost:6379" >> .env.test
+          echo "NODE_ENV=test" >> .env.test
+
+      - name: 🧪 Run ${{ matrix.test-type }} tests
+        run: npm run ${{ matrix.command }}
+        env:
+          NODE_ENV: test
+          CI: true
+
+      - name: 📊 Generate coverage report
+        if: matrix.coverage
+        run: npm run test:coverage -- --testPathPattern=${{ matrix.test-type }}
+
+      - name: 📈 Upload coverage to Codecov
+        if: matrix.coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: ${{ matrix.test-type }}
+          name: ${{ matrix.test-type }}-coverage
+          fail_ci_if_error: false
+
+      - name: 📊 Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+  # ============================================================================
+  # SECURITY SCANNING
+  # ============================================================================
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: [setup, dependencies]
+    if: needs.setup.outputs.run_security == 'true'
+    
+    strategy:
+      matrix:
+        scan-type: [dependencies, secrets, sast]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ needs.setup.outputs.cache_key }}
+
+      - name: 🔍 Dependency vulnerability scan
+        if: matrix.scan-type == 'dependencies'
+        run: |
+          npm audit --audit-level=moderate --json > audit-report.json || true
+          npm audit --audit-level=moderate
+
+      - name: 🔐 Secret scanning with TruffleHog
+        if: matrix.scan-type == 'secrets'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: 🛡️ Static Application Security Testing
+        if: matrix.scan-type == 'sast'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: 🛡️ Perform CodeQL Analysis
+        if: matrix.scan-type == 'sast'
+        uses: github/codeql-action/analyze@v3
+
+      - name: 📊 Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ matrix.scan-type }}
+          path: |
+            audit-report.json
+            sarif-results/
+          retention-days: 30
+
+  # ============================================================================
+  # PERFORMANCE TESTING
+  # ============================================================================
+  performance:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    needs: [setup, dependencies]
+    if: needs.setup.outputs.run_performance == 'true'
+    
+    services:
+      mongodb:
+        image: mongo:${{ env.MONGODB_VERSION }}
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+        ports:
+          - 27017:27017
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ needs.setup.outputs.cache_key }}
+
+      - name: 🔧 Setup performance test environment
+        run: |
+          cp .env.example .env.perf
+          echo "MONGODB_URI=mongodb://admin:password@localhost:27017/smartfix_perf?authSource=admin" >> .env.perf
+          echo "REDIS_URL=redis://localhost:6379" >> .env.perf
+          echo "NODE_ENV=performance" >> .env.perf
+
+      - name: ⚡ Run performance tests
+        run: npm run test:performance
+        env:
+          NODE_ENV: performance
+
+      - name: 📊 Generate performance report
+        run: npm run perf:report
+
+      - name: 📈 Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: |
+            performance-results/
+            lighthouse-results/
+          retention-days: 14
+
+  # ============================================================================
+  # BUILD AND PACKAGE
+  # ============================================================================
+  build:
+    name: 🏗️ Build & Package
+    runs-on: ubuntu-latest
+    needs: [setup, dependencies, quality]
+    
+    strategy:
+      matrix:
+        environment: [preview, staging, production]
+        include:
+          - environment: preview
+            build_command: 'build:preview'
+          - environment: staging
+            build_command: 'build:staging'
+          - environment: production
+            build_command: 'build:production'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ needs.setup.outputs.cache_key }}
+
+      - name: 🏗️ Build application
+        run: npm run ${{ matrix.build_command }}
+        env:
+          NODE_ENV: ${{ matrix.environment }}
+
+      - name: 📦 Create deployment package
+        run: |
+          tar -czf smartfix-api-${{ matrix.environment }}.tar.gz \
+            dist/ \
+            package.json \
+            package-lock.json \
+            .env.example \
+            README.md
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.environment }}
+          path: smartfix-api-${{ matrix.environment }}.tar.gz
+          retention-days: 30
+
+  # ============================================================================
+  # DOCKER BUILD
+  # ============================================================================
+  docker:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=${{ needs.setup.outputs.environment }}
+
+  # ============================================================================
+  # DEPLOYMENT TRIGGER
+  # ============================================================================
+  deploy:
+    name: 🚀 Trigger Deployment
+    runs-on: ubuntu-latest
+    needs: [setup, test, security, build, docker]
+    if: needs.setup.outputs.should_deploy == 'true' && success()
+    
+    steps:
+      - name: 🚀 Trigger deployment workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'cd-optimized.yml',
+              ref: context.ref,
+              inputs: {
+                environment: '${{ needs.setup.outputs.environment }}',
+                version: context.sha.substring(0, 8),
+                triggered_by: 'ci-pipeline'
+              }
+            });
+
+  # ============================================================================
+  # PIPELINE SUMMARY
+  # ============================================================================
+  summary:
+    name: 📊 Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [setup, dependencies, quality, test, security, build, docker]
+    if: always()
+    
+    steps:
+      - name: 📊 Generate pipeline summary
+        run: |
+          echo "## 🎯 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Setup | ${{ needs.setup.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependencies | ${{ needs.dependencies.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ needs.setup.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

@@ -16,8 +16,8 @@ import { ServiceRequestModule } from '../request/ServiceRequestModule';
 // Import services
 import { ChatService } from '../../services/chat/ChatService.decorator';
 
-// Import controllers
-import { ChatController } from '../../controllers/chat/ChatController.modern';
+// Import controllers (to be created)
+// import { ChatController } from '../../controllers/chat/ChatController.decorator';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { ChatController } from '../../controllers/chat/ChatController.modern';
     ChatService
   ],
   controllers: [
-    ChatController
+    // ChatController // To be added when controller is created
   ],
   exports: [
     ChatService
@@ -64,7 +64,7 @@ export class ChatModule {
       description: 'Chat and messaging module',
       dependencies: ['AuthModule', 'UserModule', 'ServiceRequestModule'],
       services: ['ChatService'],
-      controllers: ['ChatController'],
+      controllers: [], // To be updated when controller is added
       features: [
         'Real-time chat functionality',
         'Message delivery and read receipts',
@@ -79,3 +79,4 @@ export class ChatModule {
     };
   }
 }
+

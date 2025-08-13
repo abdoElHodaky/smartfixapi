@@ -36,11 +36,15 @@ import {
   Post, 
   Get, 
   RequireAuth, 
-  UseMiddleware 
+  UseMiddleware,
+  Validate 
 } from '../../decorators';
 
 // Middleware imports
 import { validateBody } from '../../middleware';
+
+// Utility imports
+import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 
 @Controller({ path: '/auth' })
 export class AuthController extends BaseController {
@@ -113,7 +117,10 @@ export class AuthController extends BaseController {
     try {
       this.logRequest(req, 'Get Profile');
 
-      if (!this.requireAuth(req, res)) {
+      // Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
         return;
       }
 
@@ -133,7 +140,10 @@ export class AuthController extends BaseController {
     try {
       this.logRequest(req, 'Refresh Token');
 
-      if (!this.requireAuth(req, res)) {
+      // Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
         return;
       }
 
@@ -153,7 +163,10 @@ export class AuthController extends BaseController {
     try {
       this.logRequest(req, 'User Logout');
 
-      if (!this.requireAuth(req, res)) {
+      // Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
         return;
       }
 
@@ -221,7 +234,10 @@ export class AuthController extends BaseController {
     try {
       this.logRequest(req, 'Resend Verification');
 
-      if (!this.requireAuth(req, res)) {
+      // Use ConditionalHelpers for guard clause
+      const authError = ConditionalHelpers.guardAuthenticated(req.user);
+      if (authError) {
+        this.sendError(res, authError, 401);
         return;
       }
 
