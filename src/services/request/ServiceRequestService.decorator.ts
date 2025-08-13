@@ -11,7 +11,7 @@ import { ServiceRequest } from '../../models/ServiceRequest';
 import { ServiceProvider } from '../../models/ServiceProvider';
 import { User } from '../../models/User';
 import { NotFoundError, ValidationError } from '../../middleware/errorHandler';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+import { ConditionalHelpers, ErrorHandlers, AggregationBuilder } from '../../utils';
 import { IServiceRequestService, IProviderService, IUserService, IReviewService } from '../../interfaces/services';
 import {
   CreateRequestDto,
@@ -100,10 +100,7 @@ export class ServiceRequestService implements IServiceRequestService {
         data: serviceRequest
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to create service request');
+      return ErrorHandlers.handleServiceError(error, 'Failed to create service request');
     }
   }
 
@@ -118,15 +115,19 @@ export class ServiceRequestService implements IServiceRequestService {
     condition: (error: Error) => error.message.includes('database')
   })
   async getServiceRequestById(requestId: string): Promise<any> {
-    const serviceRequest = await ServiceRequest.findById(requestId)
-      .populate('userId', 'firstName lastName email phone profileImage')
-      .populate('providerId', 'businessName rating userId');
-
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
+    try {
+      const serviceRequest = await ServiceRequest.findById(requestId)
+        .populate('userId', 'firstName lastName email phone profileImage')
+        .populate('providerId', 'businessName rating userId');
+  
+      if (!serviceRequest) {
+        throw new NotFoundError('Service request not found');
+      }
+  
+      return serviceRequest;
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to get service request');
     }
-
-    return serviceRequest;
   }
 
   /**
@@ -142,21 +143,25 @@ export class ServiceRequestService implements IServiceRequestService {
     condition: (error: Error) => error.message.includes('database')
   })
   async updateServiceRequest(requestId: string, updateData: UpdateRequestDto): Promise<ApiResponseDto> {
-    const serviceRequest = await ServiceRequest.findByIdAndUpdate(
-      requestId,
-      { ...updateData, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    ).populate('userId', 'firstName lastName email phone profileImage');
-
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
+    try {
+      const serviceRequest = await ServiceRequest.findByIdAndUpdate(
+        requestId,
+        { ...updateData, updatedAt: new Date() },
+        { new: true, runValidators: true }
+      ).populate('userId', 'firstName lastName email phone profileImage');
+  
+      if (!serviceRequest) {
+        throw new NotFoundError('Service request not found');
+      }
+  
+      return {
+        success: true,
+        message: 'Service request updated successfully',
+        data: serviceRequest
+      };
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to update service request');
     }
-
-    return {
-      success: true,
-      message: 'Service request updated successfully',
-      data: serviceRequest
-    };
   }
 
   /**
@@ -165,90 +170,140 @@ export class ServiceRequestService implements IServiceRequestService {
   @Log('Deleting service request')
   @Retryable(2)
   async deleteServiceRequest(requestId: string): Promise<ApiResponseDto> {
-    const serviceRequest = await ServiceRequest.findById(requestId);
-    
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
+    try {
+      const serviceRequest = await ServiceRequest.findById(requestId);
+      
+      if (!serviceRequest) {
+        throw new NotFoundError('Service request not found');
+      }
+  
+      // Optimized: Use ConditionalHelpers for status validation
+      const statusError = ConditionalHelpers.guardServiceRequestStatus(
+        serviceRequest.status, 
+        ['pending', 'cancelled', 'completed']
+      );
+      if (statusError) {
+        throw new ValidationError('Cannot delete service request that is in progress');
+      }
+  
+      await ServiceRequest.findByIdAndDelete(requestId);
+  
+      return {
+        success: true,
+        message: 'Service request deleted successfully',
+        data: null
+      };
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to delete service request');
     }
-
-    // Optimized: Use ConditionalHelpers for status validation
-    const statusError = ConditionalHelpers.guardServiceRequestStatus(
-      serviceRequest.status, 
-      ['pending', 'cancelled', 'completed']
-    );
-    if (statusError) {
-      throw new ValidationError('Cannot delete service request that is in progress');
-    }
-
-    await ServiceRequest.findByIdAndDelete(requestId);
-
-    return {
-      success: true,
-      message: 'Service request deleted successfully',
-      data: null
-    };
   }
 
   /**
    * Search service requests with advanced filtering and caching
+   * @deprecated Use searchServiceRequestsAdvanced instead which follows AdminService.strategy pattern
    */
   @Log('Searching service requests')
   @Cached(2 * 60 * 1000) // Cache for 2 minutes
   @Retryable(2)
   async searchServiceRequests(filters: RequestFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto> {
+    // Delegate to the optimized implementation
+    return this.searchServiceRequestsAdvanced(filters, page, limit);
+  }
+  
+  /**
+   * Search service requests with advanced filtering - OPTIMIZED with AggregationBuilder following AdminService strategy
+   */
+  @Log('Advanced service request search with aggregation')
+  @Cached(2 * 60 * 1000) // Cache for 2 minutes
+  @Retryable({
+    attempts: 2,
+    delay: 1000
+  })
+  async searchServiceRequestsAdvanced(filters: RequestFiltersDto, page: number = 1, limit: number = 10): Promise<PaginatedResponseDto> {
     try {
       const skip = (page - 1) * limit;
-      let query: any = {};
-
-      // Apply filters
+      
+      // Build aggregation pipeline using AggregationBuilder following AdminService strategy
+      let aggregationBuilder = AggregationBuilder.create();
+      
+      // Apply filters using AggregationBuilder
       if (filters.status) {
-        query.status = filters.status;
+        aggregationBuilder = aggregationBuilder.match({ status: filters.status });
       }
 
       if (filters.category) {
-        query.category = filters.category;
+        aggregationBuilder = aggregationBuilder.match({ category: filters.category });
       }
 
       if (filters.location && filters.radius) {
-        query.location = {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [filters.location.longitude, filters.location.latitude]
-            },
-            $maxDistance: filters.radius * 1000 // Convert km to meters
+        aggregationBuilder = aggregationBuilder.match({
+          location: {
+            $near: {
+              $geometry: {
+                type: 'Point',
+                coordinates: [filters.location.longitude, filters.location.latitude]
+              },
+              $maxDistance: filters.radius * 1000 // Convert km to meters
+            }
           }
-        };
+        });
       }
 
       if (filters.minBudget || filters.maxBudget) {
-        query.budget = {};
-        if (filters.minBudget) query.budget.$gte = filters.minBudget;
-        if (filters.maxBudget) query.budget.$lte = filters.maxBudget;
+        const budgetMatch: any = {};
+        if (filters.minBudget) budgetMatch.$gte = filters.minBudget;
+        if (filters.maxBudget) budgetMatch.$lte = filters.maxBudget;
+        
+        aggregationBuilder = aggregationBuilder.match({ budget: budgetMatch });
       }
 
       if (filters.searchTerm) {
-        query.$or = [
-          { title: { $regex: filters.searchTerm, $options: 'i' } },
-          { description: { $regex: filters.searchTerm, $options: 'i' } },
-          { category: { $regex: filters.searchTerm, $options: 'i' } }
-        ];
+        aggregationBuilder = aggregationBuilder.match({
+          $or: [
+            { title: { $regex: filters.searchTerm, $options: 'i' } },
+            { description: { $regex: filters.searchTerm, $options: 'i' } },
+            { category: { $regex: filters.searchTerm, $options: 'i' } }
+          ]
+        });
       }
 
-      // Execute query
-      const [requests, total] = await Promise.all([
-        ServiceRequest.find(query)
-          .populate('userId', 'firstName lastName email phone profileImage')
-          .populate('providerId', 'businessName rating userId')
+      // Execute aggregation with pagination using AdminService strategy
+      const [requests, totalCount] = await Promise.all([
+        aggregationBuilder
+          .lookup({
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+          })
+          .unwind('$user')
+          .project({
+            'user.password': 0
+          })
+          .lookup({
+            from: 'serviceproviders',
+            localField: 'providerId',
+            foreignField: '_id',
+            as: 'provider'
+          })
+          .unwind({
+            path: '$provider',
+            preserveNullAndEmptyArrays: true
+          })
+          .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .sort({ createdAt: -1 }),
-        ServiceRequest.countDocuments(query)
+          .execute(ServiceRequest),
+        aggregationBuilder
+          .group({ _id: null, count: { $sum: 1 } })
+          .execute(ServiceRequest)
       ]);
+
+      const total = totalCount[0]?.count || 0;
 
       return {
         success: true,
-        message: 'Service requests retrieved successfully',
+        message: 'Service requests retrieved successfully with advanced filtering',
         data: requests,
         pagination: {
           currentPage: page,
@@ -258,7 +313,7 @@ export class ServiceRequestService implements IServiceRequestService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to search service requests');
+      return ErrorHandlers.handleServiceError(error, 'Failed to search service requests with advanced filtering');
     }
   }
 
@@ -293,7 +348,7 @@ export class ServiceRequestService implements IServiceRequestService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get user service requests');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get user service requests');
     }
   }
 
@@ -328,7 +383,7 @@ export class ServiceRequestService implements IServiceRequestService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get provider service requests');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get provider service requests');
     }
   }
 
@@ -374,10 +429,7 @@ export class ServiceRequestService implements IServiceRequestService {
         data: updatedRequest
       };
     } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new ValidationError('Failed to assign provider');
+      return ErrorHandlers.handleServiceError(error, 'Failed to assign provider');
     }
   }
 
@@ -387,49 +439,53 @@ export class ServiceRequestService implements IServiceRequestService {
   @Log('Updating service request status')
   @Retryable(2)
   async updateRequestStatus(requestId: string, status: string, notes?: string): Promise<ApiResponseDto> {
-    const validStatuses = ['pending', 'assigned', 'in_progress', 'completed', 'cancelled'];
-    
-    if (!validStatuses.includes(status)) {
-      throw new ValidationError('Invalid status');
+    try {
+      const validStatuses = ['pending', 'assigned', 'in_progress', 'completed', 'cancelled'];
+      
+      if (!validStatuses.includes(status)) {
+        throw new ValidationError('Invalid status');
+      }
+  
+      const updateData: any = {
+        status,
+        updatedAt: new Date()
+      };
+  
+      if (notes) {
+        updateData.notes = notes;
+      }
+  
+      // Add status-specific timestamps using strategy pattern
+      const statusTimestampHandlers = {
+        in_progress: () => { updateData.startedAt = new Date(); },
+        completed: () => { updateData.completedAt = new Date(); },
+        cancelled: () => { updateData.cancelledAt = new Date(); }
+      };
+  
+      const timestampHandler = statusTimestampHandlers[status as keyof typeof statusTimestampHandlers];
+      if (timestampHandler) {
+        timestampHandler();
+      }
+  
+      const serviceRequest = await ServiceRequest.findByIdAndUpdate(
+        requestId,
+        updateData,
+        { new: true }
+      ).populate('userId', 'firstName lastName email phone')
+       .populate('providerId', 'businessName rating userId');
+  
+      if (!serviceRequest) {
+        throw new NotFoundError('Service request not found');
+      }
+  
+      return {
+        success: true,
+        message: `Service request status updated to ${status}`,
+        data: serviceRequest
+      };
+    } catch (error) {
+      return ErrorHandlers.handleServiceError(error, 'Failed to update service request status');
     }
-
-    const updateData: any = {
-      status,
-      updatedAt: new Date()
-    };
-
-    if (notes) {
-      updateData.notes = notes;
-    }
-
-    // Add status-specific timestamps using strategy pattern
-    const statusTimestampHandlers = {
-      in_progress: () => { updateData.startedAt = new Date(); },
-      completed: () => { updateData.completedAt = new Date(); },
-      cancelled: () => { updateData.cancelledAt = new Date(); }
-    };
-
-    const timestampHandler = statusTimestampHandlers[status as keyof typeof statusTimestampHandlers];
-    if (timestampHandler) {
-      timestampHandler();
-    }
-
-    const serviceRequest = await ServiceRequest.findByIdAndUpdate(
-      requestId,
-      updateData,
-      { new: true }
-    ).populate('userId', 'firstName lastName email phone')
-     .populate('providerId', 'businessName rating userId');
-
-    if (!serviceRequest) {
-      throw new NotFoundError('Service request not found');
-    }
-
-    return {
-      success: true,
-      message: `Service request status updated to ${status}`,
-      data: serviceRequest
-    };
   }
 
   /**
@@ -470,7 +526,7 @@ export class ServiceRequestService implements IServiceRequestService {
         completionRate: totalRequests > 0 ? (completedRequests / totalRequests) * 100 : 0
       };
     } catch (error) {
-      throw new ValidationError('Failed to get service request statistics');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get service request statistics');
     }
   }
 
@@ -526,7 +582,7 @@ export class ServiceRequestService implements IServiceRequestService {
         }
       };
     } catch (error) {
-      throw new ValidationError('Failed to get nearby service requests');
+      return ErrorHandlers.handleServiceError(error, 'Failed to get nearby service requests');
     }
   }
 }
