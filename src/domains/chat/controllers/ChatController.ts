@@ -40,7 +40,7 @@ import {
   Put, 
   Delete,
   RequireAuth, 
-  Validate 
+  ValidateRequest as Validate 
 } from '../../decorators';
 
 @Controller({ path: '/chats' })
