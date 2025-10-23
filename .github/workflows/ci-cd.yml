@@ -21,7 +21,7 @@ jobs:
         image: mongo:6.0
         env:
           MONGO_INITDB_ROOT_USERNAME: admin
-          MONGO_INITDB_ROOT_PASSWORD: password123
+          MONGO_INITDB_ROOT_PASSWORD: testpass
         ports:
           - 27017:27017
         options: >-
@@ -63,7 +63,7 @@ jobs:
       run: npm run test:unit
       env:
         NODE_ENV: test
-        MONGODB_URI: mongodb://admin:password123@localhost:27017/smartfix_test?authSource=admin
+        MONGODB_URI: mongodb://admin:testpass@localhost:27017/smartfix_test?authSource=admin
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: test-jwt-secret
 
@@ -71,7 +71,7 @@ jobs:
       run: npm run test:integration
       env:
         NODE_ENV: test
-        MONGODB_URI: mongodb://admin:password123@localhost:27017/smartfix_test?authSource=admin
+        MONGODB_URI: mongodb://admin:testpass@localhost:27017/smartfix_test?authSource=admin
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: test-jwt-secret
 
@@ -79,7 +79,7 @@ jobs:
       run: npm run test:coverage
       env:
         NODE_ENV: test
-        MONGODB_URI: mongodb://admin:password123@localhost:27017/smartfix_test?authSource=admin
+        MONGODB_URI: mongodb://admin:testpass@localhost:27017/smartfix_test?authSource=admin
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: test-jwt-secret
 
@@ -275,4 +275,3 @@ jobs:
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       if: failure()
-
