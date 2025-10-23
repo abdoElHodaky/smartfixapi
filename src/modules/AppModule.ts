@@ -8,14 +8,14 @@
 import 'reflect-metadata';
 import { Module } from '../decorators/module';
 
-// Import all feature modules
-import { AuthModule } from './auth/AuthModule';
-import { UserModule } from './user/UserModule';
-import { ProviderModule } from './provider/ProviderModule';
-import { ServiceRequestModule } from './request/ServiceRequestModule';
-import { ReviewModule } from './review/ReviewModule';
-import { AdminModule } from './admin/AdminModule';
-import { ChatModule } from './chat/ChatModule';
+// Import all feature modules from domains
+import { AuthModule } from '../domains/auth';
+import { UserModule } from '../domains/user';
+import { ProviderModule } from '../domains/provider';
+import { ServiceRequestModule } from '../domains/request';
+import { ReviewModule } from '../domains/review';
+import { AdminModule } from '../domains/admin';
+import { ChatModule } from '../domains/chat';
 
 @Module({
   imports: [
@@ -188,4 +188,3 @@ export class AppModule {
     };
   }
 }
-

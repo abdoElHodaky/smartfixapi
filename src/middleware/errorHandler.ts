@@ -1,191 +1,232 @@
-import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
+/**
+ * Error Handler Middleware
+ * 
+ * Centralized error handling for the SmartFix API
+ */
 
-export interface CustomError extends Error {
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponseDto } from '../domains/common/dtos';
+
+export interface AppError extends Error {
   statusCode?: number;
-  code?: number;
-  keyValue?: any;
-  errors?: any;
+  code?: string;
+  details?: any;
+  isOperational?: boolean;
 }
 
-// Global error handler middleware
-export const errorHandler = (
-  err: CustomError,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void => {
-  let error = { ...err };
-  error.message = err.message;
+/**
+ * Custom error class for application errors
+ */
+export class CustomError extends Error implements AppError {
+  public statusCode: number;
+  public code?: string;
+  public details?: any;
+  public isOperational: boolean;
 
-  // Log error for debugging
-  console.error('Error:', err);
-
-  // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    const message = 'Resource not found';
-    error = { ...error, message, statusCode: 404 };
-  }
-
-  // Mongoose duplicate key
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue || {})[0];
-    const message = `${field} already exists`;
-    error = { ...error, message, statusCode: 400 };
-  }
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors || {}).map((val: any) => val.message).join(', ');
-    error = { ...error, message, statusCode: 400 };
-  }
-
-  // JWT errors
-  if (err.name === 'JsonWebTokenError') {
-    const message = 'Invalid token';
-    error = { ...error, message, statusCode: 401 };
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    const message = 'Token expired';
-    error = { ...error, message, statusCode: 401 };
-  }
-
-  // Multer errors (file upload)
-  if (err.name === 'MulterError') {
-    let message = 'File upload error';
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      message = 'File too large';
-    } else if (err.code === 'LIMIT_FILE_COUNT') {
-      message = 'Too many files';
-    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-      message = 'Unexpected file field';
-    }
-    error = { ...error, message, statusCode: 400 };
-  }
-
-  res.status(error.statusCode || 500).json({
-    success: false,
-    message: error.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
-};
-
-// 404 handler for undefined routes
-export const notFound = (req: Request, res: Response, next: NextFunction): void => {
-  const error = new Error(`Route ${req.originalUrl} not found`) as CustomError;
-  error.statusCode = 404;
-  next(error);
-};
-
-// Async error handler wrapper
-export const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
-
-// Rate limiting error handler
-export const rateLimitHandler = (req: Request, res: Response): void => {
-  res.status(429).json({
-    success: false,
-    message: 'Too many requests, please try again later',
-    error: 'Rate limit exceeded',
-  });
-};
-
-// CORS error handler
-export const corsErrorHandler = (req: Request, res: Response): void => {
-  res.status(403).json({
-    success: false,
-    message: 'CORS policy violation',
-    error: 'Origin not allowed',
-  });
-};
-
-// Database connection error handler
-export const dbErrorHandler = (error: Error): void => {
-  console.error('Database connection error:', error);
-  
-  if (error.name === 'MongoNetworkError') {
-    console.error('MongoDB network error - check your connection');
-  } else if (error.name === 'MongooseServerSelectionError') {
-    console.error('MongoDB server selection error - check if MongoDB is running');
-  } else if (error.name === 'MongoParseError') {
-    console.error('MongoDB connection string parse error - check your MONGODB_URI');
-  }
-};
-
-// Validation error formatter
-export const formatValidationError = (errors: any[]): any[] => {
-  return errors.map(error => ({
-    field: error.param || error.path,
-    message: error.msg || error.message,
-    value: error.value,
-    location: error.location,
-  }));
-};
-
-// Custom error classes
-export class AppError extends Error {
-  statusCode: number;
-  isOperational: boolean;
-
-  constructor(message: string, statusCode: number) {
+  constructor(
+    message: string,
+    statusCode: number = 500,
+    code?: string,
+    details?: any,
+    isOperational: boolean = true
+  ) {
     super(message);
     this.statusCode = statusCode;
-    this.isOperational = true;
-
+    this.code = code;
+    this.details = details;
+    this.isOperational = isOperational;
+    
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export class ValidationError extends AppError {
-  constructor(message: string) {
-    super(message, 400);
+/**
+ * Authentication error class
+ */
+export class AuthenticationError extends CustomError {
+  constructor(message: string = 'Authentication failed', details?: any) {
+    super(message, 401, 'AUTHENTICATION_ERROR', details);
   }
 }
 
-export class AuthenticationError extends AppError {
-  constructor(message: string = 'Authentication failed') {
-    super(message, 401);
+/**
+ * Authorization error class
+ */
+export class AuthorizationError extends CustomError {
+  constructor(message: string = 'Access denied', details?: any) {
+    super(message, 403, 'AUTHORIZATION_ERROR', details);
   }
 }
 
-export class AuthorizationError extends AppError {
-  constructor(message: string = 'Access denied') {
-    super(message, 403);
+/**
+ * Validation error class
+ */
+export class ValidationError extends CustomError {
+  constructor(message: string = 'Validation failed', details?: any) {
+    super(message, 400, 'VALIDATION_ERROR', details);
   }
 }
 
-export class NotFoundError extends AppError {
-  constructor(message: string = 'Resource not found') {
-    super(message, 404);
+/**
+ * Not found error class
+ */
+export class NotFoundError extends CustomError {
+  constructor(message: string = 'Resource not found', details?: any) {
+    super(message, 404, 'NOT_FOUND_ERROR', details);
   }
 }
 
-export class ConflictError extends AppError {
-  constructor(message: string = 'Resource conflict') {
-    super(message, 409);
+/**
+ * Conflict error class
+ */
+export class ConflictError extends CustomError {
+  constructor(message: string = 'Resource conflict', details?: any) {
+    super(message, 409, 'CONFLICT_ERROR', details);
   }
 }
 
-export class InternalServerError extends AppError {
-  constructor(message: string = 'Internal server error') {
-    super(message, 500);
+/**
+ * Rate limit error class
+ */
+export class RateLimitError extends CustomError {
+  constructor(message: string = 'Rate limit exceeded', details?: any) {
+    super(message, 429, 'RATE_LIMIT_ERROR', details);
   }
 }
 
-// Error response helper
-export const sendErrorResponse = (
+/**
+ * Error handler middleware
+ */
+export const errorHandler = (
+  error: AppError,
+  req: Request,
   res: Response,
-  statusCode: number,
-  message: string,
-  error?: string,
+  next: NextFunction
 ): void => {
-  res.status(statusCode).json({
+  let statusCode = error.statusCode || 500;
+  let message = error.message || 'Internal Server Error';
+  let code = error.code;
+  let details = error.details;
+
+  // Handle specific error types
+  if (error.name === 'ValidationError') {
+    statusCode = 400;
+    message = 'Validation Error';
+    details = error.details || error.message;
+  }
+
+  if (error.name === 'CastError') {
+    statusCode = 400;
+    message = 'Invalid ID format';
+  }
+
+  if (error.name === 'MongoError' && (error as any).code === 11000) {
+    statusCode = 409;
+    message = 'Duplicate field value';
+  }
+
+  if (error.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    message = 'Invalid token';
+  }
+
+  if (error.name === 'TokenExpiredError') {
+    statusCode = 401;
+    message = 'Token expired';
+  }
+
+  // Log error for debugging
+  console.error(`[${new Date().toISOString()}] Error:`, {
+    message: error.message,
+    stack: error.stack,
+    statusCode,
+    code,
+    details,
+    url: req.url,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
+
+  // Send error response
+  const response: ApiResponseDto<null> = {
     success: false,
     message,
-    ...(error && { error }),
-    ...(process.env.NODE_ENV === 'development' && { timestamp: new Date().toISOString() }),
-  });
+    data: null,
+    error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+  };
+
+  res.status(statusCode).json(response);
 };
 
+/**
+ * 404 handler middleware
+ */
+export const notFoundHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const error = new CustomError(
+    `Route ${req.originalUrl} not found`,
+    404,
+    'ROUTE_NOT_FOUND'
+  );
+  next(error);
+};
+
+/**
+ * Async error wrapper
+ */
+export const asyncHandler = (fn: Function) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
+
+/**
+ * Validation error helper
+ */
+export const createValidationError = (
+  message: string,
+  details?: any
+): CustomError => {
+  return new CustomError(message, 400, 'VALIDATION_ERROR', details);
+};
+
+/**
+ * Authentication error helper
+ */
+export const createAuthError = (
+  message: string = 'Authentication required'
+): CustomError => {
+  return new CustomError(message, 401, 'AUTH_ERROR');
+};
+
+/**
+ * Authorization error helper
+ */
+export const createAuthorizationError = (
+  message: string = 'Insufficient permissions'
+): CustomError => {
+  return new CustomError(message, 403, 'AUTHORIZATION_ERROR');
+};
+
+/**
+ * Not found error helper
+ */
+export const createNotFoundError = (
+  resource: string = 'Resource'
+): CustomError => {
+  return new CustomError(`${resource} not found`, 404, 'NOT_FOUND');
+};
+
+/**
+ * Conflict error helper
+ */
+export const createConflictError = (
+  message: string,
+  details?: any
+): CustomError => {
+  return new CustomError(message, 409, 'CONFLICT_ERROR', details);
+};

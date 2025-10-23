@@ -1,0 +1,84 @@
+/**
+ * ReviewModule - Review and Rating Management Module
+ * 
+ * This module encapsulates all review and rating-related functionality including
+ * services, controllers, and their dependencies.
+ */
+
+import 'reflect-metadata';
+import { Module } from '../../decorators/module';
+
+// Import modules
+import { AuthModule } from '../auth/AuthModule';
+import { UserModule } from '../user/UserModule';
+import { ProviderModule } from '../provider/ProviderModule';
+import { ServiceRequestModule } from '../request/ServiceRequestModule';
+
+// Import services
+import { ReviewServiceStrategy } from '../../services/review/ReviewService.strategy';
+
+// Import controllers (to be created)
+// import { ReviewController } from '../../controllers/review/ReviewController';
+
+@Module({
+  imports: [
+    AuthModule,           // Import AuthModule for authentication
+    UserModule,           // Import UserModule for user management
+    ProviderModule,       // Import ProviderModule for provider management
+    ServiceRequestModule  // Import ServiceRequestModule for service request validation
+  ],
+  providers: [
+    { provide: 'ReviewService', useClass: ReviewServiceStrategy }
+  ],
+  controllers: [
+    // ReviewController // To be added when controller is created
+  ],
+  exports: [
+    'ReviewService'
+  ]
+})
+export class ReviewModule {
+  constructor() {
+    console.log('⭐ ReviewModule created');
+  }
+
+  /**
+   * Module initialization hook
+   */
+  async onModuleInit(): Promise<void> {
+    console.log('⭐ ReviewModule initialized');
+  }
+
+  /**
+   * Module destruction hook
+   */
+  async onModuleDestroy(): Promise<void> {
+    console.log('⭐ ReviewModule destroyed');
+  }
+
+  /**
+   * Get module information
+   */
+  getModuleInfo() {
+    return {
+      name: 'ReviewModule',
+      version: '1.0.0',
+      description: 'Review and rating management module',
+      dependencies: ['AuthModule', 'UserModule', 'ProviderModule', 'ServiceRequestModule'],
+      services: ['ReviewService'],
+      controllers: [], // To be updated when controller is added
+      features: [
+        'Review creation and management',
+        'Rating system (1-5 stars)',
+        'Review validation and moderation',
+        'Provider rating aggregation',
+        'Review search and filtering',
+        'Review statistics and analytics',
+        'Top-rated provider discovery',
+        'Review flagging and moderation',
+        'Review response management'
+      ]
+    };
+  }
+}
+
