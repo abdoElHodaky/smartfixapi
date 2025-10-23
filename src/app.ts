@@ -10,7 +10,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import { HealthController } from './controllers/health.controller';
+import { HealthController } from './controllers/HealthController';
 import { attachControllers } from '@decorators/express';
 
 // Load environment variables
@@ -52,4 +52,3 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 export default app;
-
