@@ -1,50 +1,28 @@
-import { IsNumber, IsOptional, ValidateNested, IsObject, IsArray } from 'class-validator';
-import { Type } from 'class-transformer';
+/**
+ * Platform Statistics DTOs
+ * 
+ * Interface definitions for platform-wide statistics
+ */
 
-class UserRoleStatsDto {
-  @IsNumber()
+export interface UserRoleStatsDto {
   _id: string;
-
-  @IsNumber()
   count: number;
 }
 
-class ProviderServiceStatsDto {
-  @IsNumber()
+export interface ProviderServiceStatsDto {
   _id: string;
-
-  @IsNumber()
   count: number;
 }
 
-class RequestStatusStatsDto {
-  @IsNumber()
+export interface RequestStatusStatsDto {
   _id: string;
-
-  @IsNumber()
   count: number;
 }
 
-export class PlatformStatisticsDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => UserRoleStatsDto)
+export interface PlatformStatisticsDto {
   userRoleStats: UserRoleStatsDto[];
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ProviderServiceStatsDto)
   providerServiceStats: ProviderServiceStatsDto[];
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RequestStatusStatsDto)
   requestStatusStats: RequestStatusStatsDto[];
-
-  @IsNumber()
   averageRating: number;
-
-  @IsOptional()
-  @IsNumber()
   lastUpdated?: number;
 }
