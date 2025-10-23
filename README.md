@@ -38,19 +38,63 @@ src/
 │   ├── common/                # Shared domain components
 │   │   ├── BaseController.ts  # Base controller with common functionality
 │   │   ├── types.ts          # Common type definitions
-│   │   ├── dtos.ts           # Data transfer objects
-│   │   └── interfaces/       # Service interfaces
-│   ├── admin/                # Admin domain
-│   │   ├── controllers/      # Admin controllers
-│   │   └── services/         # Admin services
-│   ├── auth/                 # Authentication domain
-│   ├── user/                 # User management domain
-│   ├── provider/             # Provider domain
-│   ├── service-request/      # Service request domain
-│   ├── review/               # Review system domain
-│   └── chat/                 # Chat functionality domain
-├── middleware/               # Express middleware
-│   └── errorHandler.ts      # Centralized error handling
+│   │   ├── dtos/             # Common data transfer objects
+│   │   ├── interfaces/       # Service interfaces and contracts
+│   │   ├── middleware/       # Domain middleware
+│   │   └── utils/           # Domain utilities
+│   ├── admin/               # Admin domain
+│   │   ├── controllers/     # Admin controllers
+│   │   ├── services/        # Admin services
+│   │   ├── dtos/           # Admin DTOs
+│   │   ├── modules/        # Admin modules
+│   │   └── strategies/     # Admin strategy patterns
+│   ├── auth/               # Authentication domain
+│   │   ├── controllers/    # Auth controllers
+│   │   ├── services/       # Auth services
+│   │   ├── dtos/          # Auth DTOs
+│   │   ├── modules/       # Auth modules
+│   │   └── strategies/    # Auth strategy patterns
+│   ├── user/              # User management domain
+│   │   ├── controllers/   # User controllers
+│   │   ├── services/      # User services
+│   │   ├── dtos/         # User DTOs
+│   │   ├── modules/      # User modules
+│   │   └── strategies/   # User strategy patterns
+│   ├── provider/         # Provider domain
+│   │   ├── controllers/  # Provider controllers
+│   │   ├── services/     # Provider services
+│   │   ├── dtos/        # Provider DTOs
+│   │   ├── modules/     # Provider modules
+│   │   └── strategies/  # Provider strategy patterns
+│   ├── request/         # Service request domain
+│   │   ├── controllers/ # Request controllers
+│   │   ├── services/    # Request services
+│   │   ├── dtos/       # Request DTOs
+│   │   ├── modules/    # Request modules
+│   │   └── strategies/ # Request strategy patterns
+│   ├── review/         # Review system domain
+│   │   ├── controllers/# Review controllers
+│   │   ├── services/   # Review services
+│   │   ├── dtos/      # Review DTOs
+│   │   ├── modules/   # Review modules
+│   │   └── strategies/# Review strategy patterns
+│   ├── chat/          # Chat domain
+│   │   ├── controllers/# Chat controllers
+│   │   ├── services/   # Chat services
+│   │   ├── dtos/      # Chat DTOs
+│   │   ├── modules/   # Chat modules
+│   │   └── strategies/# Chat strategy patterns
+│   └── decorators/    # Decorator patterns
+│       ├── common/    # Common decorator utilities
+│       ├── method/    # Method decorators
+│       ├── class/     # Class decorators
+│       ├── property/  # Property decorators
+│       └── parameter/ # Parameter decorators
+├── services/                # Service layer (legacy - being migrated to domains)
+│   ├── ServiceRegistry.ts   # Service registry and dependency injection
+│   └── ServiceRegistry.optimized.ts # Optimized service registry
+├── middleware/              # Express middleware
+│   └── errorHandler.ts     # Centralized error handling
 ├── utils/                   # Utility functions and helpers
 ├── __tests__/              # Test suites
 │   ├── unit/               # Unit tests
