@@ -41,6 +41,60 @@ export class CustomError extends Error implements AppError {
 }
 
 /**
+ * Authentication error class
+ */
+export class AuthenticationError extends CustomError {
+  constructor(message: string = 'Authentication failed', details?: any) {
+    super(message, 401, 'AUTHENTICATION_ERROR', details);
+  }
+}
+
+/**
+ * Authorization error class
+ */
+export class AuthorizationError extends CustomError {
+  constructor(message: string = 'Access denied', details?: any) {
+    super(message, 403, 'AUTHORIZATION_ERROR', details);
+  }
+}
+
+/**
+ * Validation error class
+ */
+export class ValidationError extends CustomError {
+  constructor(message: string = 'Validation failed', details?: any) {
+    super(message, 400, 'VALIDATION_ERROR', details);
+  }
+}
+
+/**
+ * Not found error class
+ */
+export class NotFoundError extends CustomError {
+  constructor(message: string = 'Resource not found', details?: any) {
+    super(message, 404, 'NOT_FOUND_ERROR', details);
+  }
+}
+
+/**
+ * Conflict error class
+ */
+export class ConflictError extends CustomError {
+  constructor(message: string = 'Resource conflict', details?: any) {
+    super(message, 409, 'CONFLICT_ERROR', details);
+  }
+}
+
+/**
+ * Rate limit error class
+ */
+export class RateLimitError extends CustomError {
+  constructor(message: string = 'Rate limit exceeded', details?: any) {
+    super(message, 429, 'RATE_LIMIT_ERROR', details);
+  }
+}
+
+/**
  * Error handler middleware
  */
 export const errorHandler = (
@@ -176,4 +230,3 @@ export const createConflictError = (
 ): CustomError => {
   return new CustomError(message, 409, 'CONFLICT_ERROR', details);
 };
-
