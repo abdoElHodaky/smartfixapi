@@ -6,11 +6,10 @@
 
 import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
 import { CommandResult } from '../../../utils/service-optimization/CommandBase';
-// TODO: Define NotificationOperationInput interface
-// import { NotificationOperationInput } from '../interfaces/BaseStrategy';
+import { NotificationOperationInput } from '../../common/interfaces/strategies';
 
-export class SendNotificationStrategy implements AsyncStrategy<any, CommandResult> {
-  async execute(input: any): Promise<CommandResult> {
+export class SendNotificationStrategy implements AsyncStrategy<NotificationOperationInput, CommandResult> {
+  async execute(input: NotificationOperationInput): Promise<CommandResult> {
     // Placeholder implementation
     return CommandResult.success(
       { recipientId: input.recipientId, type: input.type },
