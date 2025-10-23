@@ -1,5 +1,5 @@
 import { IsString, IsEmail, IsOptional, IsBoolean, IsDateString, IsEnum, IsNumber, Min, Max } from 'class-validator';
-import { IsObjectId } from '../../utils/validation.utils';
+import { ValidationUtils } from '../../../utils/validation.utils';
 
 export enum UserStatus {
   ACTIVE = 'active',
@@ -96,4 +96,3 @@ export class UserSearchDto {
   @Max(100)
   limit?: number;
 }
-
