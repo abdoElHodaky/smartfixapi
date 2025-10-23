@@ -13,8 +13,8 @@ import { Request, Response } from 'express';
 
 // Internal imports
 import { BaseController } from '../BaseController';
-import { AuthRequest } from '../../types';
-import { IServiceRequestService } from '../../interfaces/services';
+import { AuthRequest } from '../../common/types';
+import { IServiceRequestService } from '../../common/interfaces/services';
 
 // Utility imports
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';

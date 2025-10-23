@@ -1,309 +1,333 @@
-# SmartFixAPI - Service Provider Platform
+# SmartFix API - Service Provider Platform
 
-A modern, enterprise-grade service providers platform built with **ExpressJS**, **MongoDB**, and **TypeScript**, featuring a **modular architecture** with strategy-based services, dependency injection, real-time chat, and comprehensive admin management.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.18+-lightgrey.svg)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-6.0+-green.svg)](https://www.mongodb.com/)
+[![Jest](https://img.shields.io/badge/Jest-29+-red.svg)](https://jestjs.io/)
+
+A comprehensive service provider platform API built with TypeScript, Express.js, and MongoDB. SmartFix connects service providers with customers, enabling seamless service request management, provider verification, and review systems.
 
 ## 🚀 Features
 
-### Core Features
+### Core Functionality
 - **User Management**: Registration, authentication, profile management
-- **Service Provider System**: Provider registration, verification, service listings
-- **Service Requests**: Request creation, matching, status tracking
-- **Review System**: Rating and review management
-- **Real-time Chat**: Messaging between users and providers
-- **Admin Dashboard**: Comprehensive admin panel with analytics
+- **Provider Services**: Provider registration, verification, service offerings
+- **Service Requests**: Create, manage, and track service requests
+- **Review System**: Customer reviews and provider ratings
+- **Admin Dashboard**: Comprehensive admin controls and analytics
+- **Real-time Chat**: Communication between customers and providers
 
 ### Technical Features
-- **🏗️ Modular Architecture**: Module-based organization with dependency injection
-- **🎯 Strategy Pattern Services**: Advanced strategy patterns for business logic
-- **🏛️ CQRS Pattern**: Command Query Responsibility Segregation for scalable architecture
-- **⚡ Service Optimization**: All services use strategy pattern for optimal performance
-- **📦 Module System**: Clean separation of concerns with `@Module()` decorators
-- **🔄 Service Discovery**: Automatic service resolution across modules
-- **💉 Dependency Injection**: Enterprise-grade DI container with lifecycle management
-- **🛡️ TypeScript**: Full type safety and modern JavaScript features
-- **🗄️ MongoDB**: Document-based database with Mongoose ODM
-- **🔐 JWT Authentication**: Secure token-based authentication
-- **👥 Role-based Authorization**: User, Provider, and Admin roles
-- **⚡ Advanced Caching**: Service-level caching with TTL and invalidation
-- **🔄 Retry Logic**: Automatic retry with exponential backoff
-- **📊 Health Monitoring**: Real-time system health and module status
-- **🚨 Error Handling**: Centralized error handling with graceful recovery
-- **✅ Input Validation**: Request validation and sanitization
-- **📚 API Documentation**: RESTful API with comprehensive documentation
+- **Domain-Driven Design**: Clean architecture with separated domains
+- **Strategy Patterns**: Flexible service implementations
+- **Comprehensive Testing**: Unit, integration, and E2E tests
+- **Type Safety**: Full TypeScript implementation
+- **Error Handling**: Centralized error management
+- **Validation**: Input validation with class-validator
+- **Documentation**: Auto-generated API documentation
 
 ## 📁 Project Structure
 
 ```
 src/
-├── 🏗️ modules/           # Modular architecture
-│   ├── auth/            # Authentication module
-│   ├── user/            # User management module
-│   ├── provider/        # Service provider module
-│   ├── request/         # Service request module
-│   ├── review/          # Review system module
-│   ├── admin/           # Admin management module
-│   ├── chat/            # Chat messaging module
-│   └── AppModule.ts     # Main application module
-├── 🎯 services/          # Strategy-based services
-│   ├── auth/            # Authentication services
-│   ├── user/            # User services
-│   ├── provider/        # Provider services
-│   ├── request/         # Request services
-│   ├── review/          # Review services
-│   ├── admin/           # Admin services
-│   └── chat/            # Chat services
-├── 🎯 strategy/          # Strategy Pattern Implementation
-│   ├── interfaces/      # Base strategy interfaces
-│   ├── admin/           # Admin operation strategies
-│   ├── user/            # User operation strategies
-│   ├── auth/            # Authentication strategies
-│   ├── provider/        # Provider strategies
-│   ├── request/         # Service request strategies
-│   ├── review/          # Review strategies
-│   ├── chat/            # Chat strategies
-│   └── index.ts         # Strategy exports
-├── 🏛️ cqrs/             # CQRS Pattern Implementation
-│   ├── commands/        # Command definitions (write operations)
-│   ├── queries/         # Query definitions (read operations)
-│   ├── handlers/        # Command and query handlers
-│   │   ├── command/     # Command handlers
-│   │   └── query/       # Query handlers
-│   ├── events/          # Event definitions (future)
-│   ├── types/           # CQRS type definitions
-│   └── index.ts         # CQRS module exports
-├── 🎨 decorators/        # Service decorators
-├── ⚙️ config/            # Configuration files
-├── 📦 container/         # DI container
-├── 🎮 controllers/       # API controllers
-├── 📋 dtos/             # Data transfer objects
-├── 🔌 interfaces/       # Service interfaces
-├── 🛡️ middleware/        # Express middleware
-├── 🗄️ models/           # Mongoose models
-├── 🛤️ routes/            # API routes
-├── 📝 types/            # TypeScript type definitions
-├── app.ts              # Main application entry
-├── app.modular.ts      # Modular server implementation
-└── server.ts           # Server entry point
+├── domains/                    # Domain-driven architecture
+│   ├── common/                # Shared domain components
+│   │   ├── BaseController.ts  # Base controller with common functionality
+│   │   ├── types.ts          # Common type definitions
+│   │   ├── dtos.ts           # Data transfer objects
+│   │   └── interfaces/       # Service interfaces
+│   ├── admin/                # Admin domain
+│   │   ├── controllers/      # Admin controllers
+│   │   └── services/         # Admin services
+│   ├── auth/                 # Authentication domain
+│   ├── user/                 # User management domain
+│   ├── provider/             # Provider domain
+│   ├── service-request/      # Service request domain
+│   ├── review/               # Review system domain
+│   └── chat/                 # Chat functionality domain
+├── middleware/               # Express middleware
+│   └── errorHandler.ts      # Centralized error handling
+├── utils/                   # Utility functions and helpers
+├── __tests__/              # Test suites
+│   ├── unit/               # Unit tests
+│   ├── integration/        # Integration tests
+│   └── e2e/               # End-to-end tests
+└── app.ts                  # Application entry point
 ```
 
-## 🛠️ Installation
+## 🛠 Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd smartfixapi
-   ```
+### Prerequisites
+- Node.js 18+ 
+- MongoDB 6.0+
+- npm or yarn
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### Setup
+```bash
+# Clone the repository
+git clone https://github.com/abdoElHodaky/smartfixapi.git
+cd smartfixapi
 
-3. **Environment Setup**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Configure your environment variables:
-   ```env
-   NODE_ENV=development
-   PORT=3000
-   MONGODB_URI=mongodb://localhost:27017/serviceplatform
-   JWT_SECRET=your-jwt-secret
-   JWT_EXPIRES_IN=7d
-   ```
+# Install dependencies
+npm install
 
-4. **Start MongoDB**
-   ```bash
-   # Using Docker
-   docker run -d -p 27017:27017 --name mongodb mongo:latest
-   
-   # Or start your local MongoDB instance
-   mongod
-   ```
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
 
-5. **Run the application**
-   ```bash
-   # 🚀 MODULAR ARCHITECTURE (Default)
-   npm run dev              # Development with modular architecture
-   npm run build            # Build modular application
-   npm start                # Start modular application
-   ```
+# Build the application
+npm run build
 
-## 🌐 Application Endpoints
-
-Once running, access these endpoints:
-
-- **🏠 Main Application**: `http://localhost:3000`
-- **💚 Health Check**: `http://localhost:3000/health`
-- **📦 Module Status**: `http://localhost:3000/modules`
-- **🔍 Service Discovery**: `http://localhost:3000/services`
-- **📚 API Documentation**: `http://localhost:3000/api`
-
-## 🏗️ Architecture Overview
-
-### 🎯 Strategy Pattern Implementation
-
-All services in SmartFixAPI use the Strategy Pattern for flexible, maintainable business logic:
-
-```typescript
-// Strategy interface
-interface AuthStrategy {
-  execute(credentials: any): Promise<User>;
-}
-
-// Concrete strategies
-class PasswordAuthStrategy implements AuthStrategy {
-  async execute(credentials: any): Promise<User> {
-    // Password authentication logic
-  }
-}
-
-class TokenAuthStrategy implements AuthStrategy {
-  async execute(credentials: any): Promise<User> {
-    // Token authentication logic
-  }
-}
-
-// Strategy registry
-const authStrategies = new StrategyRegistry<AuthStrategy>();
-authStrategies.register('password', new PasswordAuthStrategy());
-authStrategies.register('token', new TokenAuthStrategy());
-
-// Usage
-const strategy = authStrategies.get(authType);
-const user = await strategy.execute(credentials);
+# Start the server
+npm start
 ```
 
-### 🏛️ CQRS Pattern
+### Development
+```bash
+# Start in development mode
+npm run dev
 
-The platform implements Command Query Responsibility Segregation (CQRS) for better scalability:
+# Run tests
+npm test
 
-```typescript
-// Command (Write operation)
-const command = new CreateUserCommand({
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john@example.com'
-});
+# Run tests with coverage
+npm run test:coverage
 
-// Execute command
-const result = await commandBus.execute(command);
+# Run linting
+npm run lint
 
-// Query (Read operation)
-const query = new GetUserByIdQuery('user123');
-
-// Execute query
-const user = await queryBus.execute(query);
+# Run type checking
+npm run type-check
 ```
 
-### 📦 Dependency Injection
+## 🔧 Configuration
 
-The application uses a custom DI container for clean architecture:
+### Environment Variables
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
 
-```typescript
-// Service registration
-@Injectable()
-@Service({
-  name: 'UserService',
-  scope: 'singleton'
-})
-class UserServiceStrategy implements IUserService {
-  // Implementation
-}
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/smartfix
+MONGODB_TEST_URI=mongodb://localhost:27017/smartfix_test
 
-// Module registration
-@Module({
-  imports: [AuthModule],
-  providers: [
-    { provide: 'UserService', useClass: UserServiceStrategy }
-  ],
-  exports: ['UserService']
-})
-export class UserModule {
-  // Module implementation
-}
+# Authentication
+JWT_SECRET=your-jwt-secret
+JWT_EXPIRES_IN=7d
 
-// Service injection
-@Injectable()
-class UserController {
-  constructor(
-    @Inject('UserService') private userService: IUserService
-  ) {}
-}
+# External Services
+REDIS_URL=redis://localhost:6379
+EMAIL_SERVICE_API_KEY=your-email-api-key
 ```
 
-## 🔄 Service Unification
+## 📚 API Documentation
 
-The SmartFixAPI has undergone a complete service unification process:
+### Authentication Endpoints
+```
+POST   /api/auth/register     # User registration
+POST   /api/auth/login        # User login
+POST   /api/auth/refresh      # Refresh token
+POST   /api/auth/logout       # User logout
+POST   /api/auth/reset        # Password reset
+```
 
-### Phase 1-2: Initial Strategy Pattern Implementation
-- Implemented strategy pattern for AdminService, AuthService, and ProviderService
-- Created base strategy interfaces and registries
-- Established consistent error handling patterns
+### User Management
+```
+GET    /api/users             # Get users (paginated)
+GET    /api/users/:id         # Get user by ID
+PUT    /api/users/:id         # Update user
+DELETE /api/users/:id         # Delete user
+POST   /api/users/:id/verify  # Verify user
+```
 
-### Phase 3: Controller Unification
-- Unified all controllers to follow consistent patterns
-- Removed legacy `.modern.ts` controller files
-- Standardized error handling and validation
+### Provider Management
+```
+GET    /api/providers         # Get providers
+POST   /api/providers         # Create provider profile
+GET    /api/providers/:id     # Get provider details
+PUT    /api/providers/:id     # Update provider
+POST   /api/providers/:id/verify # Verify provider
+GET    /api/providers/search  # Search providers
+```
 
-### Phase 4: Complete Service Unification
-- Migrated all remaining services to strategy pattern:
-  - ChatService
-  - ReviewService
-  - UserService
-  - ServiceRequestService
-- Standardized dependency injection across all services
-- Removed all decorator-based service implementations
-- Ensured consistent error handling and validation
+### Service Requests
+```
+GET    /api/requests          # Get service requests
+POST   /api/requests          # Create service request
+GET    /api/requests/:id      # Get request details
+PUT    /api/requests/:id      # Update request
+DELETE /api/requests/:id      # Delete request
+POST   /api/requests/:id/assign # Assign provider
+```
 
-### Phase 5: Documentation and Refinement
-- Updated README to reflect completed service unification
-- Ensured consistent naming conventions across codebase
-- Added comprehensive documentation
-- Resolved conflicts and standardized implementation
+### Reviews
+```
+GET    /api/reviews           # Get reviews
+POST   /api/reviews           # Create review
+GET    /api/reviews/:id       # Get review details
+PUT    /api/reviews/:id       # Update review
+DELETE /api/reviews/:id       # Delete review
+```
 
-## 📚 Documentation
+### Admin Dashboard
+```
+GET    /api/admin/stats       # Dashboard statistics
+GET    /api/admin/users       # User management
+GET    /api/admin/providers   # Provider management
+GET    /api/admin/health      # System health
+GET    /api/admin/logs        # Audit logs
+```
 
-- [SERVICE_UNIFICATION_GUIDE.md](docs/SERVICE_UNIFICATION_GUIDE.md) - Service migration strategy and progress
-- [ADMIN_SERVICE_STRATEGY.md](docs/ADMIN_SERVICE_STRATEGY.md) - AdminService implementation details
-- [SERVICE_UNIFICATION_PHASE4.md](docs/SERVICE_UNIFICATION_PHASE4.md) - Phase 4 completion details
+## 🧪 Testing
 
-## 🔐 Security Features
+### Test Structure
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: API endpoint testing
+- **E2E Tests**: Complete user flow testing
+- **Performance Tests**: Load and stress testing
 
-- **JWT Authentication**: Secure token-based authentication
-- **Password Hashing**: bcrypt for password security
-- **Input Validation**: Request validation middleware
-- **CORS Protection**: Cross-origin request security
-- **Helmet**: Security headers middleware
-- **Rate Limiting**: API rate limiting
+### Running Tests
+```bash
+# Run all tests
+npm test
 
-## 📊 Monitoring & Logging
+# Run specific test suite
+npm test -- --testPathPattern=unit
+npm test -- --testPathPattern=integration
+npm test -- --testPathPattern=e2e
 
-- **Morgan**: HTTP request logging
-- **Error Handling**: Centralized error handling
-- **Health Checks**: System health monitoring endpoint
-- **Audit Logs**: Admin action logging
+# Run tests in watch mode
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+## 🏗 Architecture
+
+### Domain-Driven Design
+The application follows Domain-Driven Design principles with clear separation of concerns:
+
+- **Domains**: Business logic organized by domain
+- **Services**: Business logic implementation
+- **Controllers**: HTTP request handling
+- **DTOs**: Data transfer objects for API contracts
+- **Interfaces**: Service contracts and abstractions
+
+### Design Patterns
+- **Strategy Pattern**: Flexible service implementations
+- **Repository Pattern**: Data access abstraction
+- **Factory Pattern**: Object creation management
+- **Observer Pattern**: Event-driven architecture
+- **Command Pattern**: Request handling
+
+### Error Handling
+Centralized error handling with:
+- Custom error classes
+- HTTP status code mapping
+- Detailed error logging
+- User-friendly error messages
+- Development vs production error details
+
+## 🚀 Deployment
+
+### Docker Deployment
+```bash
+# Build Docker image
+docker build -t smartfix-api .
+
+# Run with Docker Compose
+docker-compose up -d
+```
+
+### Production Deployment
+```bash
+# Build for production
+npm run build
+
+# Start production server
+npm run start:prod
+
+# Use PM2 for process management
+pm2 start ecosystem.config.js
+```
+
+### Environment Setup
+- **Development**: Local MongoDB, Redis optional
+- **Staging**: Containerized services, external databases
+- **Production**: Kubernetes deployment, managed databases
+
+## 📊 Monitoring and Analytics
+
+### Health Checks
+- Database connectivity
+- External service availability
+- Memory and CPU usage
+- Response time monitoring
+
+### Logging
+- Structured logging with Winston
+- Request/response logging
+- Error tracking and alerting
+- Performance metrics
+
+### Metrics
+- API response times
+- Database query performance
+- User activity analytics
+- Business metrics dashboard
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
+### Development Workflow
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+### Code Standards
+- TypeScript strict mode
+- ESLint configuration
+- Prettier formatting
+- Conventional commits
+- Test coverage > 80%
+
+### Pull Request Process
+1. Update documentation
+2. Add/update tests
+3. Ensure CI passes
+4. Request code review
+5. Address feedback
+6. Merge after approval
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Contact
+## 🆘 Support
 
-For questions or support, please contact the development team at [abdo.arh38@yahoo.com](mailto:abdo.arh38@yahoo.com).
+### Documentation
+- [API Documentation](docs/api.md)
+- [Architecture Guide](docs/architecture.md)
+- [Deployment Guide](docs/deployment.md)
+- [Contributing Guide](docs/contributing.md)
+
+### Getting Help
+- Create an issue for bugs
+- Use discussions for questions
+- Check existing documentation
+- Review test examples
+
+### Contact
+- **Email**: support@smartfix.com
+- **Documentation**: https://docs.smartfix.com
+- **Status Page**: https://status.smartfix.com
 
 ---
 
-Built with ❤️ using ExpressJS, MongoDB, and TypeScript
+**SmartFix API** - Connecting service providers with customers through technology.
 

@@ -12,9 +12,9 @@
 import { Request, Response } from 'express';
 
 // Internal imports
-import { BaseController } from '../BaseController';
+import { BaseController } from '../../common/BaseController';
 import { AuthRequest } from '../../types';
-import { IUserService } from '../../interfaces/services';
+import { IUserService } from '../../common/interfaces/services';
 
 // DTO imports
 import { 

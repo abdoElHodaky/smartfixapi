@@ -13,8 +13,8 @@ import { Request, Response } from 'express';
 
 // Internal imports
 import { BaseController } from '../BaseController';
-import { AuthRequest } from '../../types';
-import { IReviewService } from '../../interfaces/services';
+import { AuthRequest } from '../../common/types';
+import { IReviewService } from '../../common/interfaces/services';
 
 // DTO imports
 import { 

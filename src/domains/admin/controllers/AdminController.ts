@@ -12,9 +12,9 @@
 import { Response } from 'express';
 
 // Internal imports
-import { BaseController } from '../BaseController';
-import { AuthRequest } from '../../types';
-import { IAdminService } from '../../interfaces/services';
+import { BaseController } from '../../common/BaseController';
+import { AuthRequest } from '../../common/types';
+import { IAdminService } from '../../common/interfaces/services';
 
 // Utility imports
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';

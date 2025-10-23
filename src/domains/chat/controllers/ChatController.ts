@@ -12,9 +12,9 @@
 import { Request, Response } from 'express';
 
 // Internal imports
-import { BaseController } from '../BaseController';
-import { AuthRequest } from '../../types';
-import { IChatService } from '../../interfaces/services';
+import { BaseController } from '../../common/BaseController';
+import { AuthRequest } from '../../common/types';
+import { IChatService } from '../../common/interfaces/services';
 
 // Utility imports
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';

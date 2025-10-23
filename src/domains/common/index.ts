@@ -1,18 +1,9 @@
 /**
- * Common Domain - Unified Export
- * 
- * Shared functionality across all domains
+ * Common Domain - Centralized Exports
  */
 
-// DTOs
-export * from './dtos';
-
-// Interfaces
 export * from './interfaces';
-
-// Middleware
-export * from './middleware';
-
-// Utils
-export * from './utils';
+export * from './types';
+export * from './dtos';
+export * from './BaseController';
 
