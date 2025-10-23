@@ -4,20 +4,20 @@
  * Strategy classes for admin operations extracted from AdminService
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
-import { IProviderService } from '../../interfaces/services';
-import { User } from '../../models/User';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { AggregationBuilder } from '../../../utils/aggregation/AggregationBuilder';
+import { IProviderService } from '../../common/interfaces/services/index';
+import { User } from '../../../models/User';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { Review } from '../../../models/Review';
 
 // Import strategy interfaces from centralized location
 import {
   ProviderActionInput,
   ReportGenerationInput,
   DashboardDataInput
-} from '../interfaces/ServiceStrategy';
+} from '../../common/types';
 
 // Provider action strategies
 export class ApproveProviderStrategy implements AsyncStrategy<ProviderActionInput, CommandResult> {

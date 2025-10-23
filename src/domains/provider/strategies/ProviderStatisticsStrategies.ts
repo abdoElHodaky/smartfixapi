@@ -4,12 +4,12 @@
  * Strategy classes for generating provider statistics and analytics
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
-import { ServiceProvider } from '../../models/ServiceProvider';
-import { Review } from '../../models/Review';
-import { ServiceRequest } from '../../models/ServiceRequest';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { AggregationBuilder } from '../../../utils/aggregation/AggregationBuilder';
+import { ServiceProvider } from '../../../models/ServiceProvider';
+import { Review } from '../../../models/Review';
+import { ServiceRequest } from '../../../models/ServiceRequest';
 import { ProviderStatisticsInput } from '../interfaces/ServiceStrategy';
 
 export class GetProviderStatisticsStrategy implements AsyncStrategy<ProviderStatisticsInput, CommandResult> {

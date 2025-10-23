@@ -7,31 +7,35 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { Conversation } from '../../models/Conversation';
-import { Message } from '../../models/Message';
-import { User } from '../../models/User';
-import { ValidationError, AuthenticationError, NotFoundError } from '../../middleware/errorHandler';
-import { IChatService, IUserService } from '../../interfaces/services';
+// TODO: Create Conversation and Message models
+// import { Conversation } from '../../../models/Conversation';
+// import { Message } from '../../../models/Message';
+import { User } from '../../../models/User';
+import { ValidationError, AuthenticationError, NotFoundError } from '../../common/middleware/errorHandler';
+import { IChatService, IUserService } from '../../common/interfaces/services/index';
 import {
   CreateConversationDto,
   SendMessageDto,
-  ChatFiltersDto,
+  ChatFiltersDto
+} from '../dtos';
+import {
   ApiResponseDto,
   PaginatedResponseDto
-} from '../../dtos';
+} from '../../common/dtos';
 
 // Import optimization utilities
 import { 
   AsyncStrategyRegistry
-} from '../../utils/conditions/StrategyPatterns';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+} from '../../../utils/conditions/StrategyPatterns';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
 
 // Import strategy interfaces
-import {
-  ChatOperationInput,
-  ConversationSearchInput,
-  MessageSearchInput
-} from '../../strategy/interfaces/ServiceStrategy';
+// TODO: Define these interfaces in common/interfaces
+// import {
+//   ChatOperationInput,
+//   ConversationSearchInput,
+//   MessageSearchInput
+// } from '../../strategy/interfaces/ServiceStrategy';
 
 // Import service decorators
 import {
@@ -42,7 +46,7 @@ import {
   Log,
   PostConstruct,
   PreDestroy
-} from '../../decorators/service';
+} from '../../../decorators/service';
 
 @Injectable()
 @Singleton()

@@ -99,3 +99,24 @@ export interface ServiceError extends Error {
   details?: any;
 }
 
+// Admin strategy input types
+export interface ProviderActionInput extends BaseOperationInput {
+  providerId: string;
+  action?: 'approve' | 'reject' | 'suspend';
+  reason?: string;
+}
+
+export interface ReportGenerationInput extends BaseOperationInput {
+  reportType: 'users' | 'providers' | 'requests' | 'revenue';
+  dateRange: {
+    from: Date;
+    to: Date;
+  };
+  filters?: Record<string, any>;
+}
+
+export interface DashboardDataInput extends BaseOperationInput {
+  timeframe?: 'day' | 'week' | 'month' | 'year';
+  includeCharts?: boolean;
+  metrics?: string[];
+}

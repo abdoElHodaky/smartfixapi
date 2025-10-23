@@ -17,17 +17,15 @@ import { AuthRequest } from '../../common/types';
 import { IChatService } from '../../common/interfaces/services';
 
 // Utility imports
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
 
 // DTO imports
 import { 
-  ChatDto,
-  MessageDto,
-  ChatCreationDto,
-  MessageCreationDto,
-  ChatListDto,
-  MessageListDto
-} from '../../dtos';
+  ChatFiltersDto,
+  CreateConversationDto,
+  SendMessageDto
+} from '../dtos';
+// TODO: Define missing DTOs: ChatDto, MessageDto, ChatCreationDto, MessageCreationDto, ChatListDto, MessageListDto
 
 // Decorator imports
 import { 

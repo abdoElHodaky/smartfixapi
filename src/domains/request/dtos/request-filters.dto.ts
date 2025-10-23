@@ -1,4 +1,5 @@
-import { PaginationDto, LocationSearchDto } from '../common';
+import { PaginationDto } from '../../common/dtos/pagination.dto';
+import { LocationSearchDto } from '../../common/dtos/location.dto';
 
 /**
  * Request search filters DTO

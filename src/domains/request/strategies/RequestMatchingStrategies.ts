@@ -4,11 +4,11 @@
  * Strategy implementations for matching service requests with providers
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { ServiceProvider } from '../../models/ServiceProvider';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { AggregationBuilder } from '../../../utils/aggregation/AggregationBuilder';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { ServiceProvider } from '../../../models/ServiceProvider';
 import { MatchingInput } from '../interfaces/ServiceStrategy';
 
 export class FindMatchingProvidersStrategy implements AsyncStrategy<MatchingInput, CommandResult> {

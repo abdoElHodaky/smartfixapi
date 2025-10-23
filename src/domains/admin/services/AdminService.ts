@@ -7,19 +7,19 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { User } from '../../models/User';
-import { ServiceProvider } from '../../models/ServiceProvider';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
-import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
-import { IAdminService, IUserService, IProviderService, IServiceRequestService, IReviewService } from '../../interfaces/services';
+import { User } from '../../../models/User';
+import { ServiceProvider } from '../../../models/ServiceProvider';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { Review } from '../../../models/Review';
+import { NotFoundError, ValidationError, AuthenticationError } from '../../common/middleware/errorHandler';
+import { IAdminService, IUserService, IProviderService, IServiceRequestService, IReviewService } from '../../common/interfaces/services/index';
 import {
   AdminDashboardDto,
   PlatformStatisticsDto,
   UserManagementDto,
   ApiResponseDto,
   PaginatedResponseDto
-} from '../../dtos';
+} from '../dtos';
 
 // Import service decorators
 import {
@@ -31,7 +31,7 @@ import {
   Validate,
   PostConstruct,
   PreDestroy
-} from '../../decorators/service';
+} from '../../../decorators/service';
 
 // Optimized enums for switch statements
 enum ProviderAction {

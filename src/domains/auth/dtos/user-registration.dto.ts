@@ -1,4 +1,5 @@
-import { AddressDto, LocationDto } from '../common';
+import { AddressDto } from '../../common/dtos/address.dto';
+import { LocationDto } from '../../common/dtos/location.dto';
 
 /**
  * User registration DTO
@@ -33,4 +34,3 @@ export interface UserRegistrationResponseDto {
     token: string;
   };
 }
-

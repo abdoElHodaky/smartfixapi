@@ -4,11 +4,11 @@
  * Strategy classes for updating provider information
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { ServiceProvider } from '../../models/ServiceProvider';
-import { User } from '../../models/User';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
+import { ServiceProvider } from '../../../models/ServiceProvider';
+import { User } from '../../../models/User';
 import { ProviderOperationInput } from '../interfaces/ServiceStrategy';
 import { UpdateProviderDto } from '../../dtos';
 

@@ -9,12 +9,13 @@ import 'reflect-metadata';
 import { Module } from '../../../decorators/module';
 
 // Import modules
-import { AuthModule } from '../auth/AuthModule';
-import { UserModule } from '../user/UserModule';
-import { ServiceRequestModule } from '../request/ServiceRequestModule';
+import { AuthModule } from '../../auth/modules/AuthModule';
+import { UserModule } from '../../user/modules/UserModule';
+import { ServiceRequestModule } from '../../request/modules/ServiceRequestModule';
 
 // Import services
-import { ChatServiceStrategy } from '../../services/chat/ChatService.strategy';
+// TODO: Create ChatService.strategy file
+// import { ChatServiceStrategy } from '../../services/chat/ChatService.strategy';
 
 // Import controllers (to be created)
 // import { ChatController } from '../../controllers/chat/ChatController';
@@ -79,4 +80,3 @@ export class ChatModule {
     };
   }
 }
-

@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsUUID } from 'class-validator';
-import { IsObjectId } from '../../utils/validation.utils';
+import { IsObjectId } from '../../../utils/validation.utils';
 
 /**
  * MongoDB ObjectId parameter DTO

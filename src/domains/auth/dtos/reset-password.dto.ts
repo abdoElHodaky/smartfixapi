@@ -1,5 +1,5 @@
 import { IsString } from 'class-validator';
-import { IsStrongPassword } from '../../utils/validation.utils';
+import { IsStrongPassword } from '../../../utils/validation.utils';
 
 /**
  * Reset password DTO

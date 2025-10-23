@@ -7,16 +7,16 @@
 
 import 'reflect-metadata';
 import { Injectable } from '@decorators/di';
-import { User, PaginatedResponse, BaseFilters, CommandResult } from '../common/types';
-import { CustomError } from '../../middleware/errorHandler';
-import { IAdminService, IUserService, IProviderService, IServiceRequestService, IReviewService } from '../common/interfaces/services';
+import { User, PaginatedResponse, BaseFilters, CommandResult } from '../../common/types';
+import { CustomError } from '../../common/middleware/errorHandler';
+import { IAdminService, IUserService, IProviderService, IServiceRequestService, IReviewService } from '../../common/interfaces/services/index';
 import {
   AdminStatsDto,
   AdminFiltersDto,
   UserDto,
   ApiResponseDto,
   PaginatedResponseDto
-} from '../common/dtos';
+} from '../../common/dtos';
 
 @Injectable()
 export class AdminServiceStrategy implements IAdminService {

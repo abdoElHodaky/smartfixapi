@@ -1,4 +1,4 @@
-import { ServiceAreaDto } from '../common';
+import { ServiceAreaDto } from '../../common/dtos/location.dto';
 
 /**
  * Update provider DTO
@@ -57,4 +57,3 @@ export interface UpdateProviderResponseDto {
     updatedAt: Date;
   };
 }
-

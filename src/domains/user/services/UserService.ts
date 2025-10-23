@@ -7,11 +7,11 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { User } from '../../models/User';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
-import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
-import { IUserService, IReviewService, IServiceRequestService } from '../../interfaces/services';
+import { User } from '../../../models/User';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { Review } from '../../../models/Review';
+import { NotFoundError, ValidationError, AuthenticationError } from '../../common/middleware/errorHandler';
+import { IUserService, IReviewService, IServiceRequestService } from '../../common/interfaces/services/index';
 import {
   UpdateUserDto,
   UserFiltersDto,

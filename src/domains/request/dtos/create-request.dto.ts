@@ -1,4 +1,5 @@
-import { LocationDto, AddressDto } from '../common';
+import { LocationDto } from '../../common/dtos/location.dto';
+import { AddressDto } from '../../common/dtos/address.dto';
 
 /**
  * Create service request DTO

@@ -1,4 +1,4 @@
-import { ServiceAreaDto } from '../common';
+import { ServiceAreaDto } from '../../common/dtos/location.dto';
 
 /**
  * Service provider registration DTO
@@ -49,4 +49,3 @@ export interface ServiceProviderRegistrationResponseDto {
     token: string;
   };
 }
-

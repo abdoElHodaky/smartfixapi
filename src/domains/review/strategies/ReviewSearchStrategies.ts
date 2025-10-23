@@ -4,10 +4,10 @@
  * Strategy implementations for review search and filtering
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
-import { Review } from '../../models/Review';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { AggregationBuilder } from '../../../utils/aggregation/AggregationBuilder';
+import { Review } from '../../../models/Review';
 import { ReviewSearchInput } from '../interfaces/ServiceStrategy';
 
 export class SearchReviewsStrategy implements AsyncStrategy<ReviewSearchInput, CommandResult> {

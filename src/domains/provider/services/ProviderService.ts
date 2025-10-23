@@ -7,12 +7,12 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { ServiceProvider } from '../../models/ServiceProvider';
-import { User } from '../../models/User';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
-import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
-import { IProviderService, IReviewService, IServiceRequestService } from '../../interfaces/services';
+import { ServiceProvider } from '../../../models/ServiceProvider';
+import { User } from '../../../models/User';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { Review } from '../../../models/Review';
+import { NotFoundError, ValidationError, AuthenticationError } from '../../common/middleware/errorHandler';
+import { IProviderService, IReviewService, IServiceRequestService } from '../../common/interfaces/services/index';
 import {
   UpdateProviderDto,
   ProviderFiltersDto,
