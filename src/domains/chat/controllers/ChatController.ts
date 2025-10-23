@@ -23,9 +23,14 @@ import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers
 import { 
   ChatFiltersDto,
   CreateConversationDto,
-  SendMessageDto
+  SendMessageDto,
+  ChatDto,
+  MessageDto,
+  ChatCreationDto,
+  MessageCreationDto,
+  ChatListDto,
+  MessageListDto
 } from '../dtos';
-// TODO: Define missing DTOs: ChatDto, MessageDto, ChatCreationDto, MessageCreationDto, ChatListDto, MessageListDto
 
 // Decorator imports
 import { 
