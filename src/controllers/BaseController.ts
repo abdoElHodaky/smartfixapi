@@ -17,7 +17,7 @@ import { AuthRequest } from '../types';
 import { serviceContainer } from '../container';
 
 // DTO imports
-import { ApiResponseDto } from '../dtos';
+import { ApiResponseDto } from '../domains/common/dtos';
 
 export abstract class BaseController {
   protected serviceRegistry = serviceContainer;

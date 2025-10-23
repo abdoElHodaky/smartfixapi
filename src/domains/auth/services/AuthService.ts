@@ -7,19 +7,18 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { User } from '../../models/User';
-import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
-import { IAuthService } from '../../interfaces/services';
+import { User } from '../../../models/User';
+import { NotFoundError, ValidationError, AuthenticationError } from '../../common/middleware/errorHandler';
+import { IAuthService } from '../../common/interfaces/services/IAuthService';
 import {
   UserRegistrationDto,
-  ServiceProviderRegistrationDto,
   LoginDto,
-  LoginResponseDto,
-  UserRegistrationResponseDto,
-  ServiceProviderRegistrationResponseDto,
-  TokenVerificationDto,
-  ApiResponseDto
-} from '../../dtos';
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyEmailDto,
+  ProviderRegistrationDto,
+  ProviderUserRegistrationDto
+} from '../dtos';
 
 // Import optimization utilities
 import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
@@ -63,7 +62,7 @@ import {
   Validate,
   PostConstruct,
   PreDestroy
-} from '../../decorators/service';
+} from '../../../decorators/service';
 
 
 

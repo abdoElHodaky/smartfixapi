@@ -6,14 +6,14 @@
  */
 
 import 'reflect-metadata';
-import { Module } from '../../decorators/module';
+import { Module } from '../../../decorators/module';
 
 // Import modules
-import { AuthModule } from '../auth/AuthModule';
-import { UserModule } from '../user/UserModule';
-import { ProviderModule } from '../provider/ProviderModule';
-import { ServiceRequestModule } from '../request/ServiceRequestModule';
-import { ReviewModule } from '../review/ReviewModule';
+import { AuthModule } from '../../auth/modules/AuthModule';
+import { UserModule } from '../../user/modules/UserModule';
+import { ProviderModule } from '../../provider/modules/ProviderModule';
+import { ServiceRequestModule } from '../../request/modules/ServiceRequestModule';
+import { ReviewModule } from '../../review/modules/ReviewModule';
 
 // Import services
 import { AdminService } from '../services/AdminService';

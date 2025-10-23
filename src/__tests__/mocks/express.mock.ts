@@ -23,10 +23,10 @@ export const createMockRequest = (overrides: any = {}) => {
     protocol: 'http',
     secure: false,
     xhr: false,
-    get: jest.fn().mockImplementation((header: string) => {
+    get: jest.fn<(header: string) => any>().mockImplementation((header: string) => {
       return overrides.headers?.[header.toLowerCase()] || '';
     }),
-    header: jest.fn().mockImplementation((header: string) => {
+    header: jest.fn<(header: string) => any>().mockImplementation((header: string) => {
       return overrides.headers?.[header.toLowerCase()] || '';
     }),
     ...overrides,
@@ -40,33 +40,33 @@ export const createMockResponse = () => {
     headersSent: false,
   };
 
-  res.status = jest.fn().mockImplementation((code: number) => {
+  res.status = jest.fn<(code: number) => any>().mockImplementation((code: number) => {
     res.statusCode = code;
     return res;
   });
 
-  res.json = jest.fn().mockImplementation((data: any) => {
+  res.json = jest.fn<(data: any) => any>().mockImplementation((data: any) => {
     res.body = data;
     return res;
   });
 
-  res.send = jest.fn().mockImplementation((data: any) => {
+  res.send = jest.fn<(data: any) => any>().mockImplementation((data: any) => {
     res.body = data;
     return res;
   });
 
-  res.end = jest.fn().mockImplementation((data?: any) => {
+  res.end = jest.fn<(data?: any) => any>().mockImplementation((data?: any) => {
     if (data) res.body = data;
     return res;
   });
 
-  res.cookie = jest.fn().mockImplementation((name: string, value: any, options?: any) => {
+  res.cookie = jest.fn<(name: string, value: any, options?: any) => any>().mockImplementation((name: string, value: any, options?: any) => {
     if (!res.cookies) res.cookies = {};
     res.cookies[name] = { value, options };
     return res;
   });
 
-  res.clearCookie = jest.fn().mockImplementation((name: string, options?: any) => {
+  res.clearCookie = jest.fn<(name: string, options?: any) => any>().mockImplementation((name: string, options?: any) => {
     if (res.cookies) delete res.cookies[name];
     return res;
   });

@@ -7,11 +7,11 @@
 import { jest } from '@jest/globals';
 
 export const mockJwt = {
-  sign: jest.fn().mockImplementation((payload: any, secret: string, options?: any) => {
+  sign: jest.fn<(payload: any, secret: string, options?: any) => string>().mockImplementation((payload: any, secret: string, options?: any) => {
     return 'mock.jwt.token';
   }),
   
-  verify: jest.fn().mockImplementation((token: string, secret: string, options?: any) => {
+  verify: jest.fn<(token: string, secret: string, options?: any) => any>().mockImplementation((token: string, secret: string, options?: any) => {
     if (token === 'invalid.token') {
       throw new Error('Invalid token');
     }
@@ -24,7 +24,7 @@ export const mockJwt = {
     };
   }),
   
-  decode: jest.fn().mockImplementation((token: string, options?: any) => {
+  decode: jest.fn<(token: string, options?: any) => any>().mockImplementation((token: string, options?: any) => {
     return {
       userId: 'mockUserId',
       email: 'test@example.com',
