@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsBoolean, IsDateString, IsEnum, IsArray, ValidateNested, IsNumber, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsObjectId } from '../../utils/validation.utils';
+import { ValidationUtils } from '../../../utils/validation.utils';
 
 export enum ProviderApprovalStatus {
   PENDING = 'pending',
@@ -138,4 +138,3 @@ export class ProviderSearchDto {
   @Max(100)
   limit?: number;
 }
-

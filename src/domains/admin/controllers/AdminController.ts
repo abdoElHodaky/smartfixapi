@@ -17,7 +17,7 @@ import { AuthRequest } from '../../common/types';
 import { IAdminService } from '../../common/interfaces/services';
 
 // Utility imports
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
 
 // DTO imports - using any for now since specific DTOs don't exist
 // import { AdminStatsDto, AdminFiltersDto } from '../../dtos';
@@ -32,7 +32,7 @@ import {
   RequireAuth, 
   RequireRoles,
   Validate 
-} from '../../decorators';
+} from '../decorators';
 
 @Controller({ path: '/admin' })
 export class AdminController extends BaseController {
