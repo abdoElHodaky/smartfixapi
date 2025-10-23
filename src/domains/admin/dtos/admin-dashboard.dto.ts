@@ -1,106 +1,48 @@
-import { IsNumber, IsOptional, ValidateNested, IsObject } from 'class-validator';
-import { Type } from 'class-transformer';
+/**
+ * Admin Dashboard DTOs
+ * 
+ * Interface definitions for admin dashboard statistics
+ */
 
-class UserStatsDto {
-  @IsNumber()
+export interface UserStatsDto {
   total: number;
-
-  @IsNumber()
   active: number;
-
-  @IsNumber()
   inactive: number;
-
-  @IsNumber()
   newThisMonth: number;
-
-  @IsNumber()
   growthRate: number;
 }
 
-class ProviderStatsDto {
-  @IsNumber()
+export interface ProviderStatsDto {
   total: number;
-
-  @IsNumber()
   verified: number;
-
-  @IsNumber()
   pending: number;
-
-  @IsNumber()
   active: number;
-
-  @IsNumber()
   newThisMonth: number;
-
-  @IsNumber()
   averageRating: number;
 }
 
-class ServiceRequestStatsDto {
-  @IsNumber()
+export interface ServiceRequestStatsDto {
   total: number;
-
-  @IsNumber()
   pending: number;
-
-  @IsNumber()
   inProgress: number;
-
-  @IsNumber()
   completed: number;
-
-  @IsNumber()
   cancelled: number;
-
-  @IsNumber()
   thisMonth: number;
-
-  @IsNumber()
   completionRate: number;
 }
 
-class RevenueStatsDto {
-  @IsNumber()
+export interface RevenueStatsDto {
   total: number;
-
-  @IsNumber()
   thisMonth: number;
-
-  @IsNumber()
   lastMonth: number;
-
-  @IsNumber()
   growthRate: number;
-
-  @IsNumber()
   averageOrderValue: number;
 }
 
-export class AdminDashboardDto {
-  @ValidateNested()
-  @Type(() => UserStatsDto)
-  @IsObject()
+export interface AdminDashboardDto {
   users: UserStatsDto;
-
-  @ValidateNested()
-  @Type(() => ProviderStatsDto)
-  @IsObject()
   providers: ProviderStatsDto;
-
-  @ValidateNested()
-  @Type(() => ServiceRequestStatsDto)
-  @IsObject()
   serviceRequests: ServiceRequestStatsDto;
-
-  @ValidateNested()
-  @Type(() => RevenueStatsDto)
-  @IsObject()
   revenue: RevenueStatsDto;
-
-  @IsOptional()
-  @IsNumber()
   lastUpdated?: number;
 }
-
