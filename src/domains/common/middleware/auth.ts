@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../types';
-import { User } from '../models/User';
+import { User } from '../../../models/User';
 
 export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -146,4 +146,3 @@ export const requireProviderVerification = (req: AuthRequest, res: Response, nex
   // Additional provider verification logic can be added here
   next();
 };
-

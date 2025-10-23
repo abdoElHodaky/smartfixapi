@@ -38,7 +38,7 @@ import {
   RequireAuth, 
   UseMiddleware,
   Validate 
-} from '../../decorators';
+} from '../../../decorators';
 
 // Middleware imports
 import { validateBody } from '../../common/middleware';

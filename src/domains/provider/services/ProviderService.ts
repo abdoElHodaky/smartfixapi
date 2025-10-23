@@ -71,7 +71,7 @@ import {
   Validate,
   PostConstruct,
   PreDestroy
-} from '../../decorators/service';
+} from '../../../decorators/service';
 
 @Injectable()
 @Singleton()

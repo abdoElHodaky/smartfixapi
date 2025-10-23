@@ -41,7 +41,7 @@ import {
   Delete,
   RequireAuth, 
   ValidateRequest as Validate 
-} from '../../decorators';
+} from '../../../decorators';
 
 @Controller({ path: '/chats' })
 export class ChatController extends BaseController {
