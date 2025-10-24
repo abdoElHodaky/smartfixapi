@@ -5,7 +5,7 @@
  * with optimized execution, validation, and event sourcing capabilities.
  */
 
-import { IsString, IsOptional, IsObject, IsEnum, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { 
   BaseCommand, 

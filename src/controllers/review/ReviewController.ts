@@ -9,7 +9,7 @@
  */
 
 // External imports
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
 // Internal imports
 import { BaseController } from '../BaseController';
