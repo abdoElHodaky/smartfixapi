@@ -7,15 +7,13 @@
 
 import 'reflect-metadata';
 import { Injectable } from '@decorators/di';
-import { User, PaginatedResponse, BaseFilters, CommandResult } from '../common/types';
+import { PaginatedResponse, BaseFilters, CommandResult } from '../common/types';
 import { CustomError } from '../../middleware/errorHandler';
 import { IAdminService, IUserService, IProviderService, IServiceRequestService, IReviewService } from '../common/interfaces/services';
 import {
   AdminStatsDto,
   AdminFiltersDto,
-  UserDto,
-  ApiResponseDto,
-  PaginatedResponseDto
+  UserDto
 } from '../common/dtos';
 
 @Injectable()
@@ -169,4 +167,3 @@ export class AdminServiceStrategy implements IAdminService {
     };
   }
 }
-

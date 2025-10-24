@@ -97,7 +97,7 @@ export class UserActivityReportStrategy implements AsyncStrategy<ReportGeneratio
 }
 
 export class ProviderPerformanceReportStrategy implements AsyncStrategy<ReportGenerationInput, any> {
-  async execute(input: ReportGenerationInput): Promise<any> {
+  async execute(_input: ReportGenerationInput): Promise<any> {
     const aggregation = AggregationBuilder.create()
       .buildTopProviders(5, 4.0, 20);
     
@@ -125,7 +125,7 @@ export class RevenueReportStrategy implements AsyncStrategy<ReportGenerationInpu
 
 // Dashboard data strategies
 export class OverviewDataStrategy implements AsyncStrategy<DashboardDataInput, any> {
-  async execute(input: DashboardDataInput): Promise<any> {
+  async execute(_input: DashboardDataInput): Promise<any> {
     const [
       totalUsers,
       totalProviders,
@@ -148,7 +148,7 @@ export class OverviewDataStrategy implements AsyncStrategy<DashboardDataInput, a
 }
 
 export class StatisticsDataStrategy implements AsyncStrategy<DashboardDataInput, any> {
-  async execute(input: DashboardDataInput): Promise<any> {
+  async execute(_input: DashboardDataInput): Promise<any> {
     const [
       topProviders,
       categoryStats,

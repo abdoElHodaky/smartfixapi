@@ -16,7 +16,6 @@ import { IAdminService, IUserService, IProviderService, IServiceRequestService, 
 import {
   AdminDashboardDto,
   PlatformStatisticsDto,
-  UserManagementDto,
   ApiResponseDto,
   PaginatedResponseDto
 } from '../../dtos';
@@ -745,7 +744,7 @@ export class AdminServiceOptimized implements IAdminService {
   @Log('Getting flagged content')
   @Cached(1 * 60 * 1000)
   @Retryable(2)
-  async getFlaggedContent(type: string): Promise<PaginatedResponseDto> {
+  async getFlaggedContent(_type: string): Promise<PaginatedResponseDto> {
     // Extract adminId from context or pass as parameter
     const adminId = 'admin'; // This should be properly extracted from context
     await this.verifyAdminPermissions(adminId);
@@ -818,7 +817,7 @@ export class AdminServiceOptimized implements IAdminService {
     ]);
   }
 
-  private async generateProviderPerformanceReport(dateRange?: { from: Date; to: Date }): Promise<any> {
+  private async generateProviderPerformanceReport(_dateRange?: { from: Date; to: Date }): Promise<any> {
     return {
       topPerformers: [],
       averageRatings: [],
@@ -844,7 +843,7 @@ export class AdminServiceOptimized implements IAdminService {
     ]);
   }
 
-  private async generateRevenueReport(dateRange?: { from: Date; to: Date }): Promise<any> {
+  private async generateRevenueReport(_dateRange?: { from: Date; to: Date }): Promise<any> {
     return {
       totalRevenue: 0,
       transactions: [],
