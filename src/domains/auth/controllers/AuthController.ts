@@ -28,7 +28,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   VerifyEmailDto
-} from '../../dtos';
+} from '../dtos';
 
 // Decorator imports
 import { 
@@ -38,13 +38,13 @@ import {
   RequireAuth, 
   UseMiddleware,
   Validate 
-} from '../../decorators';
+} from '../../../decorators';
 
 // Middleware imports
-import { validateBody } from '../../middleware';
+import { validateBody } from '../../common/middleware';
 
 // Utility imports
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
 
 @Controller({ path: '/auth' })
 export class AuthController extends BaseController {

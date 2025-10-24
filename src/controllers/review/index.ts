@@ -1,2 +1,0 @@
-export { ReviewController } from './ReviewController';
-

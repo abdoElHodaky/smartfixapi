@@ -1,6 +1,6 @@
 import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, IsEnum, Length, Min, Max, ArrayMaxSize } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsServiceType } from '../../utils/validation.utils';
+import { IsServiceType } from '../../../utils/validation.utils';
 
 /**
  * Service pricing tier DTO
@@ -137,4 +137,3 @@ export class UpdatePricingDto {
   @Length(10, 500, { message: 'Payment terms must be between 10 and 500 characters' })
   paymentTerms?: string;
 }
-

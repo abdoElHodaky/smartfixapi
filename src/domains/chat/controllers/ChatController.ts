@@ -17,17 +17,20 @@ import { AuthRequest } from '../../common/types';
 import { IChatService } from '../../common/interfaces/services';
 
 // Utility imports
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
 
 // DTO imports
 import { 
+  ChatFiltersDto,
+  CreateConversationDto,
+  SendMessageDto,
   ChatDto,
   MessageDto,
   ChatCreationDto,
   MessageCreationDto,
   ChatListDto,
   MessageListDto
-} from '../../dtos';
+} from '../dtos';
 
 // Decorator imports
 import { 
@@ -37,8 +40,8 @@ import {
   Put, 
   Delete,
   RequireAuth, 
-  Validate 
-} from '../../decorators';
+  ValidateRequest as Validate 
+} from '../../../decorators';
 
 @Controller({ path: '/chats' })
 export class ChatController extends BaseController {

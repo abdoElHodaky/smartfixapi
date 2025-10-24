@@ -4,9 +4,9 @@
  * Strategy implementations for chat message operations
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { MessageOperationInput } from '../interfaces/ServiceStrategy';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { MessageOperationInput } from '../../common/interfaces/strategies';
 
 export class SendMessageStrategy implements AsyncStrategy<MessageOperationInput, CommandResult> {
   async execute(input: MessageOperationInput): Promise<CommandResult> {

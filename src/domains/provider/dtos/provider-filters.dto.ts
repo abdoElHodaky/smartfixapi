@@ -1,4 +1,4 @@
-import { PaginationDto } from '../common';
+import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 /**
  * Provider search filters DTO

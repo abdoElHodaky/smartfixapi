@@ -7,11 +7,11 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { ServiceProvider } from '../../models/ServiceProvider';
-import { User } from '../../models/User';
-import { ValidationError, AuthenticationError, NotFoundError } from '../../middleware/errorHandler';
-import { IServiceRequestService, IUserService, IProviderService, IReviewService } from '../../interfaces/services';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { ServiceProvider } from '../../../models/ServiceProvider';
+import { User } from '../../../models/User';
+import { ValidationError, AuthenticationError, NotFoundError } from '../../common/middleware/errorHandler';
+import { IServiceRequestService, IUserService, IProviderService, IReviewService } from '../../common/interfaces/services/index';
 import {
   CreateRequestDto,
   UpdateRequestDto,
@@ -42,7 +42,7 @@ import {
   Log,
   PostConstruct,
   PreDestroy
-} from '../../decorators/service';
+} from '../../../decorators/service';
 
 @Injectable()
 @Singleton()

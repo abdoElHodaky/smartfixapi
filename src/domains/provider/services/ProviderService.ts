@@ -7,51 +7,52 @@
 
 import 'reflect-metadata';
 import { Injectable, Inject } from '@decorators/di';
-import { ServiceProvider } from '../../models/ServiceProvider';
-import { User } from '../../models/User';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
-import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
-import { IProviderService, IReviewService, IServiceRequestService } from '../../interfaces/services';
+import { ServiceProvider } from '../../../models/ServiceProvider';
+import { User } from '../../../models/User';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { Review } from '../../../models/Review';
+import { NotFoundError, ValidationError, AuthenticationError } from '../../common/middleware/errorHandler';
+import { IProviderService, IReviewService, IServiceRequestService } from '../../common/interfaces/services/index';
 import {
   UpdateProviderDto,
   ProviderFiltersDto,
   PortfolioItemDto,
   ApiResponseDto,
   PaginatedResponseDto
-} from '../../dtos';
+} from '../dtos';
 
 // Import optimization utilities
-import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { AggregationBuilder, AggregationUtils } from '../../../utils/aggregation/AggregationBuilder';
 import { 
   StrategyRegistry, 
   AsyncStrategyRegistry, 
   Strategy, 
   AsyncStrategy 
-} from '../../utils/conditions/StrategyPatterns';
-import { ConditionalHelpers, RoleCheckOptions } from '../../utils/conditions/ConditionalHelpers';
-import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
+} from '../../../utils/conditions/StrategyPatterns';
+import { ConditionalHelpers, RoleCheckOptions } from '../../../utils/conditions/ConditionalHelpers';
+import { CommandBase, CommandResult, CommandContext } from '../../../utils/service-optimization/CommandBase';
 
 // Import strategy implementations
-import {
-  GetProviderByIdStrategy,
-  GetProviderByUserIdStrategy
-} from '../../strategy/provider/GetProviderStrategies';
-import {
-  UpdateProviderProfileStrategy,
-  UpdateProviderStatusStrategy
-} from '../../strategy/provider/UpdateProviderStrategies';
-import {
-  SearchProvidersStrategy
-} from '../../strategy/provider/SearchProviderStrategies';
-import {
-  AddPortfolioItemStrategy,
-  UpdatePortfolioItemStrategy,
-  DeletePortfolioItemStrategy
-} from '../../strategy/provider/PortfolioStrategies';
-import {
-  GetProviderStatisticsStrategy
-} from '../../strategy/provider/ProviderStatisticsStrategies';
+// TODO: Create missing strategy files
+// import {
+//   GetProviderByIdStrategy,
+//   GetProviderByUserIdStrategy
+// } from '../../strategy/provider/GetProviderStrategies';
+// import {
+//   UpdateProviderProfileStrategy,
+//   UpdateProviderStatusStrategy
+// } from '../../strategy/provider/UpdateProviderStrategies';
+// import {
+//   SearchProvidersStrategy
+// } from '../../strategy/provider/SearchProviderStrategies';
+// import {
+//   AddPortfolioItemStrategy,
+//   UpdatePortfolioItemStrategy,
+//   DeletePortfolioItemStrategy
+// } from '../../strategy/provider/PortfolioStrategies';
+// import {
+//   GetProviderStatisticsStrategy
+// } from '../../strategy/provider/ProviderStatisticsStrategies';
 
 // Import strategy interfaces
 import {
@@ -71,7 +72,7 @@ import {
   Validate,
   PostConstruct,
   PreDestroy
-} from '../../decorators/service';
+} from '../../../decorators/service';
 
 @Injectable()
 @Singleton()
@@ -109,24 +110,28 @@ export class ProviderServiceStrategy implements IProviderService {
   private initializeStrategies(): void {
     // Provider operation strategies
     this.providerOperationRegistry = new AsyncStrategyRegistry<ProviderOperationInput, CommandResult>();
-    this.providerOperationRegistry.register('getById', new GetProviderByIdStrategy());
-    this.providerOperationRegistry.register('getByUserId', new GetProviderByUserIdStrategy());
-    this.providerOperationRegistry.register('updateProfile', new UpdateProviderProfileStrategy());
-    this.providerOperationRegistry.register('updateStatus', new UpdateProviderStatusStrategy());
+    // TODO: Uncomment when strategy files are created
+    // this.providerOperationRegistry.register('getById', new GetProviderByIdStrategy());
+    // this.providerOperationRegistry.register('getByUserId', new GetProviderByUserIdStrategy());
+    // this.providerOperationRegistry.register('updateProfile', new UpdateProviderProfileStrategy());
+    // this.providerOperationRegistry.register('updateStatus', new UpdateProviderStatusStrategy());
 
     // Provider search strategies
     this.providerSearchRegistry = new AsyncStrategyRegistry<ProviderSearchInput, CommandResult>();
-    this.providerSearchRegistry.register('searchProviders', new SearchProvidersStrategy());
+    // TODO: Uncomment when strategy files are created
+    // this.providerSearchRegistry.register('searchProviders', new SearchProvidersStrategy());
 
     // Portfolio operation strategies
     this.portfolioOperationRegistry = new AsyncStrategyRegistry<PortfolioOperationInput, CommandResult>();
-    this.portfolioOperationRegistry.register('addItem', new AddPortfolioItemStrategy());
-    this.portfolioOperationRegistry.register('updateItem', new UpdatePortfolioItemStrategy());
-    this.portfolioOperationRegistry.register('deleteItem', new DeletePortfolioItemStrategy());
+    // TODO: Uncomment when strategy files are created
+    // this.portfolioOperationRegistry.register('addItem', new AddPortfolioItemStrategy());
+    // this.portfolioOperationRegistry.register('updateItem', new UpdatePortfolioItemStrategy());
+    // this.portfolioOperationRegistry.register('deleteItem', new DeletePortfolioItemStrategy());
 
     // Provider statistics strategies
     this.providerStatisticsRegistry = new AsyncStrategyRegistry<ProviderStatisticsInput, CommandResult>();
-    this.providerStatisticsRegistry.register('getStatistics', new GetProviderStatisticsStrategy());
+    // TODO: Uncomment when strategy files are created
+    // this.providerStatisticsRegistry.register('getStatistics', new GetProviderStatisticsStrategy());
   }
 
   /**

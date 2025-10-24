@@ -4,10 +4,10 @@
  * Strategy classes for searching and filtering providers
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
-import { ServiceProvider } from '../../models/ServiceProvider';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { AggregationBuilder } from '../../../utils/aggregation/AggregationBuilder';
+import { ServiceProvider } from '../../../models/ServiceProvider';
 import { ProviderSearchInput } from '../interfaces/ServiceStrategy';
 
 export class SearchProvidersStrategy implements AsyncStrategy<ProviderSearchInput, CommandResult> {

@@ -4,8 +4,8 @@
  * Strategy implementations for review moderation and content management
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
 import { ReviewModerationInput } from '../interfaces/ServiceStrategy';
 
 export class ModerateReviewStrategy implements AsyncStrategy<ReviewModerationInput, CommandResult> {

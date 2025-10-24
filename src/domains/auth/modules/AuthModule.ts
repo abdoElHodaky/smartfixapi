@@ -6,7 +6,7 @@
  */
 
 import 'reflect-metadata';
-import { Module } from '../../decorators/module';
+import { Module } from '../../../decorators/module';
 
 // Import services
 import { AuthService } from '../services/AuthService';

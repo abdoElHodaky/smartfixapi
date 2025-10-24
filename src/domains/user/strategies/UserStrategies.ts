@@ -4,13 +4,13 @@
  * Strategy classes for user operations extracted from UserService
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { User } from '../../models/User';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { Review } from '../../models/Review';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { AggregationBuilder } from '../../../utils/aggregation/AggregationBuilder';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
+import { User } from '../../../models/User';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { Review } from '../../../models/Review';
 import { UserOperationInput, UserSearchInput, UserLocationInput, UserStatisticsInput } from '../interfaces/ServiceStrategy';
 import { StatisticsOperationInput } from '../interfaces/BaseStrategy';
 

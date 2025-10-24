@@ -1,7 +1,7 @@
 import { IsOptional, IsString, IsBoolean, IsEnum, IsArray, IsNumber, ArrayMaxSize, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { SearchPaginationDto, LocationPaginationDto, DateRangePaginationDto } from '../common/pagination.dto';
-import { IsServiceType } from '../../utils/validation.utils';
+import { SearchPaginationDto, LocationPaginationDto, DateRangePaginationDto } from '../../common/dtos/pagination.dto';
+import { IsServiceType } from '../../../utils/validation.utils';
 
 /**
  * Provider search and filter DTO
@@ -178,4 +178,3 @@ export class ProviderRankingQueryDto {
   @Max(100, { message: 'Limit cannot exceed 100' })
   limit?: number = 10;
 }
-

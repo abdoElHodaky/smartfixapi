@@ -1,9 +1,6 @@
-import { IsString } from 'class-validator';
-
 /**
  * Verify email DTO
  */
-export class VerifyEmailDto {
-  @IsString({ message: 'Token must be a string' })
+export interface VerifyEmailDto {
   token: string;
 }

@@ -3,7 +3,7 @@ import { IsOptional, IsString, IsNumberString, IsIn, IsBoolean, Length } from 'c
 import { Transform } from 'class-transformer';
 
 // Internal imports
-import { PaginationDto } from '../common';
+import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 /**
  * Review query parameters DTO

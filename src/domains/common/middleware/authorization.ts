@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { User } from '../models/User';
+import { User } from '../../../models/User';
 
 /**
  * Middleware to authorize admin access
@@ -124,4 +124,3 @@ export const authorizeOwnerOrAdmin = (resourceUserIdField: string = 'userId') =>
     }
   };
 };
-

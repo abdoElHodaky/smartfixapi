@@ -6,11 +6,11 @@
  */
 
 import 'reflect-metadata';
-import { Module } from '../../decorators/module';
+import { Module } from '../../../decorators/module';
 
 // Import modules
-import { AuthModule } from '../auth/AuthModule';
-import { UserModule } from '../user/UserModule';
+import { AuthModule } from '../../auth/modules/AuthModule';
+import { UserModule } from '../../user/modules/UserModule';
 
 // Import services
 import { ProviderService } from '../services/ProviderService';

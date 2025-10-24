@@ -1,4 +1,5 @@
-import { PartialAddressDto, LocationDto } from '../common';
+import { PartialAddressDto } from '../../common/dtos/address.dto';
+import { LocationDto } from '../../common/dtos/location.dto';
 
 /**
  * Update user DTO

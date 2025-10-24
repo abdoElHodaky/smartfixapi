@@ -4,11 +4,11 @@
  * Strategy classes for managing provider portfolio items
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { ServiceProvider } from '../../models/ServiceProvider';
-import { User } from '../../models/User';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
+import { ServiceProvider } from '../../../models/ServiceProvider';
+import { User } from '../../../models/User';
 import { PortfolioOperationInput } from '../interfaces/ServiceStrategy';
 
 export class AddPortfolioItemStrategy implements AsyncStrategy<PortfolioOperationInput, CommandResult> {

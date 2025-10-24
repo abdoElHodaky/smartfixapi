@@ -20,7 +20,8 @@ export const generateObjectId = (): string => {
 export const createTestUser = (overrides: any = {}) => {
   return {
     _id: generateObjectId(),
-    name: faker.person.fullName(),
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
     email: faker.internet.email(),
     password: '$2b$10$hashedpassword', // Pre-hashed test password
     phone: faker.phone.number(),
@@ -210,7 +211,8 @@ export const createMultiple = <T>(factory: () => T, count: number): T[] => {
  */
 export const createTestDTOs = {
   userRegistration: (overrides: any = {}) => ({
-    name: faker.person.fullName(),
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
     email: faker.internet.email(),
     password: 'TestPassword123!',
     phone: faker.phone.number(),

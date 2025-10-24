@@ -45,7 +45,7 @@ import {
   RequireAuth, 
   RequireRoles,
   UseMiddleware 
-} from '../../decorators';
+} from '../../../decorators';
 
 // Middleware imports
 import { validateBody, validateQuery, validateParams } from '../../middleware';

@@ -4,9 +4,9 @@
  * Strategy implementations for chat notifications
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { NotificationOperationInput } from '../interfaces/BaseStrategy';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { NotificationOperationInput } from '../../common/interfaces/strategies';
 
 export class SendNotificationStrategy implements AsyncStrategy<NotificationOperationInput, CommandResult> {
   async execute(input: NotificationOperationInput): Promise<CommandResult> {

@@ -32,7 +32,7 @@ import {
   RequireAuth, 
   RequireRoles,
   Validate 
-} from '../decorators';
+} from '../../../decorators';
 
 @Controller({ path: '/admin' })
 export class AdminController extends BaseController {

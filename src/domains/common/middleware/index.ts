@@ -4,4 +4,4 @@
 
 export * from './errorHandler';
 export * from './validation';
-
+export * from './validation.middleware';

@@ -4,12 +4,12 @@
  * Strategy implementations for managing service request status changes
  */
 
-import { AsyncStrategy } from '../../utils/conditions/StrategyPatterns';
-import { CommandResult } from '../../utils/service-optimization/CommandBase';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { ServiceRequest } from '../../models/ServiceRequest';
-import { User } from '../../models/User';
-import { ServiceProvider } from '../../models/ServiceProvider';
+import { AsyncStrategy } from '../../../utils/conditions/StrategyPatterns';
+import { CommandResult } from '../../../utils/service-optimization/CommandBase';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
+import { ServiceRequest } from '../../../models/ServiceRequest';
+import { User } from '../../../models/User';
+import { ServiceProvider } from '../../../models/ServiceProvider';
 import { ServiceRequestOperationInput } from '../interfaces/ServiceStrategy';
 
 export class AcceptServiceRequestStrategy implements AsyncStrategy<ServiceRequestOperationInput, CommandResult> {

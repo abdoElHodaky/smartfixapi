@@ -71,7 +71,8 @@ describe('AuthController Integration Tests', () => {
       // Verify user was created in database
       const user = await User.findOne({ email: registrationData.email });
       expect(user).toBeTruthy();
-      expect(user?.name).toBe(registrationData.name);
+      expect(user?.firstName).toBe(registrationData.firstName);
+      expect(user?.lastName).toBe(registrationData.lastName);
     });
 
     it('should reject registration with existing email', async () => {

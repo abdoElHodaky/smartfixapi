@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { body, param, query, validationResult } from 'express-validator';
+import * as validator from 'express-validator';
+const { body, param, query, validationResult } = validator;
 
 // Middleware to handle validation errors
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
@@ -321,4 +322,3 @@ export const validateSearch = [
   
   handleValidationErrors,
 ];
-

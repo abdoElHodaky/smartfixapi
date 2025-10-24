@@ -1,6 +1,8 @@
-import { IsString, IsOptional, IsBoolean, IsDateString, IsEnum, IsArray, ValidateNested, IsNumber, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ValidationUtils } from '../../../utils/validation.utils';
+/**
+ * Provider Approval DTOs
+ * 
+ * Interface definitions for provider approval and management
+ */
 
 export enum ProviderApprovalStatus {
   PENDING = 'pending',
@@ -17,124 +19,43 @@ export enum DocumentType {
   OTHER = 'other'
 }
 
-class DocumentDto {
-  @IsString()
+export interface DocumentDto {
   type: DocumentType;
-
-  @IsString()
   url: string;
-
-  @IsOptional()
-  @IsString()
   name?: string;
-
-  @IsOptional()
-  @IsDateString()
   uploadedAt?: string;
-
-  @IsOptional()
-  @IsBoolean()
   verified?: boolean;
 }
 
-export class ProviderApprovalDto {
-  @IsObjectId()
+export interface ProviderApprovalDto {
   id: string;
-
-  @IsString()
   businessName: string;
-
-  @IsString()
   ownerName: string;
-
-  @IsString()
   email: string;
-
-  @IsString()
   phone: string;
-
-  @IsOptional()
-  @IsString()
   businessAddress?: string;
-
-  @IsArray()
-  @IsString({ each: true })
   serviceTypes: string[];
-
-  @IsOptional()
-  @IsString()
   description?: string;
-
-  @IsEnum(ProviderApprovalStatus)
   status: ProviderApprovalStatus;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => DocumentDto)
   documents: DocumentDto[];
-
-  @IsDateString()
   submittedAt: string;
-
-  @IsOptional()
-  @IsDateString()
   reviewedAt?: string;
-
-  @IsOptional()
-  @IsString()
   reviewedBy?: string;
-
-  @IsOptional()
-  @IsString()
   reviewNotes?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(5)
   rating?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
   totalJobs?: number;
 }
 
-export class ApproveProviderDto {
-  @IsEnum(ProviderApprovalStatus)
+export interface ApproveProviderDto {
   status: ProviderApprovalStatus;
-
-  @IsOptional()
-  @IsString()
   notes?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
   approvedServiceTypes?: string[];
 }
 
-export class ProviderSearchDto {
-  @IsOptional()
-  @IsString()
+export interface ProviderSearchDto {
   search?: string;
-
-  @IsOptional()
-  @IsEnum(ProviderApprovalStatus)
   status?: ProviderApprovalStatus;
-
-  @IsOptional()
-  @IsString()
   serviceType?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
   page?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
   limit?: number;
 }
