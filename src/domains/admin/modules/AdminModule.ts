@@ -19,7 +19,7 @@ import { ReviewModule } from '../review/ReviewModule';
 import { AdminService } from '../services/AdminService';
 
 // Import controllers
-import { AdminController } from '../controllers/AdminController';
+// AdminController import removed as it's not currently used
 
 @Module({
   imports: [
