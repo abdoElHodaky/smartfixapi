@@ -7,7 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { performance } from 'perf_hooks';
-import { devMetricsCollector } from '../utils/performance/DevMetrics';
+import { devMetricsCollector } from '../../../utils/performance/DevMetrics';
 
 export interface PerformanceRequest extends Request {
   startTime?: number;
