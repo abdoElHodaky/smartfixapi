@@ -41,13 +41,13 @@ jobs:
         fi
     
     - name: Lint
-      run: npm run lint || echo "Linting skipped"
+      run: npm run lint 
     
     - name: Build
-      run: npm run build || echo "Build skipped"
+      run: npm run build 
     
     - name: Test
-      run: npm test || echo "Tests skipped"
+      run: npm test 
     
     - name: Mock successful build
       run: |
