@@ -43,8 +43,8 @@ describe('UserService', () => {
     MockUser.mockImplementation(() => mockUserModel);
 
     // Import and instantiate the service after mocking
-    const { UserService } = await import('../../services/user/UserService.decorator');
-    userService = new UserService();
+    const { UserServiceStrategy } = await import('../../services/user/UserService');
+    userService = new UserServiceStrategy();
   });
 
   afterEach(() => {
@@ -176,13 +176,16 @@ describe('UserService', () => {
       };
       const mockUsers = [createTestUser(), createTestUser()];
 
-      MockUser.find = jest.fn().mockReturnThis();
+      const mockQuery = {
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockUsers)
+      };
+      
+      MockUser.find = jest.fn().mockReturnValue(mockQuery);
       MockUser.countDocuments = jest.fn().mockResolvedValue(2);
-      MockUser.skip = jest.fn().mockReturnThis();
-      MockUser.limit = jest.fn().mockReturnThis();
-      MockUser.sort = jest.fn().mockReturnThis();
-      MockUser.select = jest.fn().mockReturnThis();
-      MockUser.exec = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await userService.searchUsers(filters);
 
@@ -195,13 +198,16 @@ describe('UserService', () => {
     it('should handle empty search results', async () => {
       const filters = { name: 'NonExistent' };
 
-      MockUser.find = jest.fn().mockReturnThis();
+      const mockQuery = {
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([])
+      };
+      
+      MockUser.find = jest.fn().mockReturnValue(mockQuery);
       MockUser.countDocuments = jest.fn().mockResolvedValue(0);
-      MockUser.skip = jest.fn().mockReturnThis();
-      MockUser.limit = jest.fn().mockReturnThis();
-      MockUser.sort = jest.fn().mockReturnThis();
-      MockUser.select = jest.fn().mockReturnThis();
-      MockUser.exec = jest.fn().mockResolvedValue([]);
 
       const result = await userService.searchUsers(filters);
 

@@ -62,8 +62,8 @@ describe('AuthService', () => {
     });
 
     // Import and instantiate the service after mocking
-    const { AuthService } = await import('../../services/auth/AuthService.strategy');
-    authService = new AuthService();
+    const { AuthServiceStrategy } = await import('../../services/auth/AuthService');
+    authService = new AuthServiceStrategy();
   });
 
   afterEach(() => {
