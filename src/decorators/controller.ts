@@ -21,7 +21,7 @@ const VALIDATION_METADATA = Symbol('validation');
  */
 export interface ControllerOptions {
   path?: string;
-  middleware?: Function[];
+  middleware?: ((...args: any[]) => any)[];
   version?: string;
 }
 
@@ -31,7 +31,7 @@ export interface ControllerOptions {
 export interface RouteOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   path: string;
-  middleware?: Function[];
+  middleware?: ((...args: any[]) => any)[];
   validation?: any;
   roles?: string[];
 }
@@ -99,7 +99,7 @@ export function Route(options: RouteOptions) {
 /**
  * Middleware decorator
  */
-export function UseMiddleware(...middleware: Function[]) {
+export function UseMiddleware(...middleware: ((...args: any[]) => any)[]) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
     if (propertyKey && descriptor) {
       // Method-level middleware
@@ -161,7 +161,7 @@ export class ControllerMetadata {
     return Reflect.getMetadata(ROUTE_METADATA, target) || [];
   }
 
-  static getMiddlewareMetadata(target: any, propertyKey?: string): Function[] {
+  static getMiddlewareMetadata(target: any, propertyKey?: string): ((...args: any[]) => any)[] {
     if (propertyKey) {
       return Reflect.getMetadata(MIDDLEWARE_METADATA, target, propertyKey) || [];
     }
@@ -179,8 +179,8 @@ export class ControllerMetadata {
 export interface RegisteredRoute {
   method: string;
   path: string;
-  handler: Function;
-  middleware: Function[];
+  handler: (...args: any[]) => any;
+  middleware: ((...args: any[]) => any)[];
   validation?: any;
   roles: string[];
 }
@@ -202,4 +202,3 @@ export function extractRoutes(controllerClass: any): RegisteredRoute[] {
     roles: route.roles || [],
   }));
 }
-

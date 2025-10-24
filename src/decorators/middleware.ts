@@ -38,9 +38,10 @@ export function ValidateUserLogin() {
  * Rate limiting decorator
  * Applies rate limiting to the decorated method
  */
+import rateLimit from 'express-rate-limit';
+
 export function RateLimit(windowMs: number = 15 * 60 * 1000, max = 100) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const rateLimit = require('express-rate-limit');
     const limiter = rateLimit({
       windowMs,
       max,
@@ -58,9 +59,10 @@ export function RateLimit(windowMs: number = 15 * 60 * 1000, max = 100) {
  * CORS decorator
  * Applies CORS headers to the decorated method
  */
+import cors from 'cors';
+
 export function EnableCors(options?: any) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const cors = require('cors');
     const corsMiddleware = cors(options);
     
     attachMiddleware(target, propertyKey, corsMiddleware);
@@ -71,9 +73,10 @@ export function EnableCors(options?: any) {
  * Custom validation decorator
  * Applies custom validation middleware to the decorated method
  */
+import { body, validationResult } from 'express-validator';
+
 export function Validate(validationRules: any[]) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const { body, validationResult } = require('express-validator');
     
     // Apply validation rules
     validationRules.forEach(rule => {
@@ -150,4 +153,3 @@ export function Log(message?: string) {
     return descriptor;
   };
 }
-

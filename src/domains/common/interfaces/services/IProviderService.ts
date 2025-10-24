@@ -106,10 +106,7 @@ export interface IProviderService {
    */
   getAllProviders(filters: ProviderFiltersDto): Promise<PaginatedResponseDto<any>>;
 
-  /**
-   * Get provider reviews by delegating to ReviewService
-   */
-  getProviderReviews(providerId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+
 
   /**
    * Get provider service requests by delegating to ServiceRequestService
