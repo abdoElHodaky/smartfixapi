@@ -5,8 +5,6 @@
  */
 
 import { jest, describe, beforeEach, afterEach, it, expect } from '@jest/globals';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { Types } from 'mongoose';
 
 // Import test utilities
@@ -14,6 +12,10 @@ import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatab
 import { createTestUser, createTestProvider, createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
 import { createMockModel, resetAllMocks } from '../utils/mockHelpers';
 import { testConfig } from '../config/testConfig';
+
+// Import mocks
+import { mockBcrypt } from '../mocks/bcrypt.mock';
+import { mockJwt } from '../mocks/jwt.mock';
 
 // Import the service and dependencies
 import { User } from '../../models/User';
@@ -23,13 +25,9 @@ import { AuthenticationError, ValidationError, NotFoundError } from '../../middl
 // Mock the models
 jest.mock('../../models/User');
 jest.mock('../../models/ServiceProvider');
-jest.mock('bcrypt');
-jest.mock('jsonwebtoken');
 
 const MockUser = User as jest.MockedClass<typeof User>;
 const MockServiceProvider = ServiceProvider as jest.MockedClass<typeof ServiceProvider>;
-const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
-const mockJwt = jwt as jest.Mocked<typeof jwt>;
 
 describe('AuthService', () => {
   let authService: any;
@@ -50,12 +48,12 @@ describe('AuthService', () => {
     MockServiceProvider.mockImplementation(() => mockProviderModel);
 
     // Mock bcrypt methods
-    mockBcrypt.hash = jest.fn().mockResolvedValue('$2b$10$hashedpassword');
-    mockBcrypt.compare = jest.fn().mockResolvedValue(true);
+    mockBcrypt.hash.mockResolvedValue('$2b$10$hashedpassword');
+    mockBcrypt.compare.mockResolvedValue(true);
 
     // Mock JWT methods
-    mockJwt.sign = jest.fn().mockReturnValue('mock-jwt-token');
-    mockJwt.verify = jest.fn().mockReturnValue({
+    mockJwt.sign.mockReturnValue('mock-jwt-token');
+    mockJwt.verify.mockReturnValue({
       userId: 'mock-user-id',
       email: 'test@example.com',
       role: 'user'
