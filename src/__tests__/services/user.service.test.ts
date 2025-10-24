@@ -227,13 +227,16 @@ describe('UserService', () => {
       const userId = 'test-user-id';
       const mockRequests = [createTestServiceRequest(), createTestServiceRequest()];
 
-      MockServiceRequest.find = jest.fn().mockReturnThis();
+      const mockQuery = {
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockRequests)
+      };
+      
+      MockServiceRequest.find = jest.fn().mockReturnValue(mockQuery);
       MockServiceRequest.countDocuments = jest.fn().mockResolvedValue(2);
-      MockServiceRequest.populate = jest.fn().mockReturnThis();
-      MockServiceRequest.sort = jest.fn().mockReturnThis();
-      MockServiceRequest.skip = jest.fn().mockReturnThis();
-      MockServiceRequest.limit = jest.fn().mockReturnThis();
-      MockServiceRequest.exec = jest.fn().mockResolvedValue(mockRequests);
 
       const result = await userService.getUserServiceRequests(userId);
 
@@ -245,13 +248,16 @@ describe('UserService', () => {
       const userId = 'test-user-id';
       const status = 'completed';
 
-      MockServiceRequest.find = jest.fn().mockReturnThis();
+      const mockQuery = {
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([])
+      };
+      
+      MockServiceRequest.find = jest.fn().mockReturnValue(mockQuery);
       MockServiceRequest.countDocuments = jest.fn().mockResolvedValue(0);
-      MockServiceRequest.populate = jest.fn().mockReturnThis();
-      MockServiceRequest.sort = jest.fn().mockReturnThis();
-      MockServiceRequest.skip = jest.fn().mockReturnThis();
-      MockServiceRequest.limit = jest.fn().mockReturnThis();
-      MockServiceRequest.exec = jest.fn().mockResolvedValue([]);
 
       await userService.getUserServiceRequests(userId, status);
 
@@ -264,13 +270,16 @@ describe('UserService', () => {
       const userId = 'test-user-id';
       const mockReviews = [createTestReview(), createTestReview()];
 
-      MockReview.find = jest.fn().mockReturnThis();
+      const mockQuery = {
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockReviews)
+      };
+      
+      MockReview.find = jest.fn().mockReturnValue(mockQuery);
       MockReview.countDocuments = jest.fn().mockResolvedValue(2);
-      MockReview.populate = jest.fn().mockReturnThis();
-      MockReview.sort = jest.fn().mockReturnThis();
-      MockReview.skip = jest.fn().mockReturnThis();
-      MockReview.limit = jest.fn().mockReturnThis();
-      MockReview.exec = jest.fn().mockResolvedValue(mockReviews);
 
       const result = await userService.getUserReviews(userId);
 

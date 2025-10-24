@@ -191,11 +191,13 @@ describe('System Health Smoke Tests', () => {
       expect(foundUser?.email).toBe('smoketest@example.com');
 
       // Test database update
-      foundUser!.name = 'Updated Smoke Test User';
+      foundUser!.firstName = 'Updated';
+      foundUser!.lastName = 'Smoke Test User';
       await foundUser!.save();
 
       const updatedUser = await User.findById(savedUser._id);
-      expect(updatedUser?.name).toBe('Updated Smoke Test User');
+      expect(updatedUser?.firstName).toBe('Updated');
+      expect(updatedUser?.lastName).toBe('Smoke Test User');
 
       // Test database delete
       await User.findByIdAndDelete(savedUser._id);
