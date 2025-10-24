@@ -5,21 +5,14 @@
  * with optimized execution, validation, and event sourcing capabilities.
  */
 
-import { IsString, IsOptional, IsObject, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsObject, IsNotEmpty } from 'class-validator';
+// Removed unused Type import from class-transformer
 import { 
-  BaseCommand, 
-  ICommand, 
-  ICommandHandler, 
-  CommandResult, 
-  CommandMetadata,
-  IEvent,
-  BaseEvent,
-  EventMetadata
+  CommandResult
 } from '../core';
-import { IUserService, IProviderService, IServiceRequestService } from '../../interfaces/services';
+import { IUserService, IProviderService } from '../../interfaces/services';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
 import { StrategyRegistry, AsyncStrategyRegistry } from '../../utils/conditions/StrategyPatterns';
 import { FilterBuilder } from '../../utils/service-optimization/FilterBuilder';
 import { OptionsBuilder } from '../../utils/service-optimization/OptionsBuilder';
@@ -36,12 +29,7 @@ enum ProviderStatus {
   PENDING = 'pending'
 }
 
-enum UserAction {
-  DELETE = 'delete',
-  SUSPEND = 'suspend',
-  ACTIVATE = 'activate',
-  UPDATE_ROLE = 'update_role'
-}
+// Removed unused UserAction enum
 
 // Base admin command with permission validation
 abstract class AdminCommandBase<TResult = any> extends CommandBase<TResult> {
