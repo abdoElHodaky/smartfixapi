@@ -4,7 +4,7 @@
  * End-to-end tests for complete user registration and onboarding workflows.
  */
 
-import { jest, describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
+import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import bcrypt from 'bcrypt';
@@ -12,7 +12,7 @@ import bcrypt from 'bcrypt';
 // Import test utilities
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatabase';
 import { createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
-import { testConfig } from '../config/testConfig';
+// Removed unused testConfig import
 
 // Import models for verification
 import { User } from '../../models/User';

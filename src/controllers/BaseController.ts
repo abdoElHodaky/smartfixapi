@@ -76,7 +76,7 @@ export abstract class BaseController {
       return false;
     }
 
-    if (!allowedRoles.includes(req.user!.role)) {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
       this.sendError(res, 'Insufficient permissions', 403);
       return false;
     }

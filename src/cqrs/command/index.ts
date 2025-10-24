@@ -224,11 +224,11 @@ export class CommandExecutionUtils {
         console.error(`Command failed after ${executionTime}ms: ${command.constructor.name}`, error);
       }
 
-      if (opts.retryOnFailure && opts.maxRetries! > 0) {
+      if (opts.retryOnFailure && opts.maxRetries > 0) {
         console.log(`Retrying command: ${command.constructor.name} (${opts.maxRetries} attempts remaining)`);
         return this.executeCommand(command, {
           ...opts,
-          maxRetries: opts.maxRetries! - 1
+          maxRetries: opts.maxRetries - 1
         });
       }
 

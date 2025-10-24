@@ -1,0 +1,617 @@
+
+> smartfix-api@1.0.0 lint
+> eslint . --ext .ts
+
+
+/tmp/abdoElHodaky/smartfixapi/src/__tests__/e2e/user-registration-flow.test.ts
+    7:10  warning  'jest' is defined but never used                @typescript-eslint/no-unused-vars
+   15:10  warning  'testConfig' is defined but never used          @typescript-eslint/no-unused-vars
+  244:13  warning  'adminUser' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/__tests__/integration/auth.controller.test.ts
+    7:10  warning  'jest' is defined but never used            @typescript-eslint/no-unused-vars
+   14:10  warning  'createTestUser' is defined but never used  @typescript-eslint/no-unused-vars
+   15:10  warning  'testConfig' is defined but never used      @typescript-eslint/no-unused-vars
+  307:13  warning  'user' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/__tests__/services/AdminService.optimized.test.ts
+  165:13  warning  'mockLogs' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/__tests__/services/auth.service.test.ts
+  10:10  warning  'Types' is defined but never used             @typescript-eslint/no-unused-vars
+  13:10  warning  'connectTestDB' is defined but never used     @typescript-eslint/no-unused-vars
+  13:25  warning  'disconnectTestDB' is defined but never used  @typescript-eslint/no-unused-vars
+  13:43  warning  'clearTestDB' is defined but never used       @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/__tests__/services/user.service.test.ts
+   8:10  warning  'Types' is defined but never used                  @typescript-eslint/no-unused-vars
+  11:70  warning  'createTestDTOs' is defined but never used         @typescript-eslint/no-unused-vars
+  12:27  warning  'createMockUserService' is defined but never used  @typescript-eslint/no-unused-vars
+  13:10  warning  'testConfig' is defined but never used             @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/__tests__/smoke/system-health.test.ts
+    7:10  warning  'jest' is defined but never used               @typescript-eslint/no-unused-vars
+  161:13  warning  'response' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  194:7   warning  Forbidden non-null assertion                   @typescript-eslint/no-non-null-assertion
+  195:13  warning  Forbidden non-null assertion                   @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/container/OptimizedContainer.ts
+  11:31  warning  'DevMetricsCollector' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/controllers/BaseController.ts
+  79:32  warning  Forbidden non-null assertion                  @typescript-eslint/no-non-null-assertion
+  91:29  warning  '_data' is defined but never used             @typescript-eslint/no-unused-vars
+  91:41  warning  '_validationRules' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/controllers/auth/AuthController.ts
+   40:3   warning  'Validate' is defined but never used  @typescript-eslint/no-unused-vars
+  127:56  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+  150:58  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+  173:37  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+  244:54  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/controllers/chat/ChatController.ts
+   12:10  warning  'Request' is defined but never used             @typescript-eslint/no-unused-vars
+   26:3   warning  'ChatCreationDto' is defined but never used     @typescript-eslint/no-unused-vars
+   27:3   warning  'MessageCreationDto' is defined but never used  @typescript-eslint/no-unused-vars
+   75:87  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  112:17  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  141:58  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  170:65  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  208:19  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  237:69  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  271:72  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  302:13  warning  'chatId' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  306:70  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  325:13  warning  'chatId' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  328:55  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  350:73  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  385:76  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  407:64  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  427:67  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  462:60  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  503:65  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/controllers/provider/ProviderController.ts
+   21:3   warning  'ProviderProfileDto' is defined but never used  @typescript-eslint/no-unused-vars
+   37:3   warning  'UseMiddleware' is defined but never used       @typescript-eslint/no-unused-vars
+   42:10  warning  'validateBody' is defined but never used        @typescript-eslint/no-unused-vars
+   42:24  warning  'validateQuery' is defined but never used       @typescript-eslint/no-unused-vars
+   42:39  warning  'validateParams' is defined but never used      @typescript-eslint/no-unused-vars
+   45:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+   70:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  106:71  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  127:71  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  152:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  187:70  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  221:71  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  248:9   warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  275:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  320:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  353:9   warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  384:56  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  405:69  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  438:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/controllers/request/RequestController.ts
+   12:10  warning  'Request' is defined but never used                  @typescript-eslint/no-unused-vars
+   31:3   warning  'RequestLocationQueryDto' is defined but never used  @typescript-eslint/no-unused-vars
+   33:3   warning  'ObjectIdParamDto' is defined but never used         @typescript-eslint/no-unused-vars
+   35:3   warning  'PaginationDto' is defined but never used            @typescript-eslint/no-unused-vars
+   81:17  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  109:71  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  111:17  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  135:88  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  161:9   warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  186:72  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  217:81  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  248:66  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  273:9   warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  298:90  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  325:87  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  352:72  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  377:76  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  379:21  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  404:78  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/controllers/review/ReviewController.ts
+   12:10  warning  'Request' is defined but never used  @typescript-eslint/no-unused-vars
+   79:60  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  121:70  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  144:55  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  224:62  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  292:71  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  318:75  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  342:75  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  367:53  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  390:74  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/controllers/user/UserController.ts
+   12:10  warning  'Request' is defined but never used         @typescript-eslint/no-unused-vars
+   21:3   warning  'UserProfileDto' is defined but never used  @typescript-eslint/no-unused-vars
+   24:3   warning  'PaginationDto' is defined but never used   @typescript-eslint/no-unused-vars
+   36:3   warning  'UseMiddleware' is defined but never used   @typescript-eslint/no-unused-vars
+   41:10  warning  'validateBody' is defined but never used    @typescript-eslint/no-unused-vars
+   41:24  warning  'validateQuery' is defined but never used   @typescript-eslint/no-unused-vars
+   41:39  warning  'validateParams' is defined but never used  @typescript-eslint/no-unused-vars
+   71:60  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  108:63  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  133:64  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  153:49  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  173:63  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  197:61  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  227:60  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  268:9   warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  303:48  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  326:62  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  358:51  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/cqrs/command/AdminCommands.old.ts
+    8:42  warning  'IsEnum' is defined but never used                   @typescript-eslint/no-unused-vars
+    8:62  warning  'IsArray' is defined but never used                  @typescript-eslint/no-unused-vars
+    8:71  warning  'ValidateNested' is defined but never used           @typescript-eslint/no-unused-vars
+    9:10  warning  'Type' is defined but never used                     @typescript-eslint/no-unused-vars
+   11:3   warning  'BaseCommand' is defined but never used              @typescript-eslint/no-unused-vars
+   12:3   warning  'ICommand' is defined but never used                 @typescript-eslint/no-unused-vars
+   13:3   warning  'ICommandHandler' is defined but never used          @typescript-eslint/no-unused-vars
+   15:3   warning  'CommandMetadata' is defined but never used          @typescript-eslint/no-unused-vars
+   16:3   warning  'IEvent' is defined but never used                   @typescript-eslint/no-unused-vars
+   17:3   warning  'BaseEvent' is defined but never used                @typescript-eslint/no-unused-vars
+   18:3   warning  'EventMetadata' is defined but never used            @typescript-eslint/no-unused-vars
+   20:42  warning  'IServiceRequestService' is defined but never used   @typescript-eslint/no-unused-vars
+   22:30  warning  'AggregationUtils' is defined but never used         @typescript-eslint/no-unused-vars
+   39:6   warning  'UserAction' is defined but never used               @typescript-eslint/no-unused-vars
+  103:43  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  106:30  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  117:13  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  173:43  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  176:30  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  182:13  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  248:43  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  251:30  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  257:13  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  315:43  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  318:26  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  332:13  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  427:43  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  461:11  warning  'optionsBuilder' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  491:11  warning  'optionsBuilder' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  588:11  warning  'filterBuilder' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  589:11  warning  'optionsBuilder' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  669:43  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  677:30  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  684:17  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/cqrs/command/AdminCommands.ts
+   8:10  warning  'IsString' is defined but never used                @typescript-eslint/no-unused-vars
+   8:20  warning  'IsOptional' is defined but never used              @typescript-eslint/no-unused-vars
+   8:32  warning  'IsObject' is defined but never used                @typescript-eslint/no-unused-vars
+   8:42  warning  'IsEnum' is defined but never used                  @typescript-eslint/no-unused-vars
+   8:50  warning  'IsNotEmpty' is defined but never used              @typescript-eslint/no-unused-vars
+   8:62  warning  'IsArray' is defined but never used                 @typescript-eslint/no-unused-vars
+   8:71  warning  'ValidateNested' is defined but never used          @typescript-eslint/no-unused-vars
+   9:10  warning  'Type' is defined but never used                    @typescript-eslint/no-unused-vars
+  16:3   warning  'IEvent' is defined but never used                  @typescript-eslint/no-unused-vars
+  21:42  warning  'IServiceRequestService' is defined but never used  @typescript-eslint/no-unused-vars
+  23:30  warning  'AggregationUtils' is defined but never used        @typescript-eslint/no-unused-vars
+  26:10  warning  'OptionsBuilder' is defined but never used          @typescript-eslint/no-unused-vars
+  41:6   warning  'UserRole' is defined but never used                @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/cqrs/command/UserCommands.ts
+    8:72  warning  'ValidateNested' is defined but never used            @typescript-eslint/no-unused-vars
+    9:10  warning  'Type' is defined but never used                      @typescript-eslint/no-unused-vars
+   11:3   warning  'BaseCommand' is defined but never used               @typescript-eslint/no-unused-vars
+   12:3   warning  'ICommand' is defined but never used                  @typescript-eslint/no-unused-vars
+   13:3   warning  'ICommandHandler' is defined but never used           @typescript-eslint/no-unused-vars
+   15:3   warning  'CommandMetadata' is defined but never used           @typescript-eslint/no-unused-vars
+   16:3   warning  'IEvent' is defined but never used                    @typescript-eslint/no-unused-vars
+   17:3   warning  'BaseEvent' is defined but never used                 @typescript-eslint/no-unused-vars
+   18:3   warning  'EventMetadata' is defined but never used             @typescript-eslint/no-unused-vars
+   19:3   warning  'CQRSUtils' is defined but never used                 @typescript-eslint/no-unused-vars
+   24:28  warning  'AsyncStrategyRegistry' is defined but never used     @typescript-eslint/no-unused-vars
+  133:34  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  139:13  warning  'emailValidation' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  160:29  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  220:37  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  236:33  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  280:37  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  283:26  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  284:44  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  300:13  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  355:13  warning  'optionsBuilder' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  474:11  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  478:11  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  482:11  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  486:11  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/cqrs/command/index.ts
+  227:34  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  231:23  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/cqrs/core/index.ts
+   9:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+  10:10  warning  'AggregationBuilder' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/decorators/middleware.ts
+    8:10  warning  'body' is defined but never used        @typescript-eslint/no-unused-vars
+   15:54  warning  'descriptor' is defined but never used  @typescript-eslint/no-unused-vars
+   25:54  warning  'descriptor' is defined but never used  @typescript-eslint/no-unused-vars
+   35:54  warning  'descriptor' is defined but never used  @typescript-eslint/no-unused-vars
+   45:54  warning  'descriptor' is defined but never used  @typescript-eslint/no-unused-vars
+   64:54  warning  'descriptor' is defined but never used  @typescript-eslint/no-unused-vars
+   76:54  warning  'descriptor' is defined but never used  @typescript-eslint/no-unused-vars
+  129:54  warning  'descriptor' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/admin/dtos/platform-statistics.dto.ts
+  1:48  warning  'IsObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/admin/modules/AdminModule.ts
+  22:10  warning  'AdminController' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/admin/services/AdminService.ts
+   19:3   warning  'UserManagementDto' is defined but never used  @typescript-eslint/no-unused-vars
+  748:27  warning  'type' is defined but never used               @typescript-eslint/no-unused-vars
+  821:51  warning  'dateRange' is defined but never used          @typescript-eslint/no-unused-vars
+  847:39  warning  'dateRange' is defined but never used          @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/admin/services/AdminServiceStrategy.ts
+  10:10  warning  'User' is defined but never used                  @typescript-eslint/no-unused-vars
+  17:3   warning  'ApiResponseDto' is defined but never used        @typescript-eslint/no-unused-vars
+  18:3   warning  'PaginatedResponseDto' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/admin/strategies/AdminStrategies.ts
+  100:17  warning  'input' is defined but never used  @typescript-eslint/no-unused-vars
+  128:17  warning  'input' is defined but never used  @typescript-eslint/no-unused-vars
+  151:17  warning  'input' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/auth/controllers/AuthController.ts
+   40:3   warning  'Validate' is defined but never used  @typescript-eslint/no-unused-vars
+  127:56  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+  150:58  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+  173:37  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+  244:54  warning  Forbidden non-null assertion          @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/auth/services/AuthService.ts
+   9:22  warning  'Inject' is defined but never used              @typescript-eslint/no-unused-vars
+  25:30  warning  'AggregationUtils' is defined but never used    @typescript-eslint/no-unused-vars
+  29:3   warning  'Strategy' is defined but never used            @typescript-eslint/no-unused-vars
+  30:3   warning  'AsyncStrategy' is defined but never used       @typescript-eslint/no-unused-vars
+  32:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+  32:30  warning  'RoleCheckOptions' is defined but never used    @typescript-eslint/no-unused-vars
+  33:10  warning  'CommandBase' is defined but never used         @typescript-eslint/no-unused-vars
+  33:38  warning  'CommandContext' is defined but never used      @typescript-eslint/no-unused-vars
+  63:3   warning  'Validate' is defined but never used            @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/auth/strategies/AuthStrategies.ts
+   64:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   74:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  306:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  422:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/chat/controllers/ChatController.ts
+   12:10  warning  'Request' is defined but never used             @typescript-eslint/no-unused-vars
+   26:3   warning  'ChatCreationDto' is defined but never used     @typescript-eslint/no-unused-vars
+   27:3   warning  'MessageCreationDto' is defined but never used  @typescript-eslint/no-unused-vars
+   75:87  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  112:17  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  141:58  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  170:65  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  208:19  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  237:69  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  271:72  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  302:13  warning  'chatId' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  306:70  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  325:13  warning  'chatId' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  328:55  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  350:73  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  385:76  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  407:64  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  427:67  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  462:60  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  503:65  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/chat/services/ChatService.ts
+   27:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+   41:3   warning  'Retryable' is defined but never used           @typescript-eslint/no-unused-vars
+  615:68  warning  'isTyping' is defined but never used            @typescript-eslint/no-unused-vars
+  623:62  warning  'reason' is defined but never used              @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/common/BaseController.ts
+  13:29  warning  'NextFunction' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/common/dtos/params.dto.ts
+  1:20  warning  'IsOptional' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/common/interfaces/services.ts
+  5:10  warning  'User' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/common/middleware/auth.ts
+  1:10  warning  'Request' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/common/middleware/errorHandler.ts
+   2:8  warning  'mongoose' is defined but never used  @typescript-eslint/no-unused-vars
+  16:3  warning  'next' is defined but never used      @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/common/utils/validation.utils.ts
+   20:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+   43:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+   67:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  107:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  131:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  153:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  175:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  203:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  232:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  257:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  288:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  310:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  340:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  371:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  397:30  warning  '_args' is defined but never used  @typescript-eslint/no-unused-vars
+  422:30  warning  '_args' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/provider/controllers/ProviderController.ts
+   21:3   warning  'ProviderProfileDto' is defined but never used  @typescript-eslint/no-unused-vars
+   37:3   warning  'UseMiddleware' is defined but never used       @typescript-eslint/no-unused-vars
+   42:10  warning  'validateBody' is defined but never used        @typescript-eslint/no-unused-vars
+   42:24  warning  'validateQuery' is defined but never used       @typescript-eslint/no-unused-vars
+   42:39  warning  'validateParams' is defined but never used      @typescript-eslint/no-unused-vars
+   45:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+   70:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  106:71  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  127:71  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  152:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  187:70  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  221:71  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  248:9   warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  275:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  320:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  353:9   warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  384:56  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  405:69  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+  438:68  warning  Forbidden non-null assertion                    @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/provider/services/ProviderService.ts
+  11:10  warning  'User' is defined but never used                 @typescript-eslint/no-unused-vars
+  14:42  warning  'AuthenticationError' is defined but never used  @typescript-eslint/no-unused-vars
+  25:30  warning  'AggregationUtils' is defined but never used     @typescript-eslint/no-unused-vars
+  27:3   warning  'StrategyRegistry' is defined but never used     @typescript-eslint/no-unused-vars
+  29:3   warning  'Strategy' is defined but never used             @typescript-eslint/no-unused-vars
+  30:3   warning  'AsyncStrategy' is defined but never used        @typescript-eslint/no-unused-vars
+  32:10  warning  'ConditionalHelpers' is defined but never used   @typescript-eslint/no-unused-vars
+  32:30  warning  'RoleCheckOptions' is defined but never used     @typescript-eslint/no-unused-vars
+  33:10  warning  'CommandBase' is defined but never used          @typescript-eslint/no-unused-vars
+  33:38  warning  'CommandContext' is defined but never used       @typescript-eslint/no-unused-vars
+  71:3   warning  'Validate' is defined but never used             @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/request/controllers/RequestController.ts
+   12:10  warning  'Request' is defined but never used                  @typescript-eslint/no-unused-vars
+   31:3   warning  'RequestLocationQueryDto' is defined but never used  @typescript-eslint/no-unused-vars
+   33:3   warning  'ObjectIdParamDto' is defined but never used         @typescript-eslint/no-unused-vars
+   35:3   warning  'PaginationDto' is defined but never used            @typescript-eslint/no-unused-vars
+   81:17  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  109:71  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  111:17  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  135:88  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  161:9   warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  186:72  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  217:81  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  248:66  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  273:9   warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  298:90  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  325:87  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  352:72  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  377:76  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  379:21  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+  404:78  warning  Forbidden non-null assertion                         @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/request/dtos/request-query.dto.ts
+  1:78  warning  'Max' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/request/services/ServiceRequestService.ts
+  12:10  warning  'User' is defined but never used                @typescript-eslint/no-unused-vars
+  27:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+  41:3   warning  'Retryable' is defined but never used           @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/request/strategies/RequestOperationStrategies.ts
+  13:10  warning  'ServiceProvider' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/review/controllers/ReviewController.ts
+   12:10  warning  'Request' is defined but never used  @typescript-eslint/no-unused-vars
+   79:60  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  121:70  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  144:55  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  224:62  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  292:71  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  318:75  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  342:75  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  367:53  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+  390:74  warning  Forbidden non-null assertion         @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/review/services/ReviewService.ts
+  13:10  warning  'User' is defined but never used                    @typescript-eslint/no-unused-vars
+  15:58  warning  'IServiceRequestService' is defined but never used  @typescript-eslint/no-unused-vars
+  28:10  warning  'ConditionalHelpers' is defined but never used      @typescript-eslint/no-unused-vars
+  42:3   warning  'Retryable' is defined but never used               @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/user/controllers/UserController.ts
+   12:10  warning  'Request' is defined but never used         @typescript-eslint/no-unused-vars
+   21:3   warning  'UserProfileDto' is defined but never used  @typescript-eslint/no-unused-vars
+   24:3   warning  'PaginationDto' is defined but never used   @typescript-eslint/no-unused-vars
+   36:3   warning  'UseMiddleware' is defined but never used   @typescript-eslint/no-unused-vars
+   41:10  warning  'validateBody' is defined but never used    @typescript-eslint/no-unused-vars
+   41:24  warning  'validateQuery' is defined but never used   @typescript-eslint/no-unused-vars
+   41:39  warning  'validateParams' is defined but never used  @typescript-eslint/no-unused-vars
+   71:60  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  108:63  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  133:64  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  153:49  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  173:63  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  197:61  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  227:60  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  268:9   warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  303:48  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  326:62  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+  358:51  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/user/services/UserService.ts
+  10:10  warning  'User' is defined but never used                 @typescript-eslint/no-unused-vars
+  13:42  warning  'AuthenticationError' is defined but never used  @typescript-eslint/no-unused-vars
+  20:3   warning  'UserStatisticsDto' is defined but never used    @typescript-eslint/no-unused-vars
+  24:30  warning  'AggregationUtils' is defined but never used     @typescript-eslint/no-unused-vars
+  26:3   warning  'StrategyRegistry' is defined but never used     @typescript-eslint/no-unused-vars
+  28:3   warning  'Strategy' is defined but never used             @typescript-eslint/no-unused-vars
+  29:3   warning  'AsyncStrategy' is defined but never used        @typescript-eslint/no-unused-vars
+  31:10  warning  'ConditionalHelpers' is defined but never used   @typescript-eslint/no-unused-vars
+  31:30  warning  'RoleCheckOptions' is defined but never used     @typescript-eslint/no-unused-vars
+  32:10  warning  'CommandBase' is defined but never used          @typescript-eslint/no-unused-vars
+  32:38  warning  'CommandContext' is defined but never used       @typescript-eslint/no-unused-vars
+  41:3   warning  'Validate' is defined but never used             @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/domains/user/strategies/UserStrategies.ts
+  15:10  warning  'StatisticsOperationInput' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/dtos/admin/platform-statistics.dto.ts
+  1:48  warning  'IsObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/dtos/common/params.dto.ts
+  1:20  warning  'IsOptional' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/dtos/request/request-query.dto.ts
+  1:78  warning  'Max' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/dtos/service-operations/ReportGenerationOptions.dto.ts
+  8:70  warning  'IsDate' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/dtos/statistics/query.dto.ts
+  1:78  warning  'Max' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/middleware/auth.ts
+  1:10  warning  'Request' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/middleware/errorHandler.ts
+  104:3  warning  'next' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/services/ServiceRegistry.ts
+   10:10  warning  'ServiceUtils' is defined but never used  @typescript-eslint/no-unused-vars
+   25:10  warning  'CommandBase' is defined but never used   @typescript-eslint/no-unused-vars
+  282:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  286:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  303:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/services/admin/AdminService.ts
+   19:3   warning  'UserManagementDto' is defined but never used  @typescript-eslint/no-unused-vars
+  748:27  warning  'type' is defined but never used               @typescript-eslint/no-unused-vars
+  821:51  warning  'dateRange' is defined but never used          @typescript-eslint/no-unused-vars
+  847:39  warning  'dateRange' is defined but never used          @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/services/auth/AuthService.ts
+   9:22  warning  'Inject' is defined but never used              @typescript-eslint/no-unused-vars
+  25:30  warning  'AggregationUtils' is defined but never used    @typescript-eslint/no-unused-vars
+  29:3   warning  'Strategy' is defined but never used            @typescript-eslint/no-unused-vars
+  30:3   warning  'AsyncStrategy' is defined but never used       @typescript-eslint/no-unused-vars
+  32:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+  32:30  warning  'RoleCheckOptions' is defined but never used    @typescript-eslint/no-unused-vars
+  33:10  warning  'CommandBase' is defined but never used         @typescript-eslint/no-unused-vars
+  33:38  warning  'CommandContext' is defined but never used      @typescript-eslint/no-unused-vars
+  63:3   warning  'Validate' is defined but never used            @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/services/chat/ChatService.ts
+   27:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+   41:3   warning  'Retryable' is defined but never used           @typescript-eslint/no-unused-vars
+  615:68  warning  'isTyping' is defined but never used            @typescript-eslint/no-unused-vars
+  623:62  warning  'reason' is defined but never used              @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/services/provider/ProviderService.ts
+  11:10  warning  'User' is defined but never used                 @typescript-eslint/no-unused-vars
+  14:42  warning  'AuthenticationError' is defined but never used  @typescript-eslint/no-unused-vars
+  25:30  warning  'AggregationUtils' is defined but never used     @typescript-eslint/no-unused-vars
+  27:3   warning  'StrategyRegistry' is defined but never used     @typescript-eslint/no-unused-vars
+  29:3   warning  'Strategy' is defined but never used             @typescript-eslint/no-unused-vars
+  30:3   warning  'AsyncStrategy' is defined but never used        @typescript-eslint/no-unused-vars
+  32:10  warning  'ConditionalHelpers' is defined but never used   @typescript-eslint/no-unused-vars
+  32:30  warning  'RoleCheckOptions' is defined but never used     @typescript-eslint/no-unused-vars
+  33:10  warning  'CommandBase' is defined but never used          @typescript-eslint/no-unused-vars
+  33:38  warning  'CommandContext' is defined but never used       @typescript-eslint/no-unused-vars
+  71:3   warning  'Validate' is defined but never used             @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/services/request/ServiceRequestService.ts
+  12:10  warning  'User' is defined but never used                @typescript-eslint/no-unused-vars
+  27:10  warning  'ConditionalHelpers' is defined but never used  @typescript-eslint/no-unused-vars
+  41:3   warning  'Retryable' is defined but never used           @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/services/review/ReviewService.ts
+  13:10  warning  'User' is defined but never used                    @typescript-eslint/no-unused-vars
+  15:58  warning  'IServiceRequestService' is defined but never used  @typescript-eslint/no-unused-vars
+  28:10  warning  'ConditionalHelpers' is defined but never used      @typescript-eslint/no-unused-vars
+  42:3   warning  'Retryable' is defined but never used               @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/services/user/UserService.ts
+  10:10  warning  'User' is defined but never used                 @typescript-eslint/no-unused-vars
+  13:42  warning  'AuthenticationError' is defined but never used  @typescript-eslint/no-unused-vars
+  20:3   warning  'UserStatisticsDto' is defined but never used    @typescript-eslint/no-unused-vars
+  24:30  warning  'AggregationUtils' is defined but never used     @typescript-eslint/no-unused-vars
+  26:3   warning  'StrategyRegistry' is defined but never used     @typescript-eslint/no-unused-vars
+  28:3   warning  'Strategy' is defined but never used             @typescript-eslint/no-unused-vars
+  29:3   warning  'AsyncStrategy' is defined but never used        @typescript-eslint/no-unused-vars
+  31:10  warning  'ConditionalHelpers' is defined but never used   @typescript-eslint/no-unused-vars
+  31:30  warning  'RoleCheckOptions' is defined but never used     @typescript-eslint/no-unused-vars
+  32:10  warning  'CommandBase' is defined but never used          @typescript-eslint/no-unused-vars
+  32:38  warning  'CommandContext' is defined but never used       @typescript-eslint/no-unused-vars
+  41:3   warning  'Validate' is defined but never used             @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/strategy/admin/AdminStrategies.ts
+  100:17  warning  'input' is defined but never used  @typescript-eslint/no-unused-vars
+  128:17  warning  'input' is defined but never used  @typescript-eslint/no-unused-vars
+  151:17  warning  'input' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/strategy/auth/AuthStrategies.ts
+   64:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+   74:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  306:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  422:19  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/tmp/abdoElHodaky/smartfixapi/src/strategy/interfaces/BaseStrategy.ts
+  7:10  warning  'CommandResult' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/strategy/request/RequestOperationStrategies.ts
+  13:10  warning  'ServiceProvider' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/strategy/user/UserStrategies.ts
+  15:10  warning  'StatisticsOperationInput' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/utils/conditions/ConditionalHelpers.ts
+  8:10  warning  'Response' is defined but never used     @typescript-eslint/no-unused-vars
+  9:10  warning  'AuthRequest' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/utils/conditions/ErrorHandlers.ts
+  8:10  warning  'Response' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/utils/performance/DevMetrics.ts
+  361:5  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/utils/service-optimization/FilterBuilder.ts
+  8:32  warning  'IsNumber' is defined but never used   @typescript-eslint/no-unused-vars
+  8:42  warning  'IsBoolean' is defined but never used  @typescript-eslint/no-unused-vars
+  8:53  warning  'IsArray' is defined but never used    @typescript-eslint/no-unused-vars
+
+/tmp/abdoElHodaky/smartfixapi/src/utils/validation.utils.ts
+   20:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+   43:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+   67:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  107:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  131:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  153:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  175:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  203:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  232:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  257:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  288:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  310:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  340:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  371:30  warning  'args' is defined but never used   @typescript-eslint/no-unused-vars
+  397:30  warning  '_args' is defined but never used  @typescript-eslint/no-unused-vars
+  422:30  warning  '_args' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 466 problems (0 errors, 466 warnings)
+

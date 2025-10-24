@@ -4,15 +4,15 @@
  * Integration tests for the AuthController testing the full request/response cycle.
  */
 
-import { jest, describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
+import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import bcrypt from 'bcrypt';
 
 // Import test utilities
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatabase';
-import { createTestUser, createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
-import { testConfig } from '../config/testConfig';
+import { createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
+// Removed unused createTestUser and testConfig imports
 
 // Import the application and dependencies
 import { User } from '../../models/User';
