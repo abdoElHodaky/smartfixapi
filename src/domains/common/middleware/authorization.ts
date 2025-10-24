@@ -94,7 +94,7 @@ export const authorizeUser = async (req: Request, res: Response, next: NextFunct
 /**
  * Middleware to check if user owns the resource or is admin
  */
-export const authorizeOwnerOrAdmin = (resourceUserIdField: string = 'userId') => {
+export const authorizeOwnerOrAdmin = (resourceUserIdField = 'userId') => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const currentUserId = (req as any).user?.userId;

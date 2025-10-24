@@ -7,6 +7,7 @@
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
+import bcrypt from 'bcrypt';
 
 // Import test utilities
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatabase';

@@ -182,8 +182,8 @@ export class ChatServiceStrategy implements IChatService {
    */
   async getUserConversations(
     userId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     await this.verifyUserPermissions(userId);
 
@@ -291,8 +291,8 @@ export class ChatServiceStrategy implements IChatService {
    */
   async getMessages(
     conversationId: string, 
-    page: number = 1, 
-    limit: number = 20
+    page = 1, 
+    limit = 20
   ): Promise<PaginatedResponseDto<any>> {
     const query = { conversationId };
     

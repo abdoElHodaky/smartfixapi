@@ -139,7 +139,7 @@ export class ConditionalHelpers {
   /**
    * Validate comment length
    */
-  static validateComment(comment: string, minLength: number = 10): ValidationResult {
+  static validateComment(comment: string, minLength = 10): ValidationResult {
     const errors: string[] = [];
 
     if (!comment || comment.trim().length < minLength) {

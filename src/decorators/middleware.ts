@@ -38,7 +38,7 @@ export function ValidateUserLogin() {
  * Rate limiting decorator
  * Applies rate limiting to the decorated method
  */
-export function RateLimit(windowMs: number = 15 * 60 * 1000, max: number = 100) {
+export function RateLimit(windowMs: number = 15 * 60 * 1000, max = 100) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const rateLimit = require('express-rate-limit');
     const limiter = rateLimit({
@@ -125,7 +125,7 @@ export function AsyncHandler() {
  * Cache decorator
  * Applies caching to the decorated method response
  */
-export function Cache(duration: number = 300) {
+export function Cache(duration = 300) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     attachMiddleware(target, propertyKey, (req: Request, res: Response, next: NextFunction) => {
       res.set('Cache-Control', `public, max-age=${duration}`);

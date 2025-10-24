@@ -28,7 +28,7 @@ export interface PerformanceMiddlewareConfig {
  */
 export class PerformanceMiddleware {
   private config: PerformanceMiddlewareConfig;
-  private requestCounter: number = 0;
+  private requestCounter = 0;
 
   constructor(config: Partial<PerformanceMiddlewareConfig> = {}) {
     this.config = {

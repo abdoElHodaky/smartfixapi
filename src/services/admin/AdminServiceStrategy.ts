@@ -393,12 +393,12 @@ export class AdminServiceStrategy implements IAdminService {
    * Get users with optimized filtering and pagination
    */
   async getUsers(
-    page: number = 1,
-    limit: number = 10,
+    page = 1,
+    limit = 10,
     filters?: any
   ): Promise<PaginatedResponseDto<UserManagementDto>> {
     // TODO: Implement aggregation builder alternative
-    let query: any = {};
+    const query: any = {};
 
     if (filters) {
       if (filters.role) {

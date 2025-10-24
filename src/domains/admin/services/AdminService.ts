@@ -442,8 +442,8 @@ export class AdminServiceOptimized implements IAdminService {
   @Retryable(2)
   async getAllUsers(
     adminId: string,
-    page: number = 1,
-    limit: number = 20,
+    page = 1,
+    limit = 20,
     filters?: any
   ): Promise<PaginatedResponseDto> {
     await this.verifyAdminPermissions(adminId);
@@ -520,8 +520,8 @@ export class AdminServiceOptimized implements IAdminService {
   @Retryable(2)
   async getAllProviders(
     adminId: string,
-    page: number = 1,
-    limit: number = 20,
+    page = 1,
+    limit = 20,
     filters?: any
   ): Promise<PaginatedResponseDto> {
     await this.verifyAdminPermissions(adminId);
