@@ -45,6 +45,7 @@ export class OptimizedServiceRegistry {
   private singletons = new Set<ServiceType>();
   private loadingPromises = new Map<ServiceType, Promise<ServiceInstance>>();
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor() {}
 
   /**
