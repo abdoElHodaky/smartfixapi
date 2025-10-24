@@ -418,7 +418,6 @@ export class GenerateReportHandler implements ICommandHandler<GenerateReportComm
       await this.validateAdminPermissions(command.payload.adminId);
 
       // Generate report based on type
-      let reportData: any;
       const reportStrategies = new AsyncStrategyRegistry<any, any>();
 
       // Register report strategies
@@ -449,7 +448,7 @@ export class GenerateReportHandler implements ICommandHandler<GenerateReportComm
         adminId: command.payload.adminId
       };
 
-      reportData = await reportStrategies.execute(command.payload.reportType, reportInput);
+      const reportData = await reportStrategies.execute(command.payload.reportType, reportInput);
 
       // Create event
       const event = new ReportGeneratedEvent(

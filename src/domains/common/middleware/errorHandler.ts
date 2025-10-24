@@ -79,7 +79,7 @@ export const notFound = (req: Request, res: Response, next: NextFunction): void 
 };
 
 // Async error handler wrapper
-export const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
@@ -145,31 +145,31 @@ export class ValidationError extends AppError {
 }
 
 export class AuthenticationError extends AppError {
-  constructor(message: string = 'Authentication failed') {
+  constructor(message = 'Authentication failed') {
     super(message, 401);
   }
 }
 
 export class AuthorizationError extends AppError {
-  constructor(message: string = 'Access denied') {
+  constructor(message = 'Access denied') {
     super(message, 403);
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(message: string = 'Resource not found') {
+  constructor(message = 'Resource not found') {
     super(message, 404);
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string = 'Resource conflict') {
+  constructor(message = 'Resource conflict') {
     super(message, 409);
   }
 }
 
 export class InternalServerError extends AppError {
-  constructor(message: string = 'Internal server error') {
+  constructor(message = 'Internal server error') {
     super(message, 500);
   }
 }
@@ -188,4 +188,3 @@ export const sendErrorResponse = (
     ...(process.env.NODE_ENV === 'development' && { timestamp: new Date().toISOString() }),
   });
 };
-

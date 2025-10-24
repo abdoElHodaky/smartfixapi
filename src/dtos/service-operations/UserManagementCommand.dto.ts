@@ -186,7 +186,7 @@ export class UserManagementCommand {
   /**
    * Create a password reset command
    */
-  static resetPassword(adminId: string, userId: string, notifyUser: boolean = true): UserManagementCommand {
+  static resetPassword(adminId: string, userId: string, notifyUser = true): UserManagementCommand {
     return new UserManagementCommand(adminId, userId, UserManagementAction.RESET_PASSWORD, undefined, { notifyUser });
   }
 

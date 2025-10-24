@@ -361,8 +361,8 @@ export class ReviewServiceStrategy implements IReviewService {
    */
   async getReviewsByProvider(
     providerId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     return this.searchReviews({
       providerId,
@@ -376,8 +376,8 @@ export class ReviewServiceStrategy implements IReviewService {
    */
   async getReviewsByUser(
     userId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     return this.searchReviews({
       userId,
@@ -391,8 +391,8 @@ export class ReviewServiceStrategy implements IReviewService {
    */
   async getReviewsByServiceRequest(
     serviceRequestId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     return this.searchReviews({
       serviceRequestId,
@@ -596,7 +596,7 @@ export class ReviewServiceStrategy implements IReviewService {
   /**
    * Get pending reviews for moderation
    */
-  async getPendingReviews(page: number = 1, limit: number = 10): Promise<PaginatedResponseDto<any>> {
+  async getPendingReviews(page = 1, limit = 10): Promise<PaginatedResponseDto<any>> {
     return this.searchReviews({
       isVerified: false,
       page,
@@ -657,7 +657,7 @@ export class ReviewServiceStrategy implements IReviewService {
       throw new NotFoundError('Review not found');
     }
 
-    let updateData: any = {
+    const updateData: any = {
       updatedAt: new Date()
     };
 
@@ -701,8 +701,8 @@ export class ReviewServiceStrategy implements IReviewService {
    */
   async getReviewsByUserId(
     userId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     return this.getReviewsByUser(userId, page, limit);
   }
@@ -712,8 +712,8 @@ export class ReviewServiceStrategy implements IReviewService {
    */
   async getReviewsByProviderId(
     providerId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     return this.getReviewsByProvider(providerId, page, limit);
   }
@@ -723,8 +723,8 @@ export class ReviewServiceStrategy implements IReviewService {
    */
   async getReviewsByServiceRequestId(
     serviceRequestId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     return this.getReviewsByServiceRequest(serviceRequestId, page, limit);
   }

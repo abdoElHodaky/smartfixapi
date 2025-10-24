@@ -28,7 +28,7 @@ export { moduleManager } from '../decorators/module';
 class UnifiedServiceContainer {
   private static instance: UnifiedServiceContainer;
   private optimizedContainer: OptimizedContainer;
-  private initialized: boolean = false;
+  private initialized = false;
 
   constructor() {
     this.optimizedContainer = optimizedContainer;

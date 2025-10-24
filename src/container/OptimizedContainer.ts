@@ -34,7 +34,7 @@ export class OptimizedContainer {
   private container: Container;
   private config: ContainerConfig;
   private optimizedRegistry: OptimizedServiceRegistry;
-  private initialized: boolean = false;
+  private initialized = false;
 
   private constructor(config: Partial<ContainerConfig> = {}) {
     this.config = {

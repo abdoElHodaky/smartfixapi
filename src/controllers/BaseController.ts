@@ -28,8 +28,8 @@ export abstract class BaseController {
   protected sendSuccess<T>(
     res: Response, 
     data: T, 
-    message: string = 'Success', 
-    statusCode: number = 200,
+    message = 'Success', 
+    statusCode = 200,
   ): void {
     const response: ApiResponseDto<T> = {
       success: true,
@@ -45,7 +45,7 @@ export abstract class BaseController {
   protected sendError(
     res: Response, 
     message: string, 
-    statusCode: number = 400, 
+    statusCode = 400, 
     error?: string,
   ): void {
     const response: ApiResponseDto<null> = {
@@ -96,7 +96,7 @@ export abstract class BaseController {
   /**
    * Async handler wrapper for error handling
    */
-  protected asyncHandler(fn: Function) {
+  protected asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) {
     return (req: Request, res: Response, next: NextFunction) => {
       Promise.resolve(fn(req, res, next)).catch(next);
     };

@@ -7,6 +7,7 @@
 import { jest, describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
+import bcrypt from 'bcrypt';
 
 // Import test utilities
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatabase';
@@ -242,7 +243,7 @@ describe('User Registration Flow E2E Tests', () => {
       const adminData = createTestDTOs.userRegistration({ role: 'admin' });
       const adminUser = await User.create({
         ...adminData,
-        password: await require('bcrypt').hash('password', 10),
+        password: await bcrypt.hash('password', 10),
         role: 'admin',
         isEmailVerified: true,
         isActive: true

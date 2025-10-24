@@ -205,7 +205,7 @@ reviewSchema.statics.getProviderAverageRating = async function(providerId: strin
 };
 
 // Static method to get recent reviews for a provider
-reviewSchema.statics.getRecentReviews = function(providerId: string, limit: number = 5) {
+reviewSchema.statics.getRecentReviews = function(providerId: string, limit = 5) {
   return this.find({ providerId })
     .populate('user', 'firstName lastName profileImage')
     .populate('serviceRequest', 'title category')

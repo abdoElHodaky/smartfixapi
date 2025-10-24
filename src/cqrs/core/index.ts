@@ -258,7 +258,6 @@ export class EnhancedCommandBus implements ICommandBus {
       }
 
       // Execute middleware chain
-      let result: CommandResult<TResult>;
       let middlewareIndex = 0;
 
       const executeNext = async (): Promise<CommandResult> => {
@@ -274,7 +273,7 @@ export class EnhancedCommandBus implements ICommandBus {
         }
       };
 
-      result = await executeNext();
+      const result = await executeNext();
 
       // Publish events if any
       if (result.events && result.events.length > 0 && this.eventBus) {
@@ -300,7 +299,7 @@ export class EnhancedQueryBus implements IQueryBus {
   private middleware: Array<(query: IQuery, next: () => Promise<QueryResult>) => Promise<QueryResult>>;
   private cache?: Map<string, { result: QueryResult; expiry: number }>;
 
-  constructor(enableCache: boolean = false) {
+  constructor(enableCache = false) {
     this.handlers = new StrategyRegistry<IQuery, QueryResult>();
     this.middleware = [];
     if (enableCache) {
@@ -360,7 +359,6 @@ export class EnhancedQueryBus implements IQueryBus {
       }
 
       // Execute middleware chain
-      let result: QueryResult<TResult>;
       let middlewareIndex = 0;
 
       const executeNext = async (): Promise<QueryResult> => {
@@ -376,7 +374,7 @@ export class EnhancedQueryBus implements IQueryBus {
         }
       };
 
-      result = await executeNext();
+      const result = await executeNext();
       result.executionTime = Date.now() - startTime;
 
       // Cache result if caching is enabled
@@ -413,7 +411,7 @@ export class EnhancedEventBus implements IEventBus {
   private handlers: AsyncStrategyRegistry<IEvent, void>;
   private eventStore?: IEvent[];
 
-  constructor(enableEventStore: boolean = false) {
+  constructor(enableEventStore = false) {
     this.handlers = new AsyncStrategyRegistry<IEvent, void>();
     if (enableEventStore) {
       this.eventStore = [];
@@ -536,7 +534,7 @@ export class CQRSFactory {
 export class CQRSUtils {
   static createCommandMetadata(
     userId: string,
-    source: string = 'api',
+    source = 'api',
     context?: Record<string, any>
   ): CommandMetadata {
     return {
@@ -551,7 +549,7 @@ export class CQRSUtils {
 
   static createQueryMetadata(
     userId: string,
-    source: string = 'api',
+    source = 'api',
     context?: Record<string, any>
   ): QueryMetadata {
     return {
@@ -568,7 +566,7 @@ export class CQRSUtils {
     userId: string,
     correlationId: string,
     causationId: string,
-    source: string = 'api',
+    source = 'api',
     context?: Record<string, any>
   ): EventMetadata {
     return {

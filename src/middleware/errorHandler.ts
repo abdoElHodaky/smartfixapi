@@ -25,10 +25,10 @@ export class CustomError extends Error implements AppError {
 
   constructor(
     message: string,
-    statusCode: number = 500,
+    statusCode = 500,
     code?: string,
     details?: any,
-    isOperational: boolean = true
+    isOperational = true
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -44,7 +44,7 @@ export class CustomError extends Error implements AppError {
  * Authentication error class
  */
 export class AuthenticationError extends CustomError {
-  constructor(message: string = 'Authentication failed', details?: any) {
+  constructor(message = 'Authentication failed', details?: any) {
     super(message, 401, 'AUTHENTICATION_ERROR', details);
   }
 }
@@ -53,7 +53,7 @@ export class AuthenticationError extends CustomError {
  * Authorization error class
  */
 export class AuthorizationError extends CustomError {
-  constructor(message: string = 'Access denied', details?: any) {
+  constructor(message = 'Access denied', details?: any) {
     super(message, 403, 'AUTHORIZATION_ERROR', details);
   }
 }
@@ -62,7 +62,7 @@ export class AuthorizationError extends CustomError {
  * Validation error class
  */
 export class ValidationError extends CustomError {
-  constructor(message: string = 'Validation failed', details?: any) {
+  constructor(message = 'Validation failed', details?: any) {
     super(message, 400, 'VALIDATION_ERROR', details);
   }
 }
@@ -71,7 +71,7 @@ export class ValidationError extends CustomError {
  * Not found error class
  */
 export class NotFoundError extends CustomError {
-  constructor(message: string = 'Resource not found', details?: any) {
+  constructor(message = 'Resource not found', details?: any) {
     super(message, 404, 'NOT_FOUND_ERROR', details);
   }
 }
@@ -80,7 +80,7 @@ export class NotFoundError extends CustomError {
  * Conflict error class
  */
 export class ConflictError extends CustomError {
-  constructor(message: string = 'Resource conflict', details?: any) {
+  constructor(message = 'Resource conflict', details?: any) {
     super(message, 409, 'CONFLICT_ERROR', details);
   }
 }
@@ -89,7 +89,7 @@ export class ConflictError extends CustomError {
  * Rate limit error class
  */
 export class RateLimitError extends CustomError {
-  constructor(message: string = 'Rate limit exceeded', details?: any) {
+  constructor(message = 'Rate limit exceeded', details?: any) {
     super(message, 429, 'RATE_LIMIT_ERROR', details);
   }
 }
@@ -105,7 +105,7 @@ export const errorHandler = (
 ): void => {
   let statusCode = error.statusCode || 500;
   let message = error.message || 'Internal Server Error';
-  let code = error.code;
+  const code = error.code;
   let details = error.details;
 
   // Handle specific error types
@@ -178,7 +178,7 @@ export const notFoundHandler = (
 /**
  * Async error wrapper
  */
-export const asyncHandler = (fn: Function) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
@@ -198,7 +198,7 @@ export const createValidationError = (
  * Authentication error helper
  */
 export const createAuthError = (
-  message: string = 'Authentication required'
+  message = 'Authentication required'
 ): CustomError => {
   return new CustomError(message, 401, 'AUTH_ERROR');
 };
@@ -207,7 +207,7 @@ export const createAuthError = (
  * Authorization error helper
  */
 export const createAuthorizationError = (
-  message: string = 'Insufficient permissions'
+  message = 'Insufficient permissions'
 ): CustomError => {
   return new CustomError(message, 403, 'AUTHORIZATION_ERROR');
 };
@@ -216,7 +216,7 @@ export const createAuthorizationError = (
  * Not found error helper
  */
 export const createNotFoundError = (
-  resource: string = 'Resource'
+  resource = 'Resource'
 ): CustomError => {
   return new CustomError(`${resource} not found`, 404, 'NOT_FOUND');
 };

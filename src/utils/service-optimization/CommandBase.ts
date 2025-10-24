@@ -50,7 +50,7 @@ export class CommandResult<T = any> {
     this.metadata = metadata;
   }
 
-  static success<T>(data: T, message: string = 'Operation completed successfully'): CommandResult<T> {
+  static success<T>(data: T, message = 'Operation completed successfully'): CommandResult<T> {
     return new CommandResult(true, message, data);
   }
 
@@ -148,9 +148,9 @@ export abstract class ActionCommand<TData = any, TResult = any> extends CommandB
  */
 export class CommandInvoker {
   private history: ICommand[] = [];
-  private maxHistorySize: number = 100;
+  private maxHistorySize = 100;
 
-  constructor(maxHistorySize: number = 100) {
+  constructor(maxHistorySize = 100) {
     this.maxHistorySize = maxHistorySize;
   }
 

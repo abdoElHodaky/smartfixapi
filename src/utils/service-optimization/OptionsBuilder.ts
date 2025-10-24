@@ -330,14 +330,14 @@ export class SearchOptionsBuilder extends OptionsBuilder<SearchOptions> {
   /**
    * Set case sensitivity
    */
-  caseSensitive(sensitive: boolean = true): SearchOptionsBuilder {
+  caseSensitive(sensitive = true): SearchOptionsBuilder {
     return this.set('caseSensitive', sensitive);
   }
 
   /**
    * Set exact match
    */
-  exactMatch(exact: boolean = true): SearchOptionsBuilder {
+  exactMatch(exact = true): SearchOptionsBuilder {
     return this.set('exactMatch', exact);
   }
 
@@ -358,7 +358,7 @@ export class SearchOptionsBuilder extends OptionsBuilder<SearchOptions> {
   /**
    * Set pagination
    */
-  paginate(page: number = 1, limit: number = 10): SearchOptionsBuilder {
+  paginate(page = 1, limit = 10): SearchOptionsBuilder {
     return this.set('pagination', new PaginationOptions(page, limit));
   }
 
@@ -417,7 +417,7 @@ export class ReportOptionsBuilder extends OptionsBuilder<ReportOptions> {
   /**
    * Set metadata inclusion
    */
-  includeMetadata(include: boolean = true): ReportOptionsBuilder {
+  includeMetadata(include = true): ReportOptionsBuilder {
     return this.set('includeMetadata', include);
   }
 
