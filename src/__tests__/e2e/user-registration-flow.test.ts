@@ -241,7 +241,7 @@ describe('User Registration Flow E2E Tests', () => {
 
       // Step 4: Admin verifies provider (simulate admin action)
       const adminData = createTestDTOs.userRegistration({ role: 'admin' });
-      const adminUser = await User.create({
+      const _adminUser = await User.create({
         ...adminData,
         password: await bcrypt.hash('password', 10),
         role: 'admin',

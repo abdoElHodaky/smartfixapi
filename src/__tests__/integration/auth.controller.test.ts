@@ -304,7 +304,7 @@ describe('AuthController Integration Tests', () => {
       const userData = createTestDTOs.userRegistration({ password: oldPassword });
       
       // Create user
-      const user = await User.create({
+      const _user = await User.create({
         ...userData,
         password: await bcrypt.hash(oldPassword, 10),
         isEmailVerified: true,

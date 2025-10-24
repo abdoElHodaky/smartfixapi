@@ -7,13 +7,13 @@
 import { jest, describe, beforeEach, afterEach, it, expect } from '@jest/globals';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { Types } from 'mongoose';
+// Removed unused Types import
 
 // Import test utilities
-import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatabase';
+// Removed unused database utilities
 import { createTestUser, createTestProvider, createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
 import { createMockModel, resetAllMocks } from '../utils/mockHelpers';
-import { testConfig } from '../config/testConfig';
+// Removed unused testConfig import
 
 // Import the service and dependencies
 import { User } from '../../models/User';
