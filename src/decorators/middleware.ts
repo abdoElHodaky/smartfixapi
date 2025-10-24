@@ -3,6 +3,9 @@ import { Request, Response, NextFunction } from 'express';
 import { attachMiddleware } from '@decorators/express';
 import { authenticateToken } from '../middleware/auth';
 import { validateUserRegistration, validateUserLogin } from '../middleware/validation';
+import rateLimit from 'express-rate-limit';
+import cors from 'cors';
+import { body, validationResult } from 'express-validator';
 
 /**
  * Authentication decorator
