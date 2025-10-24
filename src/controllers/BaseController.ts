@@ -28,8 +28,8 @@ export abstract class BaseController {
   protected sendSuccess<T>(
     res: Response, 
     data: T, 
-    message: string = 'Success', 
-    statusCode: number = 200,
+    message = 'Success', 
+    statusCode = 200,
   ): void {
     const response: ApiResponseDto<T> = {
       success: true,

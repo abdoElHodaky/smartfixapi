@@ -129,7 +129,7 @@ export class CQRSMiddleware {
   /**
    * Rate limiting middleware for commands
    */
-  static rateLimitingMiddleware(maxRequestsPerMinute: number = 60) {
+  static rateLimitingMiddleware(maxRequestsPerMinute = 60) {
     const requestCounts = new Map<string, { count: number; resetTime: number }>();
     
     return async (command: any, next: () => Promise<any>) => {

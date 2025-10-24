@@ -274,6 +274,6 @@ export const createTestDTOs = {
 /**
  * Reset faker seed for consistent test data
  */
-export const resetFakerSeed = (seed: number = 12345) => {
+export const resetFakerSeed = (seed = 12345) => {
   faker.seed(seed);
 };

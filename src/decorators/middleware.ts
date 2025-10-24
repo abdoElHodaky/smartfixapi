@@ -3,6 +3,9 @@ import { Request, Response, NextFunction } from 'express';
 import { attachMiddleware } from '@decorators/express';
 import { authenticateToken } from '../middleware/auth';
 import { validateUserRegistration, validateUserLogin } from '../middleware/validation';
+import rateLimit from 'express-rate-limit';
+import cors from 'cors';
+import { body, validationResult } from 'express-validator';
 
 /**
  * Authentication decorator
@@ -40,7 +43,7 @@ export function ValidateUserLogin() {
  */
 export function RateLimit(windowMs: number = 15 * 60 * 1000, max: number = 100) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const rateLimit = require('express-rate-limit');
+
     const limiter = rateLimit({
       windowMs,
       max,
@@ -60,7 +63,7 @@ export function RateLimit(windowMs: number = 15 * 60 * 1000, max: number = 100) 
  */
 export function EnableCors(options?: any) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const cors = require('cors');
+
     const corsMiddleware = cors(options);
     
     attachMiddleware(target, propertyKey, corsMiddleware);
@@ -73,7 +76,7 @@ export function EnableCors(options?: any) {
  */
 export function Validate(validationRules: any[]) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const { body, validationResult } = require('express-validator');
+
     
     // Apply validation rules
     validationRules.forEach(rule => {
@@ -150,4 +153,3 @@ export function Log(message?: string) {
     return descriptor;
   };
 }
-
