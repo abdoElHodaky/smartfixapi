@@ -5,23 +5,14 @@
  * with optimized execution, validation, and error handling using existing utilities.
  */
 
-import { IsString, IsOptional, IsObject, IsEmail, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsObject, IsEmail, IsNotEmpty, IsArray } from 'class-validator';
 import { 
-  BaseCommand, 
-  ICommand, 
-  ICommandHandler, 
-  CommandResult, 
-  CommandMetadata,
-  IEvent,
-  BaseEvent,
-  EventMetadata,
-  CQRSUtils
+  CommandResult
 } from '../core';
 import { IUserService, IAuthService } from '../../interfaces/services';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
-import { StrategyRegistry, AsyncStrategyRegistry } from '../../utils/conditions/StrategyPatterns';
+import { StrategyRegistry } from '../../utils/conditions/StrategyPatterns';
 import { FilterBuilder } from '../../utils/service-optimization/FilterBuilder';
 import { OptionsBuilder } from '../../utils/service-optimization/OptionsBuilder';
 import { PaginationOptions } from '../../utils/service-optimization/PaginationOptions';

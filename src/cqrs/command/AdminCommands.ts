@@ -11,18 +11,14 @@ import {
   ICommand, 
   ICommandHandler, 
   CommandResult, 
-  CommandMetadata,
-  IEvent,
-  BaseEvent,
-  EventMetadata,
-  CQRSUtils
+  CommandMetadata
 } from '../core';
-import { IUserService, IProviderService, IServiceRequestService } from '../../interfaces/services';
+import { IUserService, IProviderService } from '../../interfaces/services';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
 import { StrategyRegistry, AsyncStrategyRegistry } from '../../utils/conditions/StrategyPatterns';
 import { FilterBuilder } from '../../utils/service-optimization/FilterBuilder';
-import { OptionsBuilder } from '../../utils/service-optimization/OptionsBuilder';
+// Removed unused OptionsBuilder import
 import { PaginationOptions } from '../../utils/service-optimization/PaginationOptions';
 import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
@@ -37,12 +33,7 @@ enum ProviderStatus {
   ACTIVE = 'active'
 }
 
-enum UserRole {
-  USER = 'user',
-  PROVIDER = 'provider',
-  ADMIN = 'admin',
-  SUPER_ADMIN = 'super_admin'
-}
+// Removed unused UserRole enum
 
 // Admin Events
 export class ProviderApprovedEvent extends BaseEvent {
