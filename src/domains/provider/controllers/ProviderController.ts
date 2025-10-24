@@ -23,7 +23,7 @@ import {
   ServiceOfferingDto,
   ProviderSearchDto,
   ProviderProfileResponseDto
-} from '../../dtos';
+} from '../dtos';
 
 // Decorator imports
 import { 
@@ -39,10 +39,10 @@ import {
 } from '../../../decorators';
 
 // Middleware imports
-import { validateBody, validateQuery, validateParams } from '../../middleware';
+import { validateBody, validateQuery, validateParams } from '../../common/middleware';
 
 // Utility imports
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+import { ConditionalHelpers } from '../../../utils/conditions/ConditionalHelpers';
 
 @Controller({ path: '/providers' })
 export class ProviderController extends BaseController {

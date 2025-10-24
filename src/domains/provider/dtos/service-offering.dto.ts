@@ -1,6 +1,6 @@
 import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Length, Min, ArrayMaxSize } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsServiceType, IsUrl } from '../../utils/validation.utils';
+import { IsServiceType, IsUrl } from '../../../utils/validation.utils';
 
 /**
  * Service offering item DTO
@@ -62,4 +62,3 @@ export class UpdateServiceOfferingDto {
   @ArrayMaxSize(20, { message: 'Maximum 20 service offerings allowed' })
   services?: ServiceOfferingItemDto[];
 }
-

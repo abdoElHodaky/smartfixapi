@@ -19,7 +19,7 @@ import {
   PortfolioItemDto,
   ApiResponseDto,
   PaginatedResponseDto
-} from '../../dtos';
+} from '../dtos';
 
 // Import optimization utilities
 import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
