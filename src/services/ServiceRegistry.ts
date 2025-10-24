@@ -67,7 +67,7 @@ export class OptimizedServiceRegistry {
   private services: Map<string, OptimizedServiceInstance> = new Map();
   private serviceDefinitions: OptimizedServiceDefinition[] = [];
   private serviceMetrics: Map<string, ServiceMetrics> = new Map();
-  private initialized: boolean = false;
+  private initialized = false;
 
   // Utility instances
   private globalAggregationBuilder: AggregationBuilder;

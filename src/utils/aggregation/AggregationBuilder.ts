@@ -119,7 +119,7 @@ export class AggregationBuilder {
   /**
    * Add an $unwind stage to deconstruct arrays
    */
-  unwind(path: string, preserveNullAndEmptyArrays: boolean = false): AggregationBuilder {
+  unwind(path: string, preserveNullAndEmptyArrays = false): AggregationBuilder {
     this.pipeline.push({ 
       $unwind: {
         path,
@@ -156,7 +156,7 @@ export class AggregationBuilder {
   /**
    * Add a $count stage to count documents
    */
-  count(field: string = 'count'): AggregationBuilder {
+  count(field = 'count'): AggregationBuilder {
     this.pipeline.push({ $count: field });
     return this;
   }
@@ -185,7 +185,7 @@ export class AggregationBuilder {
   /**
    * Add pagination with optimized skip/limit
    */
-  paginate(page: number = 1, limit: number = 10): AggregationBuilder {
+  paginate(page = 1, limit = 10): AggregationBuilder {
     const skip = (page - 1) * limit;
     return this.skip(skip).limit(limit);
   }
@@ -241,7 +241,7 @@ export class AggregationBuilder {
   /**
    * Enable or disable disk usage
    */
-  allowDiskUse(allow: boolean = true): AggregationBuilder {
+  allowDiskUse(allow = true): AggregationBuilder {
     this.options.allowDiskUse = allow;
     return this;
   }
@@ -298,7 +298,7 @@ export class AggregationBuilder {
    */
   static createStatsPattern(
     matchConditions: MatchConditions = {},
-    dateField: string = 'createdAt',
+    dateField = 'createdAt',
     startDate?: Date,
     endDate?: Date
   ): AggregationBuilder {
@@ -354,7 +354,7 @@ export class AggregationBuilder {
   static createUserActivityPattern(
     userId?: string,
     activityTypes?: string[],
-    days: number = 30
+    days = 30
   ): AggregationBuilder {
     const builder = new AggregationBuilder();
     const startDate = new Date();

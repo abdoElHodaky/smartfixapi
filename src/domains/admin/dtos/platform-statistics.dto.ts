@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, ValidateNested, IsObject, IsArray } from 'class-validator';
+import { IsNumber, IsOptional, ValidateNested, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class UserRoleStatsDto {

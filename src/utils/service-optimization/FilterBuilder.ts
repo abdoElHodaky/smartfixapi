@@ -255,7 +255,7 @@ export class FilterBuilder {
   /**
    * Add a contains condition (case-insensitive by default)
    */
-  contains(field: string, value: string, caseSensitive: boolean = false): FilterBuilder {
+  contains(field: string, value: string, caseSensitive = false): FilterBuilder {
     this.conditions.push(new FilterCondition(field, FilterOperator.CONTAINS, value, { caseSensitive }));
     return this;
   }
@@ -263,7 +263,7 @@ export class FilterBuilder {
   /**
    * Add a starts with condition
    */
-  startsWith(field: string, value: string, caseSensitive: boolean = false): FilterBuilder {
+  startsWith(field: string, value: string, caseSensitive = false): FilterBuilder {
     this.conditions.push(new FilterCondition(field, FilterOperator.STARTS_WITH, value, { caseSensitive }));
     return this;
   }
@@ -271,7 +271,7 @@ export class FilterBuilder {
   /**
    * Add an ends with condition
    */
-  endsWith(field: string, value: string, caseSensitive: boolean = false): FilterBuilder {
+  endsWith(field: string, value: string, caseSensitive = false): FilterBuilder {
     this.conditions.push(new FilterCondition(field, FilterOperator.ENDS_WITH, value, { caseSensitive }));
     return this;
   }
@@ -279,7 +279,7 @@ export class FilterBuilder {
   /**
    * Add a regex condition
    */
-  regex(field: string, pattern: string, options: string = 'i'): FilterBuilder {
+  regex(field: string, pattern: string, options = 'i'): FilterBuilder {
     this.conditions.push(new FilterCondition(field, FilterOperator.REGEX, pattern, options));
     return this;
   }
@@ -287,7 +287,7 @@ export class FilterBuilder {
   /**
    * Add an exists condition
    */
-  exists(field: string, exists: boolean = true): FilterBuilder {
+  exists(field: string, exists = true): FilterBuilder {
     this.conditions.push(new FilterCondition(field, FilterOperator.EXISTS, exists));
     return this;
   }

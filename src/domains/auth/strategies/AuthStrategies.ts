@@ -303,7 +303,7 @@ export class LoginStrategy implements AsyncStrategy<AuthOperationInput, CommandR
 
       // Compare password
       const compareResult = await this.comparePasswordStrategy.execute({
-        password: password!,
+        password: password,
         hashedPassword: user.password
       });
 

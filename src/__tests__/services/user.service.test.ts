@@ -5,12 +5,12 @@
  */
 
 import { jest, describe, beforeEach, afterEach, it, expect } from '@jest/globals';
-import { Types } from 'mongoose';
+// Removed unused Types import
 
 // Import test utilities
-import { createTestUser, createTestServiceRequest, createTestReview, createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
-import { createMockModel, createMockUserService, resetAllMocks } from '../utils/mockHelpers';
-import { testConfig } from '../config/testConfig';
+import { createTestUser, createTestServiceRequest, createTestReview, resetFakerSeed } from '../utils/testDataFactory';
+import { createMockModel, resetAllMocks } from '../utils/mockHelpers';
+// Removed unused testConfig and createTestDTOs imports
 
 // Import the service and dependencies
 import { User } from '../../models/User';

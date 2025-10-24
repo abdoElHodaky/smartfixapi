@@ -9,7 +9,7 @@
  */
 
 // External imports
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
 // Internal imports
 import { BaseController } from '../BaseController';
@@ -18,10 +18,8 @@ import { IUserService } from '../../interfaces/services';
 
 // DTO imports
 import { 
-  UserProfileDto,
   UserUpdateDto,
-  UserProfileResponseDto,
-  PaginationDto
+  UserProfileResponseDto
 } from '../../dtos';
 
 // Decorator imports
@@ -33,15 +31,10 @@ import {
   Delete,
   RequireAuth, 
   RequireRoles,
-  UseMiddleware,
   Validate 
 } from '../../decorators';
 
-// Middleware imports
-import { validateBody, validateQuery, validateParams } from '../../middleware';
-
-// Utility imports
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+// Removed unused middleware and utility imports
 
 @Controller({ path: '/users' })
 export class UserController extends BaseController {

@@ -650,8 +650,8 @@ export class ServiceRequestServiceStrategy implements IServiceRequestService {
   async getServiceRequestsByUser(
     userId: string, 
     status?: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     await this.verifyUserPermissions(userId);
 
@@ -691,8 +691,8 @@ export class ServiceRequestServiceStrategy implements IServiceRequestService {
   async getServiceRequestsByProvider(
     providerId: string, 
     status?: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     const query: any = { assignedProvider: providerId };
     if (status) {
@@ -760,8 +760,8 @@ export class ServiceRequestServiceStrategy implements IServiceRequestService {
    */
   async getServiceRequestReviews(
     requestId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     return this.reviewService.getReviewsByServiceRequest(requestId, page, limit);
   }

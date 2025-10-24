@@ -138,7 +138,7 @@ chatSchema.virtual('participantDetails', {
 });
 
 // Method to add a message
-chatSchema.methods.addMessage = function(senderId: string, content: string, messageType: string = 'text', attachments?: string[]) {
+chatSchema.methods.addMessage = function(senderId: string, content: string, messageType = 'text', attachments?: string[]) {
   const message: IMessage = {
     senderId: new mongoose.Types.ObjectId(senderId),
     content,
@@ -229,7 +229,7 @@ chatSchema.methods.editMessage = function(messageId: string, newContent: string,
 };
 
 // Method to get messages with pagination
-chatSchema.methods.getMessages = function(page: number = 1, limit: number = 50) {
+chatSchema.methods.getMessages = function(page = 1, limit = 50) {
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   
@@ -248,7 +248,7 @@ chatSchema.methods.getMessages = function(page: number = 1, limit: number = 50) 
 };
 
 // Static method to find chats for a user
-chatSchema.statics.findUserChats = function(userId: string, page: number = 1, limit: number = 20) {
+chatSchema.statics.findUserChats = function(userId: string, page = 1, limit = 20) {
   const skip = (page - 1) * limit;
   
   return this.find({ 

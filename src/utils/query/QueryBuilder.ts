@@ -135,7 +135,7 @@ export class QueryBuilder {
   /**
    * Add regex match condition
    */
-  matchRegex(field: string, pattern: string, options: string = 'i'): QueryBuilder {
+  matchRegex(field: string, pattern: string, options = 'i'): QueryBuilder {
     this.query[field] = { $regex: pattern, $options: options };
     return this;
   }
@@ -143,7 +143,7 @@ export class QueryBuilder {
   /**
    * Add exists condition
    */
-  matchExists(field: string, exists: boolean = true): QueryBuilder {
+  matchExists(field: string, exists = true): QueryBuilder {
     this.query[field] = { $exists: exists };
     return this;
   }

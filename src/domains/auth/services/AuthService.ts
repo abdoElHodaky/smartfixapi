@@ -6,7 +6,7 @@
  */
 
 import 'reflect-metadata';
-import { Injectable, Inject } from '@decorators/di';
+import { Injectable } from '@decorators/di';
 import { User } from '../../models/User';
 import { NotFoundError, ValidationError, AuthenticationError } from '../../middleware/errorHandler';
 import { IAuthService } from '../../interfaces/services';
@@ -22,15 +22,12 @@ import {
 } from '../../dtos';
 
 // Import optimization utilities
-import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
 import { 
   StrategyRegistry, 
-  AsyncStrategyRegistry, 
-  Strategy, 
-  AsyncStrategy 
+  AsyncStrategyRegistry
 } from '../../utils/conditions/StrategyPatterns';
-import { ConditionalHelpers, RoleCheckOptions } from '../../utils/conditions/ConditionalHelpers';
-import { CommandBase, CommandResult, CommandContext } from '../../utils/service-optimization/CommandBase';
+import { CommandResult } from '../../utils/service-optimization/CommandBase';
 
 // Import strategy implementations
 import {
@@ -60,7 +57,6 @@ import {
   Cached,
   Retryable,
   Log,
-  Validate,
   PostConstruct,
   PreDestroy
 } from '../../decorators/service';

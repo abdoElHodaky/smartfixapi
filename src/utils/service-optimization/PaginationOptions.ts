@@ -14,20 +14,20 @@ export class PaginationOptions {
   @IsOptional()
   @IsNumber()
   @Min(1)
-  page: number = 1;
+  page = 1;
 
   @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(100)
-  limit: number = 10;
+  limit = 10;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
   skip?: number;
 
-  constructor(page: number = 1, limit: number = 10) {
+  constructor(page = 1, limit = 10) {
     this.page = page;
     this.limit = limit;
     this.skip = (page - 1) * limit;
@@ -82,7 +82,7 @@ export class PaginationMetadata {
  * Standardized paginated result wrapper
  */
 export class PaginatedResult<T> {
-  success: boolean = true;
+  success = true;
   message: string;
   data: T[];
   pagination: PaginationMetadata;
@@ -90,7 +90,7 @@ export class PaginatedResult<T> {
   constructor(
     data: T[],
     pagination: PaginationMetadata,
-    message: string = 'Data retrieved successfully'
+    message = 'Data retrieved successfully'
   ) {
     this.data = data;
     this.pagination = pagination;
@@ -115,7 +115,7 @@ export class PaginatedResult<T> {
    */
   static empty<T>(
     options: PaginationOptions,
-    message: string = 'No data found'
+    message = 'No data found'
   ): PaginatedResult<T> {
     const metadata = options.createMetadata(0);
     return new PaginatedResult<T>([], metadata, message);

@@ -9,7 +9,7 @@
  */
 
 // External imports
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
 // Internal imports
 import { BaseController } from '../BaseController';
@@ -23,8 +23,6 @@ import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { 
   ChatDto,
   MessageDto,
-  ChatCreationDto,
-  MessageCreationDto,
   ChatListDto,
   MessageListDto
 } from '../../dtos';
@@ -299,7 +297,7 @@ export class ChatController extends BaseController {
       return;
     }
 
-    const { chatId, messageId } = req.params;
+    const { messageId } = req.params;
     const { content } = req.body;
 
     try {
@@ -322,7 +320,7 @@ export class ChatController extends BaseController {
       return;
     }
 
-    const { chatId, messageId } = req.params;
+    const { messageId } = req.params;
 
     try {
       await this.chatService.deleteMessage(messageId, req.user!.id);

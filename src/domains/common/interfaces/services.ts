@@ -2,7 +2,7 @@
  * Service Interfaces - Common Service Contracts
  */
 
-import { User, PaginatedResponse, BaseFilters, CommandResult } from '../types';
+import { PaginatedResponse, BaseFilters, CommandResult } from '../types';
 import { 
   UserDto, 
   CreateUserDto, 
@@ -98,4 +98,3 @@ export interface IAuthService {
   resetPassword(email: string): Promise<CommandResult>;
   changePassword(userId: string, oldPassword: string, newPassword: string): Promise<CommandResult>;
 }
-

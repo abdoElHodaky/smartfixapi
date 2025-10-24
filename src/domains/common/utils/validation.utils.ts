@@ -10,7 +10,7 @@ import { registerDecorator, ValidationOptions, ValidationArguments } from 'class
  * Custom validator for MongoDB ObjectId
  */
 export function IsObjectId(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isObjectId',
       target: object.constructor,
@@ -33,7 +33,7 @@ export function IsObjectId(validationOptions?: ValidationOptions) {
  * Custom validator for phone numbers (basic international format)
  */
 export function IsPhoneNumber(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isPhoneNumber',
       target: object.constructor,
@@ -57,7 +57,7 @@ export function IsPhoneNumber(validationOptions?: ValidationOptions) {
  * Custom validator for strong passwords
  */
 export function IsStrongPassword(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isStrongPassword',
       target: object.constructor,
@@ -97,7 +97,7 @@ export function IsServiceType(validationOptions?: ValidationOptions) {
     'other',
   ];
 
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isServiceType',
       target: object.constructor,
@@ -121,7 +121,7 @@ export function IsServiceType(validationOptions?: ValidationOptions) {
 export function IsUserRole(validationOptions?: ValidationOptions) {
   const validRoles = ['user', 'provider', 'admin'];
 
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isUserRole',
       target: object.constructor,
@@ -143,7 +143,7 @@ export function IsUserRole(validationOptions?: ValidationOptions) {
  * Custom validator for rating values (1-5)
  */
 export function IsRating(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isRating',
       target: object.constructor,
@@ -165,7 +165,7 @@ export function IsRating(validationOptions?: ValidationOptions) {
  * Custom validator for coordinates (latitude/longitude)
  */
 export function IsCoordinate(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isCoordinate',
       target: object.constructor,
@@ -193,7 +193,7 @@ export function IsCoordinate(validationOptions?: ValidationOptions) {
  * Custom validator for URL format
  */
 export function IsUrl(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isUrl',
       target: object.constructor,
@@ -222,7 +222,7 @@ export function IsUrl(validationOptions?: ValidationOptions) {
  * Custom validator for time format (HH:MM)
  */
 export function IsTimeFormat(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isTimeFormat',
       target: object.constructor,
@@ -247,7 +247,7 @@ export function IsTimeFormat(validationOptions?: ValidationOptions) {
  * Custom validator for date format (YYYY-MM-DD)
  */
 export function IsDateFormat(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isDateFormat',
       target: object.constructor,
@@ -278,7 +278,7 @@ export function IsDateFormat(validationOptions?: ValidationOptions) {
 export function IsCurrencyCode(validationOptions?: ValidationOptions) {
   const validCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY', 'INR', 'BRL', 'MXN', 'ZAR'];
   
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isCurrencyCode',
       target: object.constructor,
@@ -300,7 +300,7 @@ export function IsCurrencyCode(validationOptions?: ValidationOptions) {
  * Custom validator for timezone strings
  */
 export function IsTimezone(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isTimezone',
       target: object.constructor,
@@ -330,7 +330,7 @@ export function IsTimezone(validationOptions?: ValidationOptions) {
  * Custom validator for image file extensions
  */
 export function IsImageUrl(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isImageUrl',
       target: object.constructor,
@@ -361,7 +361,7 @@ export function IsImageUrl(validationOptions?: ValidationOptions) {
  * Custom validator for postal codes (flexible format)
  */
 export function IsPostalCode(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isPostalCode',
       target: object.constructor,
@@ -387,7 +387,7 @@ export function IsPostalCode(validationOptions?: ValidationOptions) {
  * Custom validator for price values (positive numbers with up to 2 decimal places)
  */
 export function IsPrice(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isPrice',
       target: object.constructor,
@@ -412,7 +412,7 @@ export function IsPrice(validationOptions?: ValidationOptions) {
  * Custom validator for duration in minutes
  */
 export function IsDurationMinutes(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isDurationMinutes',
       target: object.constructor,

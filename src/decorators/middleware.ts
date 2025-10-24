@@ -3,13 +3,16 @@ import { Request, Response, NextFunction } from 'express';
 import { attachMiddleware } from '@decorators/express';
 import { authenticateToken } from '../middleware/auth';
 import { validateUserRegistration, validateUserLogin } from '../middleware/validation';
+import rateLimit from 'express-rate-limit';
+import cors from 'cors';
+import { validationResult } from 'express-validator';
 
 /**
  * Authentication decorator
  * Applies JWT token authentication to the decorated method
  */
 export function Auth() {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: any, propertyKey: string, _descriptor: PropertyDescriptor) {
     attachMiddleware(target, propertyKey, authenticateToken);
   };
 }
@@ -19,7 +22,7 @@ export function Auth() {
  * Applies user registration validation to the decorated method
  */
 export function ValidateUserRegistration() {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: any, propertyKey: string, _descriptor: PropertyDescriptor) {
     attachMiddleware(target, propertyKey, validateUserRegistration);
   };
 }
@@ -29,7 +32,7 @@ export function ValidateUserRegistration() {
  * Applies user login validation to the decorated method
  */
 export function ValidateUserLogin() {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: any, propertyKey: string, _descriptor: PropertyDescriptor) {
     attachMiddleware(target, propertyKey, validateUserLogin);
   };
 }
@@ -38,9 +41,8 @@ export function ValidateUserLogin() {
  * Rate limiting decorator
  * Applies rate limiting to the decorated method
  */
-export function RateLimit(windowMs: number = 15 * 60 * 1000, max: number = 100) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const rateLimit = require('express-rate-limit');
+export function RateLimit(windowMs: number = 15 * 60 * 1000, max = 100) {
+  return function (target: any, propertyKey: string, _descriptor: PropertyDescriptor) {
     const limiter = rateLimit({
       windowMs,
       max,
@@ -59,8 +61,7 @@ export function RateLimit(windowMs: number = 15 * 60 * 1000, max: number = 100) 
  * Applies CORS headers to the decorated method
  */
 export function EnableCors(options?: any) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const cors = require('cors');
+  return function (target: any, propertyKey: string, _descriptor: PropertyDescriptor) {
     const corsMiddleware = cors(options);
     
     attachMiddleware(target, propertyKey, corsMiddleware);
@@ -72,8 +73,7 @@ export function EnableCors(options?: any) {
  * Applies custom validation middleware to the decorated method
  */
 export function Validate(validationRules: any[]) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const { body, validationResult } = require('express-validator');
+  return function (target: any, propertyKey: string, _descriptor: PropertyDescriptor) {
     
     // Apply validation rules
     validationRules.forEach(rule => {
@@ -125,8 +125,8 @@ export function AsyncHandler() {
  * Cache decorator
  * Applies caching to the decorated method response
  */
-export function Cache(duration: number = 300) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function Cache(duration = 300) {
+  return function (target: any, propertyKey: string, _descriptor: PropertyDescriptor) {
     attachMiddleware(target, propertyKey, (req: Request, res: Response, next: NextFunction) => {
       res.set('Cache-Control', `public, max-age=${duration}`);
       next();
@@ -150,4 +150,3 @@ export function Log(message?: string) {
     return descriptor;
   };
 }
-

@@ -36,8 +36,7 @@ import {
   Post, 
   Get, 
   RequireAuth, 
-  UseMiddleware,
-  Validate 
+  UseMiddleware
 } from '../../decorators';
 
 // Middleware imports

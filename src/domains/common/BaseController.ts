@@ -10,7 +10,7 @@
  */
 
 // External imports
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 
 // Internal imports
 import { AuthRequest } from './types';
@@ -23,8 +23,8 @@ export abstract class BaseController {
   protected sendSuccess<T>(
     res: Response, 
     data: T, 
-    message: string = 'Success', 
-    statusCode: number = 200,
+    message = 'Success', 
+    statusCode = 200,
   ): void {
     const response: ApiResponseDto<T> = {
       success: true,
@@ -40,7 +40,7 @@ export abstract class BaseController {
   protected sendError(
     res: Response, 
     message: string, 
-    statusCode: number = 400, 
+    statusCode = 400, 
     error?: string,
   ): void {
     const response: ApiResponseDto<null> = {
@@ -132,4 +132,3 @@ export abstract class BaseController {
     return true;
   }
 }
-

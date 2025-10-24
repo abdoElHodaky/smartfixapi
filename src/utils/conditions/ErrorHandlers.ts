@@ -5,7 +5,7 @@
  * and ensure consistent error responses across the API.
  */
 
-import { Response } from 'express';
+// Removed unused Response import
 import { ApiResponseDto } from '../../dtos';
 
 export interface ErrorResponse {
@@ -153,7 +153,7 @@ export class ErrorHandlers {
   static createSuccessResponse<T>(
     message: string,
     data?: T,
-    statusCode: number = 200
+    statusCode = 200
   ): ApiResponseDto {
     return {
       success: true,
@@ -169,7 +169,7 @@ export class ErrorHandlers {
   static createErrorResponse(
     message: string,
     error?: string,
-    statusCode: number = 400
+    statusCode = 400
   ): ApiResponseDto {
     return {
       success: false,
@@ -184,7 +184,7 @@ export class ErrorHandlers {
    */
   static async handleAsyncOperation<T>(
     operation: () => Promise<T>,
-    errorMessage: string = 'Operation failed'
+    errorMessage = 'Operation failed'
   ): Promise<ApiResponse<T>> {
     try {
       const result = await operation();
@@ -210,7 +210,7 @@ export class ErrorHandlers {
   static async validateAndExecute<T>(
     validationFn: () => boolean | { isValid: boolean; errors: string[] },
     executionFn: () => Promise<T>,
-    validationErrorMessage: string = 'Validation failed'
+    validationErrorMessage = 'Validation failed'
   ): Promise<ApiResponse<T>> {
     try {
       const validation = validationFn();

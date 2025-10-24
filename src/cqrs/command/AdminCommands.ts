@@ -5,25 +5,20 @@
  * with optimized execution, validation, and event sourcing capabilities.
  */
 
-import { IsString, IsOptional, IsObject, IsEnum, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+// Removed unused class-validator and class-transformer imports
 import { 
   BaseCommand, 
   ICommand, 
   ICommandHandler, 
   CommandResult, 
-  CommandMetadata,
-  IEvent,
-  BaseEvent,
-  EventMetadata,
-  CQRSUtils
+  CommandMetadata
 } from '../core';
-import { IUserService, IProviderService, IServiceRequestService } from '../../interfaces/services';
+import { IUserService, IProviderService } from '../../interfaces/services';
 import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
-import { AggregationBuilder, AggregationUtils } from '../../utils/aggregation/AggregationBuilder';
+import { AggregationBuilder } from '../../utils/aggregation/AggregationBuilder';
 import { StrategyRegistry, AsyncStrategyRegistry } from '../../utils/conditions/StrategyPatterns';
 import { FilterBuilder } from '../../utils/service-optimization/FilterBuilder';
-import { OptionsBuilder } from '../../utils/service-optimization/OptionsBuilder';
+// Removed unused OptionsBuilder import
 import { PaginationOptions } from '../../utils/service-optimization/PaginationOptions';
 import { User } from '../../models/User';
 import { ServiceProvider } from '../../models/ServiceProvider';
@@ -38,12 +33,7 @@ enum ProviderStatus {
   ACTIVE = 'active'
 }
 
-enum UserRole {
-  USER = 'user',
-  PROVIDER = 'provider',
-  ADMIN = 'admin',
-  SUPER_ADMIN = 'super_admin'
-}
+// Removed unused UserRole enum
 
 // Admin Events
 export class ProviderApprovedEvent extends BaseEvent {
@@ -418,7 +408,6 @@ export class GenerateReportHandler implements ICommandHandler<GenerateReportComm
       await this.validateAdminPermissions(command.payload.adminId);
 
       // Generate report based on type
-      let reportData: any;
       const reportStrategies = new AsyncStrategyRegistry<any, any>();
 
       // Register report strategies
@@ -449,7 +438,7 @@ export class GenerateReportHandler implements ICommandHandler<GenerateReportComm
         adminId: command.payload.adminId
       };
 
-      reportData = await reportStrategies.execute(command.payload.reportType, reportInput);
+      const reportData = await reportStrategies.execute(command.payload.reportType, reportInput);
 
       // Create event
       const event = new ReportGeneratedEvent(

@@ -4,14 +4,15 @@
  * End-to-end tests for complete user registration and onboarding workflows.
  */
 
-import { jest, describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
+import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
+import bcrypt from 'bcrypt';
 
 // Import test utilities
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatabase';
 import { createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
-import { testConfig } from '../config/testConfig';
+// Removed unused testConfig import
 
 // Import models for verification
 import { User } from '../../models/User';
@@ -240,9 +241,9 @@ describe('User Registration Flow E2E Tests', () => {
 
       // Step 4: Admin verifies provider (simulate admin action)
       const adminData = createTestDTOs.userRegistration({ role: 'admin' });
-      const adminUser = await User.create({
+      const _adminUser = await User.create({
         ...adminData,
-        password: await require('bcrypt').hash('password', 10),
+        password: await bcrypt.hash('password', 10),
         role: 'admin',
         isEmailVerified: true,
         isActive: true

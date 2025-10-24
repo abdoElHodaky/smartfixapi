@@ -24,7 +24,7 @@ import {
 import { 
   AsyncStrategyRegistry
 } from '../../utils/conditions/StrategyPatterns';
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+
 
 // Import strategy interfaces
 import {
@@ -38,7 +38,6 @@ import {
   Singleton,
   Service,
   Cached,
-  Retryable,
   Log,
   PostConstruct,
   PreDestroy
@@ -178,8 +177,8 @@ export class ChatServiceStrategy implements IChatService {
    */
   async getUserConversations(
     userId: string, 
-    page: number = 1, 
-    limit: number = 10
+    page = 1, 
+    limit = 10
   ): Promise<PaginatedResponseDto<any>> {
     await this.verifyUserPermissions(userId);
 
@@ -287,8 +286,8 @@ export class ChatServiceStrategy implements IChatService {
    */
   async getMessages(
     conversationId: string, 
-    page: number = 1, 
-    limit: number = 20
+    page = 1, 
+    limit = 20
   ): Promise<PaginatedResponseDto<any>> {
     const query = { conversationId };
     
@@ -612,7 +611,7 @@ export class ChatServiceStrategy implements IChatService {
     // TODO: Implement real-time leave logic
   }
 
-  async updateTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
+  async updateTypingStatus(conversationId: string, userId: string, _isTyping: boolean): Promise<void> {
     await this.verifyUserPermissions(userId, conversationId);
     // TODO: Implement real-time typing status logic
   }
@@ -620,7 +619,7 @@ export class ChatServiceStrategy implements IChatService {
   /**
    * Report message
    */
-  async reportMessage(messageId: string, reporterId: string, reason: string): Promise<ApiResponseDto> {
+  async reportMessage(messageId: string, reporterId: string, _reason: string): Promise<ApiResponseDto> {
     const message = await Message.findById(messageId);
     if (!message) {
       throw new NotFoundError('Message not found');

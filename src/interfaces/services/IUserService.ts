@@ -39,6 +39,7 @@ export interface IUserService {
    * Get user's service requests
    */
   getUserServiceRequests(userId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
+  getUserServiceRequests(userId: string, status?: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
 
   /**
    * Get user's reviews
@@ -80,13 +81,4 @@ export interface IUserService {
    */
   deleteUser(userId: string): Promise<void>;
 
-  /**
-   * Get user reviews by delegating to ReviewService
-   */
-  getUserReviews(userId: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
-
-  /**
-   * Get user service requests by delegating to ServiceRequestService
-   */
-  getUserServiceRequests(userId: string, status?: string, page?: number, limit?: number): Promise<PaginatedResponseDto<any>>;
 }

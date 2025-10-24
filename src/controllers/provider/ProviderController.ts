@@ -18,7 +18,6 @@ import { IProviderService } from '../../interfaces/services';
 
 // DTO imports
 import { 
-  ProviderProfileDto,
   ProviderUpdateDto,
   ServiceOfferingDto,
   ProviderSearchDto,
@@ -34,15 +33,10 @@ import {
   Delete,
   RequireAuth, 
   RequireRoles,
-  UseMiddleware,
   Validate 
 } from '../../decorators';
 
-// Middleware imports
-import { validateBody, validateQuery, validateParams } from '../../middleware';
-
-// Utility imports
-import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
+// Removed unused middleware and utility imports
 
 @Controller({ path: '/providers' })
 export class ProviderController extends BaseController {

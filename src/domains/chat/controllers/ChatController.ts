@@ -9,7 +9,7 @@
  */
 
 // External imports
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
 // Internal imports
 import { BaseController } from '../../common/BaseController';
@@ -23,8 +23,6 @@ import { ConditionalHelpers } from '../../utils/conditions/ConditionalHelpers';
 import { 
   ChatDto,
   MessageDto,
-  ChatCreationDto,
-  MessageCreationDto,
   ChatListDto,
   MessageListDto
 } from '../../dtos';
