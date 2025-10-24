@@ -162,7 +162,7 @@ describe('AdminService Strategy Tests', () => {
 
   describe('Audit Logs', () => {
     it('should get audit logs with pagination', async () => {
-      const mockLogs = [
+      const _mockLogs = [
         { id: '1', action: 'USER_CREATED', timestamp: new Date(), userId: 'user123' },
         { id: '2', action: 'PROVIDER_VERIFIED', timestamp: new Date(), userId: 'admin456' }
       ];
@@ -175,4 +175,3 @@ describe('AdminService Strategy Tests', () => {
     });
   });
 });
-

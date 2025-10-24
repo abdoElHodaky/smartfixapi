@@ -4,7 +4,7 @@
  * Basic smoke tests to verify system health and critical functionality.
  */
 
-import { jest, describe, beforeAll, afterAll, it, expect } from '@jest/globals';
+import { describe, beforeAll, afterAll, it, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import mongoose from 'mongoose';
@@ -158,7 +158,7 @@ describe('System Health Smoke Tests', () => {
       // This test simulates a slow request
       const startTime = Date.now();
       
-      const response = await request(app)
+      const _response = await request(app)
         .get('/health')
         .timeout(5000) // 5 second timeout
         .expect(200);

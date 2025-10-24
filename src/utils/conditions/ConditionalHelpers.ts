@@ -5,8 +5,7 @@
  * to reduce code duplication and improve maintainability.
  */
 
-import { Response } from 'express';
-import { AuthRequest } from '../../types';
+// Removed unused imports - Response and AuthRequest
 
 export interface ValidationResult {
   isValid: boolean;

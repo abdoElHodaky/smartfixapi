@@ -5,7 +5,7 @@
  * and ensure consistent error responses across the API.
  */
 
-import { Response } from 'express';
+// Removed unused Response import
 import { ApiResponseDto } from '../../dtos';
 
 export interface ErrorResponse {

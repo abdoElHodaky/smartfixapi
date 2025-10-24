@@ -8,7 +8,7 @@
 import 'reflect-metadata';
 import { Container } from '@decorators/di';
 import { optimizedServiceRegistry, OptimizedServiceRegistry } from '../services/ServiceRegistry.optimized';
-import { devMetricsCollector, DevMetricsCollector } from '../utils/performance/DevMetrics';
+import { devMetricsCollector } from '../utils/performance/DevMetrics';
 import { 
   IAuthService, 
   IUserService, 
