@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
 
 export interface CustomError extends Error {
   statusCode?: number;
@@ -13,7 +12,7 @@ export const errorHandler = (
   err: CustomError,
   req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ): void => {
   let error = { ...err };
   error.message = err.message;

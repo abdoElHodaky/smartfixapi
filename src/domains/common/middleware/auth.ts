@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../types';
 import { User } from '../models/User';
@@ -146,4 +146,3 @@ export const requireProviderVerification = (req: AuthRequest, res: Response, nex
   // Additional provider verification logic can be added here
   next();
 };
-

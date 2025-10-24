@@ -10,7 +10,7 @@
  */
 
 // External imports
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 
 // Internal imports
 import { AuthRequest } from './types';
@@ -132,4 +132,3 @@ export abstract class BaseController {
     return true;
   }
 }
-
