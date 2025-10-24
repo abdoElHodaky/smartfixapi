@@ -261,7 +261,7 @@ export class TestAssertions {
   /**
    * Assert success response
    */
-  static assertSuccessResponse(response: any, statusCode: number = 200) {
+  static assertSuccessResponse(response: any, statusCode = 200) {
     expect(response.status).toBe(statusCode);
     expect(response.body).toBeDefined();
   }

@@ -449,7 +449,7 @@ export class GenerateReportHandler implements ICommandHandler<GenerateReportComm
         adminId: command.payload.adminId
       };
 
-      reportData = await reportStrategies.execute(command.payload.reportType, reportInput);
+      const reportData = await reportStrategies.execute(command.payload.reportType, reportInput);
 
       // Create event
       const event = new ReportGeneratedEvent(

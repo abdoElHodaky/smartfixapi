@@ -4,14 +4,14 @@
  * Integration tests for the AuthController testing the full request/response cycle.
  */
 
-import { jest, describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
+import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
+import bcrypt from 'bcrypt';
 
 // Import test utilities
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDatabase';
-import { createTestUser, createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
-import { testConfig } from '../config/testConfig';
+import { createTestDTOs, resetFakerSeed } from '../utils/testDataFactory';
 
 // Import the application and dependencies
 import { User } from '../../models/User';
@@ -185,7 +185,7 @@ describe('AuthController Integration Tests', () => {
       // Create user first
       const user = await User.create({
         ...userData,
-        password: await require('bcrypt').hash(password, 10),
+        password: await bcrypt.hash(password, 10),
         isEmailVerified: true,
         isActive: true
       });
@@ -213,7 +213,7 @@ describe('AuthController Integration Tests', () => {
       // Create user
       await User.create({
         ...userData,
-        password: await require('bcrypt').hash('correctpassword', 10),
+        password: await bcrypt.hash('correctpassword', 10),
         isEmailVerified: true,
         isActive: true
       });
@@ -251,7 +251,7 @@ describe('AuthController Integration Tests', () => {
       // Create inactive user
       await User.create({
         ...userData,
-        password: await require('bcrypt').hash(password, 10),
+        password: await bcrypt.hash(password, 10),
         isEmailVerified: true,
         isActive: false
       });
@@ -277,7 +277,7 @@ describe('AuthController Integration Tests', () => {
       // Create user with unverified email
       await User.create({
         ...userData,
-        password: await require('bcrypt').hash(password, 10),
+        password: await bcrypt.hash(password, 10),
         isEmailVerified: false,
         isActive: true
       });
@@ -304,9 +304,9 @@ describe('AuthController Integration Tests', () => {
       const userData = createTestDTOs.userRegistration({ password: oldPassword });
       
       // Create user
-      const user = await User.create({
+      await User.create({
         ...userData,
-        password: await require('bcrypt').hash(oldPassword, 10),
+        password: await bcrypt.hash(oldPassword, 10),
         isEmailVerified: true,
         isActive: true
       });
@@ -345,7 +345,7 @@ describe('AuthController Integration Tests', () => {
       // Create user
       await User.create({
         ...userData,
-        password: await require('bcrypt').hash(password, 10),
+        password: await bcrypt.hash(password, 10),
         isEmailVerified: true,
         isActive: true
       });
@@ -392,7 +392,7 @@ describe('AuthController Integration Tests', () => {
       // Create user
       await User.create({
         ...userData,
-        password: await require('bcrypt').hash(password, 10),
+        password: await bcrypt.hash(password, 10),
         isEmailVerified: true,
         isActive: true
       });
@@ -433,7 +433,7 @@ describe('AuthController Integration Tests', () => {
       // Create user
       await User.create({
         ...userData,
-        password: await require('bcrypt').hash(password, 10),
+        password: await bcrypt.hash(password, 10),
         isEmailVerified: true,
         isActive: true
       });
@@ -473,7 +473,7 @@ describe('AuthController Integration Tests', () => {
       // Create user with unverified email
       const user = await User.create({
         ...userData,
-        password: await require('bcrypt').hash('password', 10),
+        password: await bcrypt.hash('password', 10),
         isEmailVerified: false,
         isActive: true
       });
@@ -496,7 +496,7 @@ describe('AuthController Integration Tests', () => {
       // Create user with verified email
       const user = await User.create({
         ...userData,
-        password: await require('bcrypt').hash('password', 10),
+        password: await bcrypt.hash('password', 10),
         isEmailVerified: true,
         isActive: true
       });

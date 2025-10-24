@@ -7,11 +7,11 @@
 import { jest } from '@jest/globals';
 
 export const mockBcrypt = {
-  hash: jest.fn<(password: string, saltRounds: number) => Promise<string>>().mockImplementation((password: string, saltRounds: number) => {
+  hash: jest.fn<(password: string, saltRounds: number) => Promise<string>>().mockImplementation((_password: string, saltRounds: number) => {
     return Promise.resolve(`$2b$${saltRounds}$hashedpassword`);
   }),
   
-  compare: jest.fn<(password: string, hash: string) => Promise<boolean>>().mockImplementation((password: string, hash: string) => {
+  compare: jest.fn<(password: string, hash: string) => Promise<boolean>>().mockImplementation((_password: string, _hash: string) => {
     return Promise.resolve(true);
   }),
   

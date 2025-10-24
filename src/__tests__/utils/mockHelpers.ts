@@ -279,7 +279,7 @@ export const createMockNext = () => jest.fn();
 /**
  * Mock external API responses
  */
-export const createMockApiResponse = (data: any = {}, status: number = 200) => ({
+export const createMockApiResponse = (data: any = {}, status = 200) => ({
   data,
   status,
   statusText: 'OK',

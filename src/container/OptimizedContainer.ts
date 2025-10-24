@@ -8,7 +8,7 @@
 import 'reflect-metadata';
 import { Container } from '@decorators/di';
 import { optimizedServiceRegistry, OptimizedServiceRegistry } from '../services/ServiceRegistry.optimized';
-import { devMetricsCollector, DevMetricsCollector } from '../utils/performance/DevMetrics';
+import { devMetricsCollector } from '../utils/performance/DevMetrics';
 import { 
   IAuthService, 
   IUserService, 
@@ -34,7 +34,7 @@ export class OptimizedContainer {
   private container: Container;
   private config: ContainerConfig;
   private optimizedRegistry: OptimizedServiceRegistry;
-  private initialized: boolean = false;
+  private initialized = false;
 
   private constructor(config: Partial<ContainerConfig> = {}) {
     this.config = {
